@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { can, type ModuleKey } from "@/lib/auth/permissions";
+import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
 import {
   Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpenText, CalendarDays,
   ChevronDown, ChevronRight, CircleHelp, Command, ContactRound, FileCheck2,
@@ -35,6 +37,12 @@ const utilityNav: NavItem[] = [
   { label: "Riwayat Aktivitas", icon: Activity },
 ];
 const allModules = [...primaryNav, ...financeNav, ...workspaceNav, ...utilityNav];
+const moduleByLabel: Record<string, ModuleKey> = {
+  "Beranda": "dashboard", "Keanggotaan": "members", "Struktur": "structure", "Kegiatan": "events",
+  "Uang Keseluruhan": "general_finance", "Keuangan": "general_finance", "Uang Kas Bulanan": "monthly_dues",
+  "Surat & Dokumen": "letters", "Pengumuman": "announcements", "Dokumentasi": "media", "Laporan": "reports",
+  "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity",
+};
 
 function NavGroup({ title, items, active, onSelect }: {
   title: string; items: NavItem[]; active: string; onSelect: (label: string) => void;
@@ -42,7 +50,7 @@ function NavGroup({ title, items, active, onSelect }: {
   return (
     <div className="nav-group">
       <p className="nav-caption">{title}</p>
-      {items.map(({ label, icon: Icon }) => (
+      {items.filter((item) => can(role, moduleByLabel[item.label])).map(({ label, icon: Icon }) => (
         <button key={label} className={`nav-link ${active === label ? "active" : ""}`} onClick={() => onSelect(label)}>
           <Icon size={18} strokeWidth={1.8} />
           <span>{label}</span>
@@ -64,13 +72,13 @@ function EmptyModule({ name }: { name: string }) {
   );
 }
 
-export function DashboardHomeClient() {
+export function DashboardHomeClient({ role }: { role: AppRole }) {
   const router = useRouter();
   const [active, setActive] = useState("Beranda");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const searchResults = search.trim() ? allModules.filter((item) => item.label.toLowerCase().includes(search.trim().toLowerCase())) : [];
+  const searchResults = search.trim() ? allModules.filter((item) => can(role, moduleByLabel[item.label]) && item.label.toLowerCase().includes(search.trim().toLowerCase())) : [];
 
   const chooseModule = (label: string) => {
     setActive(label);
@@ -108,16 +116,16 @@ export function DashboardHomeClient() {
           <ChevronDown size={16} />
         </div>
         <nav className="sidebar-nav" aria-label="Navigasi utama">
-          <NavGroup title="MENU UTAMA" items={primaryNav} active={active} onSelect={chooseModule} />
-          <NavGroup title="KEUANGAN" items={financeNav} active={active} onSelect={chooseModule} />
-          <NavGroup title="ADMINISTRASI" items={workspaceNav} active={active} onSelect={chooseModule} />
-          <NavGroup title="PUSAT INFORMASI" items={utilityNav} active={active} onSelect={chooseModule} />
+          <NavGroup title="MENU UTAMA" items={primaryNav} active={active} role={role} onSelect={chooseModule} />
+          <NavGroup title="KEUANGAN" items={financeNav} active={active} role={role} onSelect={chooseModule} />
+          <NavGroup title="ADMINISTRASI" items={workspaceNav} active={active} role={role} onSelect={chooseModule} />
+          <NavGroup title="PUSAT INFORMASI" items={utilityNav} active={active} role={role} onSelect={chooseModule} />
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><div className="help-icon"><CircleHelp size={17} /></div><div><strong>Butuh bantuan?</strong><span>Pusat panduan penggunaan</span></div><ChevronRight size={15} /></div>
           <div className="profile-row">
             <div className="profile-avatar">KP</div>
-            <div className="profile-copy"><strong>Pengurus</strong><span>Perlu masuk untuk melanjutkan</span></div>
+            <div className="profile-copy"><strong>{ROLE_LABELS[role]}</strong><span>Akun pengurus aktif</span></div>
             <MoreHorizontal size={19} />
           </div>
         </div>
@@ -163,7 +171,7 @@ export function DashboardHomeClient() {
                 <section className="panel-card quick-panel">
                   <div className="panel-heading"><div><p className="eyebrow">AKSES CEPAT</p><h3>Mulai dari sini</h3></div><span className="panel-count">04</span></div>
                   <div className="quick-list">
-                    <button onClick={() => chooseModule("Keanggotaan")}><span className="quick-icon q-blue"><UsersRound size={18} /></span><span><strong>Kelola anggota</strong><small>Data dan kelengkapan anggota</small></span><ChevronRight size={16} /></button>
+                    {can(role, "members") && <button onClick={() => chooseModule("Keanggotaan")}><span className="quick-icon q-blue"><UsersRound size={18} /></span><span><strong>Kelola anggota</strong><small>Data dan kelengkapan anggota</small></span><ChevronRight size={16} /></button>
                     <button onClick={() => chooseModule("Kegiatan")}><span className="quick-icon q-cyan"><CalendarDays size={18} /></span><span><strong>Ruang kegiatan</strong><small>Program dan kepanitiaan</small></span><ChevronRight size={16} /></button>
                     <button onClick={() => chooseModule("Uang Kas Bulanan")}><span className="quick-icon q-pink"><HandCoins size={18} /></span><span><strong>Kas bulanan</strong><small>Pencatatan pembayaran anggota</small></span><ChevronRight size={16} /></button>
                     <button onClick={() => chooseModule("Inbox")}><span className="quick-icon q-orange"><Inbox size={18} /></span><span><strong>Public inbox</strong><small>Pesan dari masyarakat</small></span><ChevronRight size={16} /></button>
@@ -171,7 +179,7 @@ export function DashboardHomeClient() {
                 </section>
               </div>
 
-              <section className="notice-strip"><div className="notice-symbol"><FileCheck2 size={19} /></div><div><strong>Fondasi sistem sedang disiapkan</strong><span>Data, autentikasi, dan kontrol akses akan diaktifkan setelah konfigurasi backend diselesaikan.</span></div><span className="notice-status">TAHAP 01</span></section>
+              <section className="notice-strip"><div className="notice-symbol"><FileCheck2 size={19} /></div><div><strong>Fondasi sistem sedang disiapkan</strong><span>Data, autentikasi, dan kontrol akses akan diaktifkan setelah konfigurasi backend diselesaikan.</span></div><span className="notice-status">BUILD IN PROGRESS</span></section>
             </>
           ) : (
             <div className="module-view">
