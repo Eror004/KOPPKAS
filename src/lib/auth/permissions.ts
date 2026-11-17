@@ -26,7 +26,7 @@ const permissions: Record<AppRole, Partial<Record<ModuleKey, PermissionAction[]>
   },
   sekretaris: {
     dashboard: ["read"], members: ["read", "create", "update", "delete"], structure: ["read", "create", "update", "delete"],
-    events: ["read", "create", "update"], monthly_dues: ["create"], letters: ["read", "create", "update"],
+    events: ["read", "create", "update"], monthly_dues: ["read", "create"], letters: ["read", "create", "update"],
     announcements: ["read", "create", "update"], media: ["read", "create", "update"], reports: ["read"],
     notifications: ["read", "update"], inbox: ["read"],
   },
