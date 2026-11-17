@@ -13,6 +13,7 @@ const approvals = migration("20261117000500_approval_guards.sql");
 const inlineDues = migration("20261117000800_inline_dues_member_and_letter_submit.sql");
 const opening = migration("20261117000900_opening_balance_and_balance_view.sql");
 const hardening = migration("20261117001000_access_hardening.sql");
+const publicEvents = migration("20261117001100_public_events.sql");
 
 test("finance uses exact numeric precision and source-level idempotency", () => {
   assert.match(core, /amount numeric\(15,2\)/);
@@ -90,4 +91,13 @@ test("member deletion requires archive reason and hard delete is revoked", () =>
 test("notifications can only be marked read by recipients", () => {
   assert.match(hardening, /grant update \(read_at\) on public\.notifications to authenticated/);
   assert.match(core, /notifications_update_own/);
+});
+
+test("letter sequence and opening-balance tables are protected by RLS", () => {
+  assert.match(numbering, /alter table public\.letter_year_sequences enable row level security/);
+  assert.match(opening, /alter table public\.general_ledger_opening_balances enable row level security/);
+});
+
+test("public event listings expose only approved statuses", () => {
+  assert.match(publicEvents, /status in \('terbit','berlangsung','menunggu_laporan','selesai'\)/);
 });
