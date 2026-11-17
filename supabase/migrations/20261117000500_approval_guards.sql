@@ -136,7 +136,7 @@ begin
 
   return new;
 end
-$;
+$$;
 
 create trigger guard_letter_transitions
 before update on public.official_letters
