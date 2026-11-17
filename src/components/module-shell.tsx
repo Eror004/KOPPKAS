@@ -9,7 +9,6 @@ const navigation = [
   { href: "/dashboard/uang-kas-bulanan", label: "Kas Bulanan", icon: HandCoins },
   { href: "/dashboard/keuangan", label: "Keuangan", icon: Landmark },
   { href: "/dashboard/surat-dokumen", label: "Surat", icon: FileText },
-{ href: "/dashboard/surat-dokumen", label: "Surat", icon: FileText },
   { href: "/dashboard/pengumuman", label: "Pengumuman", icon: Megaphone },
   { href: "/dashboard/dokumentasi", label: "Dokumentasi", icon: FolderKanban },
   { href: "/dashboard/laporan", label: "Laporan", icon: BookOpenText },
