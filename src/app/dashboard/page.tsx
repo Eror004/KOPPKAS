@@ -4,6 +4,6 @@ import { DashboardHomeClient } from "@/components/dashboard-home-client";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  await requireUser();
-  return <DashboardHomeClient />;
+  const user = await requireUser();
+  return <DashboardHomeClient role={user.role} />;
 }
