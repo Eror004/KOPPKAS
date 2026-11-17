@@ -3,6 +3,8 @@ import { ArrowUpRight, HandCoins, Landmark, Wallet } from "lucide-react";
 import { ModuleShell } from "@/components/module-shell";
 import { requireModulePermission } from "@/lib/auth/require-role";
 
+export const dynamic = "force-dynamic";
+
 export default async function FinanceHubPage() {
   await requireModulePermission("general_finance", "read");
   return (
