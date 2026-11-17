@@ -117,3 +117,53 @@ h1,h2,h3,p{margin-top:0}
 .search-results button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 8px;border:0;border-radius:6px;background:#fff;text-align:left;color:#456176;font-size:10px}
 .search-results button:hover{background:#f0f7fb;color:var(--blue)}
 .search-results p{padding:7px 8px;margin:0;color:#899aa7;font-size:10px}
+
+/* Authentication and public contact surfaces */
+.login-shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);background:#fff}
+.login-aside{position:relative;min-height:100vh;padding:38px clamp(30px,6vw,90px);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#0876b9;color:#fff}
+.login-aside:after{content:"";position:absolute;width:480px;height:480px;border:1px solid #ffffff24;border-radius:50%;right:-170px;bottom:-210px;box-shadow:0 0 0 48px #ffffff0a,0 0 0 96px #ffffff08}
+.login-brand{display:flex;align-items:center;gap:11px;font:800 17px 'Manrope',sans-serif;letter-spacing:.08em}
+.login-brand span{width:41px;height:41px;border:1px solid #ffffff55;border-radius:11px;display:grid;place-items:center}
+.login-message{position:relative;z-index:1;max-width:550px;margin:70px 0}
+.login-message .eyebrow{color:#c8e8fa}
+.login-message h1{font:800 clamp(42px,5.3vw,70px)/1.05 'Manrope',sans-serif;letter-spacing:-.065em;margin:16px 0}
+.login-message h1 em{font-style:normal;color:#c8e8fa}
+.login-message>p:last-child{max-width:390px;color:#d6effb;font-size:14px;line-height:1.8}
+.login-aside-foot{position:relative;z-index:1;font:10px 'DM Mono',monospace;letter-spacing:.1em;color:#c8e8fa}
+.login-main{display:grid;place-items:center;padding:40px 26px}
+.login-form{width:min(100%,390px)}
+.login-lock{width:47px;height:47px;border:1px solid #dceaf2;border-radius:13px;background:#f1f8fc;color:var(--blue);display:grid;place-items:center;margin-bottom:25px}
+.login-form .eyebrow{margin-bottom:8px}
+.login-form h2{font:800 30px 'Manrope',sans-serif;letter-spacing:-.045em;margin:0}
+.login-intro{color:#7d91a0;font-size:12px;line-height:1.7;margin:9px 0 27px}
+.login-form label,.contact-form label{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;color:#466176;font-size:11px;font-weight:700}
+.login-form input,.contact-form input,.contact-form select,.contact-form textarea{width:100%;border:1px solid #dce7ee;border-radius:8px;background:#fff;color:#1d3a50;padding:12px 13px;outline:none;font-size:12px;font-weight:400;transition:border-color .18s ease,box-shadow .18s ease}
+.login-form input:focus,.contact-form input:focus,.contact-form select:focus,.contact-form textarea:focus{border-color:#1687c5;box-shadow:0 0 0 3px #1687c51c}
+.login-form input::placeholder,.contact-form input::placeholder,.contact-form textarea::placeholder{color:#a2b0ba}
+.login-form>button,.contact-form>button{width:100%;height:45px;display:flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:8px;background:#0876b9;color:#fff;font-size:12px;font-weight:700;transition:background .18s ease,transform .18s ease}
+.login-form>button:hover,.contact-form>button:hover{background:#075b91}
+.login-form>button:active,.contact-form>button:active{transform:translateY(1px)}
+.login-form>button:disabled,.contact-form>button:disabled{opacity:.65;cursor:wait}
+.login-error,.contact-error{padding:10px 12px;border-radius:7px;background:#fff1f0;color:#b42318;font-size:11px;line-height:1.5}
+.login-foot{margin:17px 0 0;text-align:center;color:#93a2ad;font-size:10px}
+.contact-shell{min-height:100vh;background:#f4f8fb;color:var(--ink)}
+.contact-header{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,6vw,88px);background:#fff;border-bottom:1px solid var(--line)}
+.contact-header a{display:flex;align-items:center;gap:8px;color:#0876b9;text-decoration:none;font:800 14px 'Manrope',sans-serif;letter-spacing:.06em}
+.contact-header>span,.contact-footer{font:9px 'DM Mono',monospace;letter-spacing:.12em;color:#8ca0ad}
+.contact-content{max-width:760px;margin:0 auto;padding:72px 24px 80px}
+.contact-content>.eyebrow{margin-bottom:14px}
+.contact-content h1{font:800 clamp(38px,6vw,62px)/1.05 'Manrope',sans-serif;letter-spacing:-.06em;margin:0}
+.contact-content h1 span{color:#0876b9}
+.contact-lead{max-width:570px;color:#718797;font-size:13px;line-height:1.8;margin:17px 0 32px}
+.contact-form{padding:27px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.contact-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.contact-form textarea{resize:vertical;min-height:130px}
+.contact-honeypot{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.contact-privacy{color:#93a2ad;font-size:10px;line-height:1.6;margin:12px 0 0}
+.contact-success{padding:27px;background:#fff;border:1px solid #cde8d8;border-radius:12px;color:#26734a}
+.contact-success h2{font:800 21px 'Manrope',sans-serif;color:#173d2b;margin:13px 0 6px}
+.contact-success p{font-size:12px;color:#688575;line-height:1.7}
+.contact-success button{border:0;background:#eaf6ef;color:#26734a;padding:10px 13px;border-radius:7px;font-size:11px;font-weight:700}
+.contact-footer{text-align:center;padding:20px;border-top:1px solid #e4edf3}
+@media(max-width:760px){.login-shell{grid-template-columns:1fr}.login-aside{min-height:auto;padding:23px 24px 25px}.login-message{margin:55px 0 36px}.login-message h1{font-size:43px}.login-message>p:last-child{font-size:12px}.login-aside-foot{font-size:8px}.login-main{padding:45px 24px 55px}.contact-content{padding:48px 17px 58px}.contact-form{padding:18px}.contact-form-grid{grid-template-columns:1fr;gap:0}.contact-header{height:59px}.contact-header>span{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.login-form input,.contact-form input,.contact-form select,.contact-form textarea,.login-form>button,.contact-form>button{transition:none}}
