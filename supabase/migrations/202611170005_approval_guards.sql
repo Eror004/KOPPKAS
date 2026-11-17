@@ -13,11 +13,11 @@ begin
 
   if new.status is distinct from old.status then
     if new.status in ('terbit', 'dibatalkan')
-       and role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
+       and (role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda')) then
       raise exception 'Only Ketua or Wakil Ketua may publish or cancel an event' using errcode = '42501';
     end if;
     if new.status = 'selesai'
-       and role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda', 'bendahara') then
+       and (role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda', 'bendahara')) then
       raise exception 'Only authorized approvers may finalize an event' using errcode = '42501';
     end if;
   end if;
@@ -63,7 +63,7 @@ begin
 
   if new.status is distinct from old.status then
     if new.status in ('terbit', 'dibatalkan')
-       and role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
+       and (role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda')) then
       raise exception 'Only Ketua or Wakil Ketua may publish or cancel an official letter' using errcode = '42501';
     end if;
   end if;
