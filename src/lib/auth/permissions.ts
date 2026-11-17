@@ -10,7 +10,7 @@ export type PermissionAction = "read" | "create" | "update" | "delete" | "approv
 
 const permissions: Record<AppRole, Partial<Record<ModuleKey, PermissionAction[]>>> = {
   ketua_pemuda: {
-    dashboard: ["read"], members: ["read", "create", "update", "delete"], structure: ["read", "create", "update", "delete"],
+    dashboard: ["read"], members: ["read"], structure: ["read", "create", "update", "delete"],
     events: ["read", "create", "update", "delete", "approve"], general_finance: ["read", "create", "update"],
     monthly_dues: ["read", "create", "update"], event_finance: ["read", "create", "update", "approve"],
     letters: ["read", "create", "update", "approve"], announcements: ["read", "create", "update", "delete"],
