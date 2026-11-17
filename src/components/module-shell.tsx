@@ -1,14 +1,19 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Command, FileText, HandCoins, House, Inbox, Landmark, Megaphone, UsersRound } from "lucide-react";
+import { Activity, ArrowLeft, BookOpenText, CalendarDays, Command, ContactRound, FileText, FolderKanban, HandCoins, House, Inbox, Landmark, Megaphone, UsersRound } from "lucide-react";
 
 const navigation = [
   { href: "/", label: "Beranda", icon: House },
   { href: "/dashboard/keanggotaan", label: "Anggota", icon: UsersRound },
+  { href: "/dashboard/struktur", label: "Struktur", icon: ContactRound },
   { href: "/dashboard/kegiatan", label: "Kegiatan", icon: CalendarDays },
   { href: "/dashboard/uang-kas-bulanan", label: "Kas Bulanan", icon: HandCoins },
   { href: "/dashboard/keuangan", label: "Keuangan", icon: Landmark },
   { href: "/dashboard/surat-dokumen", label: "Surat", icon: FileText },
+{ href: "/dashboard/surat-dokumen", label: "Surat", icon: FileText },
   { href: "/dashboard/pengumuman", label: "Pengumuman", icon: Megaphone },
+  { href: "/dashboard/dokumentasi", label: "Dokumentasi", icon: FolderKanban },
+  { href: "/dashboard/laporan", label: "Laporan", icon: BookOpenText },
+  { href: "/dashboard/riwayat-aktivitas", label: "Aktivitas", icon: Activity },
   { href: "/dashboard/inbox", label: "INBOX", icon: Inbox },
 ];
 
