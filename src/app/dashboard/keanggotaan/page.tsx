@@ -1,3 +1,4 @@
+import { ModuleShell } from "@/components/module-shell";
 import { UsersRound } from "lucide-react";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
@@ -20,7 +21,7 @@ export default async function MembersPage() {
   const incomplete = members.filter((member) => !member.gender);
 
   return (
-    <main className="module-page">
+    <ModuleShell title="Keanggotaan"><main className="module-page">
       <div className="module-page-head"><div><p className="eyebrow">ORGANIZATION DIRECTORY</p><h1>Keanggotaan</h1><p>Kelola data anggota dalam satu direktori organisasi.</p></div><div className="module-total"><UsersRound size={19} /><strong>{members.length}</strong><span>ANGGOTA AKTIF</span></div></div>
       {error && <div className="module-alert" role="alert">Data anggota belum dapat dimuat. Pastikan database KOPPKAS sudah disiapkan.</div>}
       <div className="member-summary">
@@ -29,7 +30,7 @@ export default async function MembersPage() {
         <section className="member-group incomplete"><div className="member-group-head"><span className="member-group-icon"><UsersRound size={18} /></span><div><h2>Belum dilengkapi</h2><p>Anggota yang dibuat melalui pencatatan kas</p></div><strong>{incomplete.length}</strong></div><MemberRows members={incomplete} /></section>
       </div>
       {user.role === "sekretaris" && <MemberForm />}
-    </main>
+    </main></ModuleShell>
   );
 }
 
