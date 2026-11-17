@@ -1,0 +1,11 @@
+{
+  "name": "KOPPKAS — Ruang Kerja Organisasi",
+  "short_name": "KOPPKAS",
+  "description": "Pusat kendali organisasi Pemuda Kampung Sawah Kaum.",
+  "lang": "id",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f8fb",
+  "theme_color": "#0876b9",
+  "icons": []
+}
