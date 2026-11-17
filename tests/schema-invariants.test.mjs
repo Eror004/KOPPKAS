@@ -5,13 +5,13 @@ import { join } from "node:path";
 
 const migration = (name) => readFileSync(join(process.cwd(), "supabase/migrations", name), "utf8");
 
-const core = migration("202611170001_core_schema.sql");
-const numbering = migration("202611170002_letter_numbering_and_inbox.sql");
-const dues = migration("202611170003_dues_and_event_workflows.sql");
-const grants = migration("202611170004_api_grants_and_audit.sql");
-const approvals = migration("202611170005_approval_guards.sql");
-const inlineDues = migration("202611170008_inline_dues_member_and_letter_submit.sql");
-const opening = migration("202611170009_opening_balance_and_balance_view.sql");
+const core = migration("20261117000100_core_schema.sql");
+const numbering = migration("20261117000200_letter_numbering_and_inbox.sql");
+const dues = migration("20261117000300_dues_and_event_workflows.sql");
+const grants = migration("20261117000400_api_grants_and_audit.sql");
+const approvals = migration("20261117000500_approval_guards.sql");
+const inlineDues = migration("20261117000800_inline_dues_member_and_letter_submit.sql");
+const opening = migration("20261117000900_opening_balance_and_balance_view.sql");
 
 test("finance uses exact numeric precision and source-level idempotency", () => {
   assert.match(core, /amount numeric\(15,2\)/);
