@@ -69,6 +69,9 @@ begin
   if new.status = 'dibatalkan' and nullif(trim(new.cancellation_reason), '') is null then
     raise exception 'Cancellation reason is required' using errcode = '22023';
   end if;
+  if new.status = 'dibatalkan' and (new.cancelled_by is null or new.cancelled_at is null) then
+    raise exception 'Event cancellation metadata is required' using errcode = '22023';
+  end if;
 
   return new;
 end
