@@ -13,11 +13,11 @@ begin
 
   if new.status is distinct from old.status then
     if new.status in ('terbit', 'dibatalkan')
-       and role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
+       and role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
       raise exception 'Only Ketua or Wakil Ketua may publish or cancel an event' using errcode = '42501';
     end if;
     if new.status = 'selesai'
-       and role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda', 'bendahara') then
+       and role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda', 'bendahara') then
       raise exception 'Only authorized approvers may finalize an event' using errcode = '42501';
     end if;
   end if;
@@ -28,7 +28,7 @@ begin
      or new.cancelled_at is distinct from old.cancelled_at
      or new.final_report_approved_by is distinct from old.final_report_approved_by
      or new.final_report_approved_at is distinct from old.final_report_approved_at then
-    if role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda', 'bendahara') then
+    if role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda', 'bendahara') then
       raise exception 'Not authorized to change event approval metadata' using errcode = '42501';
     end if;
   end if;
@@ -63,14 +63,14 @@ begin
 
   if new.status is distinct from old.status then
     if new.status in ('terbit', 'dibatalkan')
-       and role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
+       and role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
       raise exception 'Only Ketua or Wakil Ketua may publish or cancel an official letter' using errcode = '42501';
     end if;
   end if;
 
   if new.cancelled_by is distinct from old.cancelled_by
      or new.cancelled_at is distinct from old.cancelled_at then
-    if role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
+    if role_now is null or role_now not in ('ketua_pemuda', 'wakil_ketua_pemuda') then
       raise exception 'Only Ketua or Wakil Ketua may cancel an official letter' using errcode = '42501';
     end if;
   end if;
