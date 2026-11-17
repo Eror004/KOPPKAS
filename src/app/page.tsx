@@ -77,6 +77,7 @@ export default function HomePage() {
     setMobileOpen(false);
     const routes: Record<string, string> = {
       "Keanggotaan": "/dashboard/keanggotaan",
+      "Struktur": "/dashboard/struktur",
       "Kegiatan": "/dashboard/kegiatan",
       "Uang Keseluruhan": "/dashboard/keuangan",
       "Uang Kas Bulanan": "/dashboard/uang-kas-bulanan",
@@ -84,6 +85,9 @@ export default function HomePage() {
       "Notifikasi": "/dashboard/notifikasi",
       "Surat & Dokumen": "/dashboard/surat-dokumen",
       "Pengumuman": "/dashboard/pengumuman",
+      "Dokumentasi": "/dashboard/dokumentasi",
+      "Laporan": "/dashboard/laporan",
+      "Riwayat Aktivitas": "/dashboard/riwayat-aktivitas",
     };
     if (routes[label]) router.push(routes[label]);
   };
