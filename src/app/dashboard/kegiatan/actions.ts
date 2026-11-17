@@ -15,7 +15,7 @@ export async function createEvent(_previous: EventActionState, formData: FormDat
 
   if (title.length < 3 || title.length > 160) return { error: "Nama kegiatan harus berisi 3–160 karakter." };
   if (description.length > 5000 || location.length > 180) return { error: "Deskripsi atau lokasi terlalu panjang." };
-  const date = startsAt ? new Date(startsAt) : null;
+  const date = startsAt ? new Date(`${startsAt}:00+07:00`) : null;
   if (date && Number.isNaN(date.getTime())) return { error: "Tanggal kegiatan tidak valid." };
 
   const supabase = await createClient();
