@@ -53,6 +53,18 @@ The migrations include:
 - Event surplus transfer guard and annual continuous official-letter numbering.
 - October 2026 closing balance Rp205,000 carried as a November opening snapshot, not as a new income transaction.
 
+## Implemented application areas
+
+- Public homepage, published event listing, public contact form, and published-letter verification.
+- Role-filtered dashboard navigation and server-side module permission checks.
+- Member directory split by gender, incomplete-member list, and separate direct/inline member creation paths.
+- Monthly dues register, partial/multiple payment recording, idempotent posting to the overall ledger, and canonical balance view.
+- Event workspace, independent event ledger, and surplus-transfer closeout function.
+- Official-letter draft creation with annual sequence allocation and approval transition guards.
+- Announcement drafts, INBOX read view, realtime notification fan-out, and notification read state.
+- Audit log triggers and metadata-only changed-field capture.
+- PWA manifest and service worker that caches static assets only.
+
 ## Current implementation boundaries
 
 - Public contact submission and published-letter verification routes are implemented in source.
@@ -62,6 +74,6 @@ The migrations include:
 - Media metadata UI exists; Storage buckets and file upload policies are not configured yet.
 - Supabase migrations are source files only. No database project was created or modified in this implementation.
 - No deployment has been performed.
-- CI workflow is committed, but a successful Actions run has not yet been observed.
+- CI run `44096850743` completed successfully on 17 November 2026: schema tests, TypeScript, ESLint, and production build all passed.
 
 Do not use the application for real finance or organization operations until a dedicated Supabase project is connected, migrations are reviewed/applied, admin accounts are provisioned, and runtime tests pass.
