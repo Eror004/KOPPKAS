@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Command, HandCoins, House, Inbox, Landmark, UsersRound } from "lucide-react";
+import { ArrowLeft, CalendarDays, Command, FileText, HandCoins, House, Inbox, Landmark, Megaphone, UsersRound } from "lucide-react";
 
 const navigation = [
   { href: "/", label: "Beranda", icon: House },
@@ -7,6 +7,8 @@ const navigation = [
   { href: "/dashboard/kegiatan", label: "Kegiatan", icon: CalendarDays },
   { href: "/dashboard/uang-kas-bulanan", label: "Kas Bulanan", icon: HandCoins },
   { href: "/dashboard/keuangan", label: "Keuangan", icon: Landmark },
+  { href: "/dashboard/surat-dokumen", label: "Surat", icon: FileText },
+  { href: "/dashboard/pengumuman", label: "Pengumuman", icon: Megaphone },
   { href: "/dashboard/inbox", label: "INBOX", icon: Inbox },
 ];
 
