@@ -34,7 +34,7 @@ export async function generateMonthlyRegister(_previous: DuesActionState, _formD
   return { success: "Daftar kas bulan berjalan berhasil disiapkan." };
 }
 
-export async function recordDuesPayment(formData: FormData) {
+export async function recordDuesPayment(_previous: DuesActionState, formData: FormData): Promise<DuesActionState> {
   const user = await requireModulePermission("monthly_dues", "create");
   const monthlyDuesId = String(formData.get("monthly_dues_id") ?? "");
   const amount = Number(formData.get("amount"));
@@ -42,12 +42,12 @@ export async function recordDuesPayment(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim();
 
   if (!/^[0-9a-f-]{36}$/i.test(monthlyDuesId) || !/^[0-9a-f-]{36}$/i.test(idempotencyKey)) {
-    throw new Error("Data pembayaran tidak valid.");
+    return { error: "Data pembayaran tidak valid." };
   }
   if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999999999.99) {
-    throw new Error("Nominal pembayaran harus lebih dari nol.");
+    return { error: "Nominal pembayaran harus lebih dari nol." };
   }
-  if (note.length > 500) throw new Error("Catatan terlalu panjang.");
+  if (note.length > 500) return { error: "Catatan terlalu panjang." };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("record_monthly_dues_payment", {
@@ -56,6 +56,7 @@ export async function recordDuesPayment(formData: FormData) {
     p_idempotency_key: idempotencyKey,
     p_note: note || null,
   });
-  if (error) throw new Error("Pembayaran gagal dicatat. Periksa hak akses dan koneksi database.");
+  if (error) return { error: "Pembayaran gagal dicatat. Periksa hak akses dan koneksi database." };
   revalidatePath("/dashboard/uang-kas-bulanan");
+  return { success: "Pembayaran berhasil dicatat." };
 }
