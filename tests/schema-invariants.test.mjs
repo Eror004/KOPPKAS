@@ -12,6 +12,7 @@ const grants = migration("20261117000400_api_grants_and_audit.sql");
 const approvals = migration("20261117000500_approval_guards.sql");
 const inlineDues = migration("20261117000800_inline_dues_member_and_letter_submit.sql");
 const opening = migration("20261117000900_opening_balance_and_balance_view.sql");
+const hardening = migration("20261117001000_access_hardening.sql");
 
 test("finance uses exact numeric precision and source-level idempotency", () => {
   assert.match(core, /amount numeric\(15,2\)/);
@@ -79,4 +80,14 @@ test("all core exposed tables enable row level security", () => {
     assert.match(core, new RegExp(`alter table public\\.${table} enable row level security`), table);
   }
   assert.match(grants, /grant select on public\.activity_logs to authenticated/);
+});
+
+test("member deletion requires archive reason and hard delete is revoked", () => {
+  assert.match(hardening, /members_archive_reason_required/);
+  assert.match(hardening, /revoke delete on public\.members from authenticated/);
+});
+
+test("notifications can only be marked read by recipients", () => {
+  assert.match(hardening, /grant update \(read_at\) on public\.notifications to authenticated/);
+  assert.match(core, /notifications_update_own/);
 });
