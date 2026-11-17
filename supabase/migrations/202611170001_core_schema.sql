@@ -144,9 +144,9 @@ create table public.event_surplus_transfers (
 
 create table public.official_letters (
   id uuid primary key default gen_random_uuid(),
-  letter_number text not null unique,
-  year integer not null check (year between 2000 and 2200),
-  sequence_number integer not null check (sequence_number > 0),
+  letter_number text not null default '' unique,
+  year integer not null default extract(year from now())::integer check (year between 2000 and 2200),
+  sequence_number integer not null default 0 check (sequence_number >= 0),
   subject text not null,
   body text not null,
   status text not null default 'draft' check (status in ('draft', 'menunggu_persetujuan', 'terbit', 'dibatalkan')),
@@ -369,8 +369,8 @@ for update to authenticated
 using (id = (select auth.uid()))
 with check (
   id = (select auth.uid())
-  and role is not distinct from (select p.role from public.profiles p where p.id = (select auth.uid()))
-  and is_active is not distinct from (select p.is_active from public.profiles p where p.id = (select auth.uid()))
+  and role is not distinct from app_private.current_app_role()
+  and is_active = true
 );
 
 create policy "profiles_manage_ketua" on public.profiles
