@@ -24,5 +24,5 @@ export async function signIn(_previous: LoginState, formData: FormData): Promise
     return { error: "Layanan autentikasi belum dikonfigurasi. Hubungi administrator." };
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
