@@ -1,6 +1,6 @@
 # KOPPKAS
 
-Sistem operasional organisasi Pemuda Kampung Sawah Kaum — dibangun dari nol di repository Private ini.
+Sistem operasional organisasi Pemuda Kampung Sawah Kaum — dibangun dari nol di repository Private ini. Website publik berada di `/`, sedangkan dashboard pengurus berada di `/dashboard`.
 
 ## Technology
 
@@ -31,6 +31,8 @@ Never put a Supabase secret/service-role key in browser code or a `NEXT_PUBLIC_*
 
 ## Checks
 
+GitHub Actions menjalankan test, typecheck, lint, dan production build pada push/PR ke `main` (menggunakan kuota gratis Actions yang tersedia pada akun GitHub; kuota bergantung paket).
+
 ```bash
 npm test
 npm run typecheck
@@ -60,5 +62,6 @@ The migrations include:
 - Media metadata UI exists; Storage buckets and file upload policies are not configured yet.
 - Supabase migrations are source files only. No database project was created or modified in this implementation.
 - No deployment has been performed.
+- CI workflow is committed, but a successful Actions run has not yet been observed.
 
 Do not use the application for real finance or organization operations until a dedicated Supabase project is connected, migrations are reviewed/applied, admin accounts are provisioned, and runtime tests pass.
