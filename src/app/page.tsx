@@ -5,7 +5,7 @@ import {
   Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpenText, CalendarDays,
   ChevronDown, ChevronRight, CircleHelp, Command, ContactRound, FileCheck2,
   FileText, FolderKanban, HandCoins, House, Inbox, Landmark, LayoutGrid,
-  Menu, MessageSquareText, MoreHorizontal, Plus, Search, Settings2, ShieldCheck,
+  Menu, MessageSquareText, MoreHorizontal, Search, ShieldCheck,
   UsersRound, Wallet, X
 } from "lucide-react";
 
@@ -33,6 +33,7 @@ const utilityNav: NavItem[] = [
   { label: "Notifikasi", icon: Bell },
   { label: "Riwayat Aktivitas", icon: Activity },
 ];
+const allModules = [...primaryNav, ...financeNav, ...workspaceNav, ...utilityNav];
 
 function NavGroup({ title, items, active, onSelect }: {
   title: string; items: NavItem[]; active: string; onSelect: (label: string) => void;
@@ -66,6 +67,8 @@ export default function HomePage() {
   const [active, setActive] = useState("Beranda");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
+
+  const searchResults = search.trim() ? allModules.filter((item) => item.label.toLowerCase().includes(search.trim().toLowerCase())) : [];
 
   const chooseModule = (label: string) => {
     setActive(label);
@@ -110,7 +113,7 @@ export default function HomePage() {
             <div className="breadcrumb"><span>Workspace</span><ChevronRight size={14} /><strong>{active}</strong></div>
           </div>
           <div className="topbar-actions">
-            <label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari menu..." aria-label="Cari menu" /><kbd>⌘ K</kbd></label>
+            <div className="search-wrap"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari menu..." aria-label="Cari menu" /><kbd>⌘ K</kbd></label>{search.trim() && <div className="search-results">{searchResults.length ? searchResults.map((item) => <button key={item.label} onClick={() => { chooseModule(item.label); setSearch(""); }}>{item.label}<ChevronRight size={14} /></button>) : <p>Menu tidak ditemukan</p>}</div>}</div>
             <button className="icon-button notification-button" aria-label="Notifikasi"><Bell size={19} /><i /></button>
             <div className="top-avatar">KP</div>
           </div>
