@@ -79,10 +79,11 @@ export default function HomePage() {
       "Keanggotaan": "/dashboard/keanggotaan",
       "Kegiatan": "/dashboard/kegiatan",
       "Uang Keseluruhan": "/dashboard/keuangan",
-      "Keuangan": "/dashboard/keuangan",
       "Uang Kas Bulanan": "/dashboard/uang-kas-bulanan",
       "Inbox": "/dashboard/inbox",
       "Notifikasi": "/dashboard/notifikasi",
+      "Surat & Dokumen": "/dashboard/surat-dokumen",
+      "Pengumuman": "/dashboard/pengumuman",
     };
     if (routes[label]) router.push(routes[label]);
   };
