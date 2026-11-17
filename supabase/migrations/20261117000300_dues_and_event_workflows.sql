@@ -207,6 +207,16 @@ begin
     )
     on conflict (event_id) do nothing
     returning id into transfer_id;
+
+    insert into public.event_ledger_entries (
+      event_id, direction, amount, description, created_by
+    ) values (
+      p_event_id,
+      'keluar',
+      surplus,
+      'Transfer surplus ke Uang Keseluruhan',
+      auth.uid()
+    );
   end if;
 
   return p_event_id;
