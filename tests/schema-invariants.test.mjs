@@ -55,6 +55,7 @@ test("event surplus transfer is unique per event and only positive surplus is mo
   assert.match(core, /event_id uuid not null unique references public\.events/);
   assert.match(dues, /if surplus > 0 then/);
   assert.match(dues, /'transfer_masuk'/);
+  assert.match(dues, /Transfer surplus ke Uang Keseluruhan/);
 });
 
 test("inline dues registration creates incomplete member and monthly dues in one transaction", () => {
