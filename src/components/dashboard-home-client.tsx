@@ -44,8 +44,8 @@ const moduleByLabel: Record<string, ModuleKey> = {
   "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity",
 };
 
-function NavGroup({ title, items, active, onSelect }: {
-  title: string; items: NavItem[]; active: string; onSelect: (label: string) => void;
+function NavGroup({ title, items, active, role, onSelect }: {
+  title: string; items: NavItem[]; active: string; role: AppRole; onSelect: (label: string) => void;
 }) {
   return (
     <div className="nav-group">
@@ -171,10 +171,10 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
                 <section className="panel-card quick-panel">
                   <div className="panel-heading"><div><p className="eyebrow">AKSES CEPAT</p><h3>Mulai dari sini</h3></div><span className="panel-count">04</span></div>
                   <div className="quick-list">
-                    {can(role, "members") && <button onClick={() => chooseModule("Keanggotaan")}><span className="quick-icon q-blue"><UsersRound size={18} /></span><span><strong>Kelola anggota</strong><small>Data dan kelengkapan anggota</small></span><ChevronRight size={16} /></button>
-                    <button onClick={() => chooseModule("Kegiatan")}><span className="quick-icon q-cyan"><CalendarDays size={18} /></span><span><strong>Ruang kegiatan</strong><small>Program dan kepanitiaan</small></span><ChevronRight size={16} /></button>
-                    <button onClick={() => chooseModule("Uang Kas Bulanan")}><span className="quick-icon q-pink"><HandCoins size={18} /></span><span><strong>Kas bulanan</strong><small>Pencatatan pembayaran anggota</small></span><ChevronRight size={16} /></button>
-                    <button onClick={() => chooseModule("Inbox")}><span className="quick-icon q-orange"><Inbox size={18} /></span><span><strong>Public inbox</strong><small>Pesan dari masyarakat</small></span><ChevronRight size={16} /></button>
+                    {can(role, "members", "read") && <button onClick={() => chooseModule("Keanggotaan")}><span className="quick-icon q-blue"><UsersRound size={18} /></span><span><strong>Kelola anggota</strong><small>Data dan kelengkapan anggota</small></span><ChevronRight size={16} /></button>}
+                    {can(role, "events", "read") && <button onClick={() => chooseModule("Kegiatan")}><span className="quick-icon q-cyan"><CalendarDays size={18} /></span><span><strong>Ruang kegiatan</strong><small>Program dan kepanitiaan</small></span><ChevronRight size={16} /></button>}
+                    {can(role, "monthly_dues", "read") && <button onClick={() => chooseModule("Uang Kas Bulanan")}><span className="quick-icon q-pink"><HandCoins size={18} /></span><span><strong>Kas bulanan</strong><small>Pencatatan pembayaran anggota</small></span><ChevronRight size={16} /></button>}
+                    {can(role, "inbox", "read") && <button onClick={() => chooseModule("Inbox")}><span className="quick-icon q-orange"><Inbox size={18} /></span><span><strong>Public inbox</strong><small>Pesan dari masyarakat</small></span><ChevronRight size={16} /></button>}
                   </div>
                 </section>
               </div>
