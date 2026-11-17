@@ -1,32 +1,20 @@
+import Link from "next/link";
+import { ArrowUpRight, HandCoins, Landmark, Wallet } from "lucide-react";
 import { ModuleShell } from "@/components/module-shell";
-import { Landmark } from "lucide-react";
 import { requireModulePermission } from "@/lib/auth/require-role";
-import { createClient } from "@/lib/supabase/server";
-import { formatRupiah } from "@/lib/finance/format";
 
-export const dynamic = "force-dynamic";
-
-export default async function FinancePage() {
+export default async function FinanceHubPage() {
   await requireModulePermission("general_finance", "read");
-  const supabase = await createClient();
-  const [{ data, error }, { data: balanceData }] = await Promise.all([
-    supabase.from("general_ledger_entries")
-    .select("id, occurred_at, direction, amount, description, source_type")
-    .order("occurred_at", { ascending: false })
-    .limit(100),
-    supabase.from("general_ledger_balance").select("balance").single(),
-  ]);
-
-  const entries = data ?? [];
-  const balance = Number(balanceData?.balance ?? 0);
-
   return (
-    <ModuleShell title="Uang Keseluruhan"><main className="module-page">
-      <div className="module-page-head"><div><p className="eyebrow">ORGANIZATION FINANCIAL LEDGER</p><h1>Uang Keseluruhan</h1><p>Buku kas organisasi utama. Pembayaran kas bulanan terhubung ke buku ini tepat satu kali.</p></div><div className="module-total"><Landmark size={19} /><strong>{formatRupiah(balance)}</strong><span>SALDO BERJALAN</span></div></div>
-      {error && <div className="module-alert" role="alert">Buku keuangan belum dapat dimuat. Pastikan database KOPPKAS sudah terhubung.</div>}
-      <section className="module-table-panel"><div className="module-table-heading"><div><p className="eyebrow">GENERAL LEDGER</p><h2>Riwayat transaksi</h2></div><span>100 TRANSAKSI TERBARU</span></div>
-        {entries.length ? <div className="responsive-table"><table><thead><tr><th>TANGGAL</th><th>KETERANGAN</th><th>SUMBER</th><th>ARAH</th><th>NOMINAL</th></tr></thead><tbody>{entries.map((entry) => <tr key={entry.id}><td>{new Date(entry.occurred_at).toLocaleDateString("id-ID")}</td><td>{entry.description}</td><td>{entry.source_type}</td><td>{entry.direction.replace("_", " ").toUpperCase()}</td><td>{formatRupiah(entry.amount)}</td></tr>)}</tbody></table></div> : <div className="module-empty">Belum ada transaksi. Saldo akan dihitung dari seluruh buku transaksi, bukan angka contoh.</div>}
-      </section>
-    </main></ModuleShell>
+    <ModuleShell title="Keuangan">
+      <main className="module-page">
+        <div className="module-page-head"><div><p className="eyebrow">FINANCIAL MANAGEMENT</p><h1>Keuangan</h1><p>Pusat akses pembukuan organisasi, kas bulanan, dan keuangan kegiatan yang dikelola secara terpisah.</p></div><div className="module-total"><Wallet size={19} /><strong>03</strong><span>BUKU KEUANGAN</span></div></div>
+        <div className="finance-hub-grid">
+          <Link href="/dashboard/uang-keseluruhan"><span><Landmark size={21} /></span><div><small>LEDGER UTAMA</small><strong>Uang Keseluruhan</strong><p>Saldo dan seluruh transaksi kas organisasi.</p></div><ArrowUpRight size={17} /></Link>
+          <Link href="/dashboard/uang-kas-bulanan"><span><HandCoins size={21} /></span><div><small>REGISTER ANGGOTA</small><strong>Uang Kas Bulanan</strong><p>Pembayaran sukarela anggota per bulan.</p></div><ArrowUpRight size={17} /></Link>
+          <Link href="/dashboard/keuangan-kegiatan"><span><Wallet size={21} /></span><div><small>EVENT ACCOUNTING</small><strong>Keuangan Kegiatan</strong><p>Pembukuan terpisah untuk setiap kegiatan.</p></div><ArrowUpRight size={17} /></Link>
+        </div>
+      </main>
+    </ModuleShell>
   );
 }
