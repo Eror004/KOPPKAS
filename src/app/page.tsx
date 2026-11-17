@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpenText, CalendarDays,
   ChevronDown, ChevronRight, CircleHelp, Command, ContactRound, FileCheck2,
@@ -64,6 +65,7 @@ function EmptyModule({ name }: { name: string }) {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [active, setActive] = useState("Beranda");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -73,6 +75,16 @@ export default function HomePage() {
   const chooseModule = (label: string) => {
     setActive(label);
     setMobileOpen(false);
+    const routes: Record<string, string> = {
+      "Keanggotaan": "/dashboard/keanggotaan",
+      "Kegiatan": "/dashboard/kegiatan",
+      "Uang Keseluruhan": "/dashboard/keuangan",
+      "Keuangan": "/dashboard/keuangan",
+      "Uang Kas Bulanan": "/dashboard/uang-kas-bulanan",
+      "Inbox": "/dashboard/inbox",
+      "Notifikasi": "/dashboard/notifikasi",
+    };
+    if (routes[label]) router.push(routes[label]);
   };
 
   return (
