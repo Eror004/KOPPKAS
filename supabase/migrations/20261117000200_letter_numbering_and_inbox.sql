@@ -7,6 +7,9 @@ create table public.letter_year_sequences (
   updated_at timestamptz not null default now()
 );
 
+alter table public.letter_year_sequences enable row level security;
+revoke all on public.letter_year_sequences from anon, authenticated;
+
 create or replace function app_private.next_letter_number(target_year integer)
 returns integer
 language plpgsql
