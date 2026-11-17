@@ -24,6 +24,9 @@ begin
       if role_now is null or role_now not in ('ketua_pemuda','wakil_ketua_pemuda') then
         raise exception 'Only Ketua or Wakil Ketua may publish an event' using errcode = '42501';
       end if;
+      if new.approved_by is null or new.approved_at is null then
+        raise exception 'Event publication approval metadata is required' using errcode = '22023';
+      end if;
     elsif old.status = 'terbit' and new.status = 'berlangsung' then
       if role_now is null then
         raise exception 'Active organization role required' using errcode = '42501';
@@ -104,6 +107,9 @@ begin
       if role_now is null or role_now not in ('ketua_pemuda','wakil_ketua_pemuda') then
         raise exception 'Only Ketua or Wakil Ketua may publish an official letter' using errcode = '42501';
       end if;
+      if new.approved_by is null or new.approved_at is null then
+        raise exception 'Official letter approval metadata is required' using errcode = '22023';
+      end if;
     else
       raise exception 'Invalid official letter status transition' using errcode = '22023';
     end if;
@@ -121,10 +127,13 @@ begin
   if new.status = 'dibatalkan' and nullif(trim(new.cancellation_reason), '') is null then
     raise exception 'Cancellation reason is required' using errcode = '22023';
   end if;
+  if new.status = 'dibatalkan' and (new.cancelled_by is null or new.cancelled_at is null) then
+    raise exception 'Letter cancellation metadata is required' using errcode = '22023';
+  end if;
 
   return new;
 end
-$$;
+$;
 
 create trigger guard_letter_transitions
 before update on public.official_letters
