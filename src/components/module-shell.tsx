@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowLeft, Command } from "lucide-react";
+import { ArrowLeft, CalendarDays, Command, HandCoins, House, Inbox, Landmark, UsersRound } from "lucide-react";
+
+const navigation = [
+  { href: "/", label: "Beranda", icon: House },
+  { href: "/dashboard/keanggotaan", label: "Anggota", icon: UsersRound },
+  { href: "/dashboard/kegiatan", label: "Kegiatan", icon: CalendarDays },
+  { href: "/dashboard/uang-kas-bulanan", label: "Kas Bulanan", icon: HandCoins },
+  { href: "/dashboard/keuangan", label: "Keuangan", icon: Landmark },
+  { href: "/dashboard/inbox", label: "INBOX", icon: Inbox },
+];
 
 export function ModuleShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -9,6 +18,9 @@ export function ModuleShell({ title, children }: { title: string; children: Reac
         <div className="module-shell-current">WORKSPACE <span>/</span> {title.toUpperCase()}</div>
         <Link href="/" className="module-shell-back"><ArrowLeft size={15} /> Dashboard</Link>
       </header>
+      <nav className="module-shell-nav" aria-label="Navigasi modul">
+        {navigation.map(({ href, label, icon: Icon }) => <Link href={href} key={href}><Icon size={16} /><span>{label}</span></Link>)}
+      </nav>
       {children}
       <footer className="module-shell-footer">© 2026 KOPPKAS · PEMUDA KAMPUNG SAWAH KAUM</footer>
     </div>
