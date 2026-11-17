@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Activity, ArrowLeft, BookOpenText, CalendarDays, Command, ContactRound, FileText, FolderKanban, HandCoins, House, Inbox, Landmark, Megaphone, UsersRound, Wallet } from "lucide-react";
 
 const navigation = [
-  { href: "/", label: "Beranda", icon: House },
+  { href: "/dashboard", label: "Beranda", icon: House },
   { href: "/dashboard/keanggotaan", label: "Anggota", icon: UsersRound },
   { href: "/dashboard/struktur", label: "Struktur", icon: ContactRound },
   { href: "/dashboard/kegiatan", label: "Kegiatan", icon: CalendarDays },
@@ -22,9 +22,9 @@ export function ModuleShell({ title, children }: { title: string; children: Reac
   return (
     <div className="module-shell">
       <header className="module-shell-header">
-        <Link href="/" className="module-shell-brand"><span><Command size={17} /></span><strong>KOPPKAS</strong></Link>
+        <Link href="/dashboard" className="module-shell-brand"><span><Command size={17} /></span><strong>KOPPKAS</strong></Link>
         <div className="module-shell-current">WORKSPACE <span>/</span> {title.toUpperCase()}</div>
-        <Link href="/" className="module-shell-back"><ArrowLeft size={15} /> Dashboard</Link>
+        <Link href="/dashboard" className="module-shell-back"><ArrowLeft size={15} /> Dashboard</Link>
       </header>
       <nav className="module-shell-nav" aria-label="Navigasi modul">
         {navigation.map(({ href, label, icon: Icon }) => <Link href={href} key={href}><Icon size={16} /><span>{label}</span></Link>)}
