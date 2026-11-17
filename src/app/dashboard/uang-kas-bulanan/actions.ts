@@ -6,7 +6,9 @@ import { requireModulePermission } from "@/lib/auth/require-role";
 
 export type DuesActionState = { success?: string; error?: string };
 
-export async function generateMonthlyRegister(_previous: DuesActionState, _formData: FormData): Promise<DuesActionState> {
+export async function generateMonthlyRegister(previous: DuesActionState, formData: FormData): Promise<DuesActionState> {
+  void previous;
+  void formData;
   const user = await requireModulePermission("monthly_dues", "create");
   if (!["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)) {
     return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat membuat daftar kas bulanan." };
@@ -35,7 +37,7 @@ export async function generateMonthlyRegister(_previous: DuesActionState, _formD
 }
 
 export async function recordDuesPayment(_previous: DuesActionState, formData: FormData): Promise<DuesActionState> {
-  const user = await requireModulePermission("monthly_dues", "create");
+  await requireModulePermission("monthly_dues", "create");
   const monthlyDuesId = String(formData.get("monthly_dues_id") ?? "");
   const amount = Number(formData.get("amount"));
   const idempotencyKey = String(formData.get("idempotency_key") ?? "");
