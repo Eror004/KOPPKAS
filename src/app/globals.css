@@ -236,3 +236,19 @@ h1,h2,h3,p{margin-top:0}
 .event-status{padding:5px 8px;border-radius:20px;background:#edf5fa;color:#47738d;font-size:9px}
 @media(max-width:950px){.member-summary{grid-template-columns:1fr 1fr}.member-group.incomplete{grid-column:1/-1}}
 @media(max-width:700px){.module-page{padding:25px 16px 45px}.module-page-head{align-items:flex-start}.module-total{min-width:110px;padding:10px}.module-total strong{font-size:14px}.module-total span{font-size:7px}.member-summary{grid-template-columns:1fr}.member-group.incomplete{grid-column:auto}.dues-stats{grid-template-columns:1fr 1fr}.module-table-heading{align-items:flex-start;flex-direction:column}.module-table-heading>span{font-size:8px}.event-row{gap:9px}.event-status{font-size:8px}}
+
+.module-form textarea{width:100%;padding:10px;border:1px solid #dce7ee;border-radius:7px;outline:0;color:#25465d;font-size:11px;resize:vertical}
+.module-form textarea:focus{border-color:#0876b9;box-shadow:0 0 0 3px #0876b91a}
+.event-form-icon{width:35px;height:35px;display:grid;place-items:center;background:#eaf5fb;color:#0876b9;border-radius:8px}
+.register-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+.register-form>button{height:37px;padding:0 13px;display:flex;align-items:center;gap:8px;background:#0876b9;color:#fff;border:0;border-radius:7px;font-size:10px;font-weight:700}
+.register-form>button:disabled{opacity:.6}
+.payment-form{display:flex;align-items:center;gap:5px;min-width:320px}
+.payment-form input{width:105px;min-width:0;height:31px;padding:0 7px;border:1px solid #dce7ee;border-radius:6px;font-size:9px;outline:0}
+.payment-form input:focus{border-color:#0876b9}
+.payment-form input:nth-of-type(2){width:120px}
+.payment-submit{height:31px;padding:0 8px;border:0;border-radius:6px;background:#0876b9;color:#fff;font-size:9px;font-weight:700;white-space:nowrap}
+.payment-submit:disabled{opacity:.6}
+.payment-feedback{font-size:8px;white-space:normal}
+.payment-feedback.error{color:#b42318}.payment-feedback.success{color:#26734a}
+@media(max-width:700px){.payment-form{min-width:300px}.register-form{align-items:flex-start;flex-direction:column}}
