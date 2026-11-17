@@ -64,7 +64,7 @@ function EmptyModule({ name }: { name: string }) {
   );
 }
 
-export default function HomePage() {
+export function DashboardHomeClient() {
   const router = useRouter();
   const [active, setActive] = useState("Beranda");
   const [mobileOpen, setMobileOpen] = useState(false);
