@@ -40,7 +40,7 @@ async function loadEventForAction(id: string) {
   if (!uuidPattern.test(id)) finishEventAction("error", "Data kegiatan tidak valid.");
   const supabase = await createClient();
   const { data, error } = await supabase.from("events")
-    .select("id,created_by,status,financial_report_by,final_report_submitted_at")
+    .select("id,created_by,status,financial_report_by,final_report_submitted_at,description,location,starts_at,ends_at")
     .eq("id", id)
     .maybeSingle();
   if (error || !data) finishEventAction("error", "Kegiatan tidak ditemukan atau tidak dapat diakses.");
@@ -163,4 +163,85 @@ export async function cancelEvent(formData: FormData) {
   if (error) finishEventAction("error", "Pembatalan kegiatan gagal disimpan.");
   revalidatePath(eventPath);
   finishEventAction("success", "Kegiatan berhasil dibatalkan dengan alasan tercatat.");
+}
+
+
+export async function updateEventDetails(formData: FormData) {
+  const actor = await requireModulePermission("events", "create");
+  const { supabase, event } = await loadEventForAction(String(formData.get("event_id") ?? ""));
+  if (!["draft", "terbit", "berlangsung"].includes(event.status)) {
+    finishEventAction("error", "Detail hanya dapat diubah pada draft, kegiatan terbit atau kegiatan berlangsung.");
+  }
+  if (event.created_by !== actor.profile.id && actor.role !== "sekretaris") {
+    finishEventAction("error", "Hanya pembuat kegiatan atau Sekretaris yang dapat mengubah detail.");
+  }
+
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim();
+  const startsAtRaw = String(formData.get("starts_at") ?? "").trim();
+  const endsAtRaw = String(formData.get("ends_at") ?? "").trim();
+  if (title.length < 3 || title.length > 160) finishEventAction("error", "Nama kegiatan harus berisi 3–160 karakter.");
+  if (description.length > 5000 || location.length > 180) finishEventAction("error", "Deskripsi atau lokasi terlalu panjang.");
+
+  const startsAt = startsAtRaw ? new Date(`${startsAtRaw}:00+07:00`) : null;
+  const endsAt = endsAtRaw ? new Date(`${endsAtRaw}:00+07:00`) : null;
+  if ((startsAt && Number.isNaN(startsAt.getTime())) || (endsAt && Number.isNaN(endsAt.getTime()))) {
+    finishEventAction("error", "Tanggal kegiatan tidak valid.");
+  }
+  if (startsAt && endsAt && endsAt < startsAt) finishEventAction("error", "Waktu selesai tidak boleh sebelum waktu mulai.");
+
+  const { error } = await supabase.from("events").update({
+    title,
+    description: description || null,
+    location: location || null,
+    starts_at: startsAt?.toISOString() ?? null,
+    ends_at: endsAt?.toISOString() ?? null,
+    updated_at: new Date().toISOString(),
+  }).eq("id", event.id);
+  if (error) finishEventAction("error", "Perubahan detail kegiatan gagal disimpan.");
+  revalidatePath(eventPath);
+  finishEventAction("success", "Detail kegiatan berhasil diperbarui.");
+}
+
+export async function addEventCommitteeMember(formData: FormData) {
+  const actor = await requireModulePermission("events", "create");
+  const { supabase, event } = await loadEventForAction(String(formData.get("event_id") ?? ""));
+  if (!["draft", "menunggu_persetujuan", "terbit", "berlangsung"].includes(event.status)) {
+    finishEventAction("error", "Panitia tidak dapat diubah setelah laporan akhir diserahkan.");
+  }
+  if (event.created_by !== actor.profile.id && !["ketua_pemuda", "wakil_ketua_pemuda", "sekretaris"].includes(actor.role)) {
+    finishEventAction("error", "Hanya pembuat kegiatan, Sekretaris, Ketua atau Wakil yang dapat mengelola panitia.");
+  }
+  const memberId = String(formData.get("member_id") ?? "");
+  const committeeRole = String(formData.get("committee_role") ?? "").trim();
+  if (!uuidPattern.test(memberId)) finishEventAction("error", "Pilih anggota yang valid.");
+  if (committeeRole.length < 2 || committeeRole.length > 80) finishEventAction("error", "Nama posisi panitia harus berisi 2–80 karakter.");
+
+  const { error } = await supabase.from("event_committee").insert({
+    event_id: event.id,
+    member_id: memberId,
+    committee_role: committeeRole,
+  });
+  if (error) finishEventAction("error", "Anggota gagal ditambahkan. Periksa apakah anggota sudah terdaftar di kegiatan.");
+  revalidatePath(eventPath);
+  finishEventAction("success", "Anggota panitia berhasil ditambahkan.");
+}
+
+export async function removeEventCommitteeMember(formData: FormData) {
+  const actor = await requireModulePermission("events", "create");
+  const { supabase, event } = await loadEventForAction(String(formData.get("event_id") ?? ""));
+  if (!["draft", "menunggu_persetujuan", "terbit", "berlangsung"].includes(event.status)) {
+    finishEventAction("error", "Panitia tidak dapat diubah setelah laporan akhir diserahkan.");
+  }
+  if (event.created_by !== actor.profile.id && !["ketua_pemuda", "wakil_ketua_pemuda", "sekretaris"].includes(actor.role)) {
+    finishEventAction("error", "Hanya pembuat kegiatan, Sekretaris, Ketua atau Wakil yang dapat mengelola panitia.");
+  }
+  const memberId = String(formData.get("member_id") ?? "");
+  if (!uuidPattern.test(memberId)) finishEventAction("error", "Data anggota panitia tidak valid.");
+  const { error } = await supabase.from("event_committee")
+    .delete().eq("event_id", event.id).eq("member_id", memberId);
+  if (error) finishEventAction("error", "Anggota panitia gagal dihapus.");
+  revalidatePath(eventPath);
+  finishEventAction("success", "Anggota panitia berhasil dihapus.");
 }
