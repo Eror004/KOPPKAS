@@ -109,6 +109,7 @@ const letterPrivacy = migration("20261118060000_public_letter_verification_priva
 const eventBalance = migration("20261118070000_event_ledger_balance_summary.sql");
 const eventDualReports = migration("20261118110000_event_dual_report_authorship.sql");
 const duesIdempotency = migration("20261118150000_monthly_dues_idempotency_payload_guard.sql");
+const eventLedgerIdempotency = migration("20261118160000_event_ledger_idempotency.sql");
 
 test("public letter verification never exposes financial letters or full letter bodies", () => {
   assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
@@ -128,6 +129,12 @@ test("finalized event data and event ledger are protected by database triggers",
   assert.match(eventFinalization, /Event ledger is locked outside the active event period/);
   assert.match(eventFinalization, /public\.event_surplus_transfers/);
   assert.match(eventFinalization, /gle\.source_type = 'event_surplus_transfer'/);
+});
+
+test("event ledger insert trigger remains installed while its guard function is hardened", () => {
+  assert.match(eventFinalization, /create trigger guard_event_ledger_insert/);
+  assert.match(eventLedgerIdempotency, /create or replace function app_private\\.guard_event_ledger_insert/);
+  assert.match(eventLedgerIdempotency, /Event finance idempotency key is required/);
 });
 
 test("event finance dashboard aggregate is lifetime-scoped, not limited to latest 100 rows", () => {
