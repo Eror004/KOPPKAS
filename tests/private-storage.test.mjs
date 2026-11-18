@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [migration, page, form, action] = await Promise.all([
+const [migration, deletePolicy, page, form, action] = await Promise.all([
   read("../supabase/migrations/20261118170000_private_document_storage.sql"),
+  read("../supabase/migrations/20261118180000_private_storage_delete_active_role_guard.sql"),
   read("../src/app/dashboard/dokumentasi/page.tsx"),
   read("../src/app/dashboard/dokumentasi/upload-form.tsx"),
   read("../src/app/dashboard/dokumentasi/actions.ts"),
@@ -22,6 +23,14 @@ test("storage access is scoped to active media roles and uploader-owned paths", 
   assert.match(migration, /koppkas_docs_insert_media_roles/);
   assert.match(migration, /storage\.foldername\(name\)/);
   assert.match(migration, /app_private\.current_app_role\(\) is not null/);
+});
+
+test("private document deletion requires an active media role and preserves admin cleanup", () => {
+  assert.match(deletePolicy, /drop policy if exists "koppkas_docs_delete_owner_or_admin"/);
+  assert.match(deletePolicy, /for delete to authenticated/);
+  assert.match(deletePolicy, /app_private\.has_any_role\(array\[[\s\S]*?ketua_rt_01/);
+  assert.match(deletePolicy, /storage\.foldername\(name\)\)\[1\] = \(select auth\.uid\(\)\)::text/);
+  assert.match(deletePolicy, /ketua_pemuda','wakil_ketua_pemuda','sekretaris'/);
 });
 
 test("uploads register only internal metadata under the authenticated user path", () => {
