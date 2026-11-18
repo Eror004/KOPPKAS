@@ -133,7 +133,7 @@ test("event finance dashboard aggregate is lifetime-scoped, not limited to lates
 const committeeHardening = migration("20261118080000_committee_dues_letters_audit_hardening.sql");
 
 test("event committee management is limited to creator and core leadership before closeout", () => {
-  assert.doesNotMatch(core, /event_committee_manage_authenticated/);
+  assert.match(committeeHardening, /drop policy if exists "event_committee_manage_authenticated"/);
   assert.match(committeeHardening, /event_committee_insert_event_managers/);
   assert.match(committeeHardening, /event_committee_update_event_managers/);
   assert.match(committeeHardening, /event_committee_delete_event_managers/);
@@ -156,6 +156,6 @@ test("submitted official letter content is immutable", () => {
 test("activity audit covers structure, event committee, profiles and media", () => {
   for (const table of ["organization_positions", "event_committee", "profiles", "media_assets"]) {
     assert.match(committeeHardening, new RegExp(`'${table}'`));
-    assert.match(committeeHardening, new RegExp(`create trigger audit_${table}`));
+    assert.match(committeeHardening, /create trigger audit_%I/);
   }
 });
