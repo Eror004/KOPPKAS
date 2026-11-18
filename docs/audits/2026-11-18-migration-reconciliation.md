@@ -8,11 +8,11 @@ Do not run `supabase db push`, `supabase migration repair`, or apply migrations 
 
 ## Inventory result
 
-- Repository branch contains **28 SQL migration files**.
+- Repository branch contains **26 SQL migration files**.
 - Supabase remote history contains **13 migration records**.
 - **12 remote migration names** have same-name SQL files in the repository.
 - **1 remote migration** (`cleanup_empty_conflicting_tables`) has no matching file in the repository.
-- **16 repository migrations** are not represented in the remote migration history by name; these are pending branch work and have not been applied to production according to the current history.
+- **14 repository migrations** are not represented in the remote migration history by name; these are pending branch work and have not been applied to production according to the current history.
 
 Important: 11 same-name base migrations use local version IDs beginning `20261117000...`, while their remote history versions begin `202611180338...`. Supabase migration identity is version-based. Same-name files with different version IDs are not considered applied automatically and may be replayed by the CLI.
 
@@ -45,7 +45,7 @@ The exact SQL for this already-applied migration cannot be recovered from the mi
 
 ## Repository-only migrations
 
-These 16 files are present in the working branch but do not appear in the current remote history:
+These 14 files are present in the working branch but do not appear in the current remote history:
 
 1. `20261118050000_event_finance_finalization_guards.sql`
 2. `20261118060000_public_letter_verification_privacy.sql`
@@ -62,8 +62,6 @@ These 16 files are present in the working branch but do not appear in the curren
 13. `20261118180000_private_storage_delete_active_role_guard.sql`
 14. `20261118190000_secretary_monthly_dues_read_access.sql`
 
-Correction to the count: the list above contains 14 named feature migrations. The remaining two of the 16-file difference are not yet classified by this name-based summary; re-run the directory inventory before using the count as a deployment checklist.
-
 These are un-applied branch changes according to remote migration history. This does not prove every file is safe to apply: each migration still requires dependency, ordering, idempotency, and role-policy review.
 
 ## Safe reconciliation plan
@@ -75,7 +73,7 @@ These are un-applied branch changes according to remote migration history. This 
    - Either reconstruct the exact historical migration files using the remote version IDs and verified SQL, or
    - create a documented baseline/reconciliation approach that explicitly accounts for the remote versions and does not replay existing DDL.
    Do not simply rename files or run migration repair without a reviewed version-by-version plan.
-5. Review the 14 feature migrations individually, including their dependency order. Resolve the unexplained inventory count discrepancy before treating this list as exhaustive.
+5. Review the 14 feature migrations individually, including their dependency order. Re-run the directory inventory before treating this list as exhaustive.
 6. Because the user target is Rp0, do not create a Supabase development branch unless its actual cost is confirmed as zero and explicitly acceptable. Prefer a disposable local PostgreSQL/Supabase stack if available; otherwise perform static SQL review and clearly label staging tests as not run.
 7. After a canonical chain is agreed, validate schema invariants, all six role policies, public letter privacy, monthly-dues append-only corrections, event closeout, and ledger idempotency in a non-production environment.
 8. Obtain explicit approval before any production migration, merge, or deployment.
