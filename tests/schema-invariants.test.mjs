@@ -108,6 +108,7 @@ const eventFinalization = migration("20261118050000_event_finance_finalization_g
 const letterPrivacy = migration("20261118060000_public_letter_verification_privacy.sql");
 const eventBalance = migration("20261118070000_event_ledger_balance_summary.sql");
 const eventDualReports = migration("20261118110000_event_dual_report_authorship.sql");
+const duesIdempotency = migration("20261118150000_monthly_dues_idempotency_payload_guard.sql");
 
 test("public letter verification never exposes financial letters or full letter bodies", () => {
   assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
@@ -145,6 +146,13 @@ test("event committee management is limited to creator and core leadership befor
   assert.match(committeeHardening, /event_committee_delete_event_managers/);
   assert.match(committeeHardening, /e\.status not in \('menunggu_laporan', 'selesai', 'dibatalkan'\)/);
   assert.match(committeeHardening, /e\.created_by = \(select auth\.uid\(\)\)/);
+});
+
+test("monthly dues idempotent retries must match the original actor and payload", () => {
+  assert.equal((duesIdempotency.match(/existing_payment\\.recorded_by is distinct from auth\\.uid\\(\\)/g) ?? []).length, 2);
+  assert.match(duesIdempotency, /existing_payment\\.monthly_dues_id <> p_monthly_dues_id/);
+  assert.match(duesIdempotency, /existing_payment\\.amount <> p_amount/);
+  assert.match(duesIdempotency, /coalesce\\(existing_payment\\.note, ''\\) <> coalesce\\(normalized_note, ''\\)/);
 });
 
 test("monthly dues register rows cannot be deleted", () => {
