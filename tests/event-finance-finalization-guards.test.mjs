@@ -30,9 +30,16 @@ test("event ledger inserts are blocked outside active event states", () => {
   assert.match(migration, /Event ledger is locked outside the active event period/);
 });
 
-test("closeout RPC surplus transfer remains permitted after event finalization", () => {
+test("closeout exception requires its matching general-ledger transfer", () => {
   assert.match(migration, /public\.event_surplus_transfers/);
-  assert.match(migration, /t\.event_id = new\.event_id/);
-  assert.match(migration, /new\.direction = 'keluar'/);
+  assert.match(migration, /gle\.source_type = 'event_surplus_transfer'/);
+  assert.match(migration, /gle\.source_id = t\.event_id/);
+  assert.match(migration, /new\.description = 'Transfer surplus ke Uang Keseluruhan'/);
+  assert.match(migration, /new\.created_by = auth\.uid\(\)/);
+});
+
+test("closeout transfer entry cannot be appended more than once", () => {
+  assert.match(migration, /not exists \(/);
+  assert.match(migration, /existing\.description = 'Transfer surplus ke Uang Keseluruhan'/);
   assert.match(migration, /if is_approved_surplus_transfer then\s+return new;/);
 });
