@@ -29,6 +29,8 @@ test("event creator submits narrative report and Bendahara submits separate fina
   assert.match(dualReport, /new\.financial_report_by = new\.final_report_by/);
   assert.match(dualReport, /new\.final_report_by is distinct from new\.committee_chair_profile_id/);
   assert.match(dualReport, /profiles_read_active_org_accounts/);
+  assert.match(dualReport, /set_event_chair_default/);
+  assert.match(dualReport, /role is not null and app_private\.current_app_role\(\) is not null/);
   assert.match(dualReport, /public\.event_financial_reports/);
   assert.match(dualReport, /event_financial_reports_read_finance_roles/);
 });
