@@ -11,7 +11,9 @@ const [migration, permissions, workflow, core, actions] = await Promise.all([
   read("../src/app/dashboard/uang-kas-bulanan/actions.ts"),
 ]);
 
-test("Sekretaris can read monthly register and payment history under RLS", () => {
+test("Sekretaris read policies replace legacy policy names instead of duplicating them", () => {
+  assert.match(migration, /drop policy if exists "monthly_dues_read_secretary_register"/);
+  assert.match(migration, /drop policy if exists "dues_payments_read_secretary_register"/);
   assert.match(migration, /monthly_dues_read_secretary_payment_workflow/);
   assert.match(migration, /dues_payments_read_secretary_payment_workflow/);
   assert.equal((migration.match(/for select to authenticated/g) ?? []).length, 2);
