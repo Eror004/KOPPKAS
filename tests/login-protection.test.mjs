@@ -44,3 +44,9 @@ test("server Auth client forwards trusted IP only when a secret key is configure
   assert.match(authClient, /x-forwarded-for/);
   assert.match(authClient, /isIP\(candidateIp\)/);
 });
+
+test("account manager reads lock status computed by Postgres rather than render-time clock calls", () => {
+  assert.match(migration, /create or replace view public\.login_protection_status/);
+  assert.match(migration, /security_invoker = true/);
+  assert.match(migration, /locked_until > now\(\) as is_currently_locked/);
+});
