@@ -149,10 +149,10 @@ test("event committee management is limited to creator and core leadership befor
 });
 
 test("monthly dues idempotent retries must match the original actor and payload", () => {
-  assert.equal((duesIdempotency.match(/existing_payment\\.recorded_by is distinct from auth\\.uid\\(\\)/g) ?? []).length, 2);
-  assert.match(duesIdempotency, /existing_payment\\.monthly_dues_id <> p_monthly_dues_id/);
-  assert.match(duesIdempotency, /existing_payment\\.amount <> p_amount/);
-  assert.match(duesIdempotency, /coalesce\\(existing_payment\\.note, ''\\) <> coalesce\\(normalized_note, ''\\)/);
+  assert.equal(duesIdempotency.split("existing_payment.recorded_by is distinct from auth.uid()").length - 1, 2);
+  assert.ok(duesIdempotency.includes("existing_payment.monthly_dues_id <> p_monthly_dues_id"));
+  assert.ok(duesIdempotency.includes("existing_payment.amount <> p_amount"));
+  assert.ok(duesIdempotency.includes("coalesce(existing_payment.note, '') <> coalesce(normalized_note, '')"));
 });
 
 test("monthly dues register rows cannot be deleted", () => {
@@ -184,7 +184,8 @@ test("server-side account administration can write profiles and actor-attributed
 
 
 test("dual-report migration uses valid dollar-quoted trigger function syntax", () => {
-  assert.match(eventDualReports, /create or replace function app_private\\.guard_event_finalized_updates\\([\\s\\S]*?as \\$\\$[\\s\\S]*?end\\s+\\$\\$;/);
+  assert.ok(eventDualReports.includes("create or replace function app_private.guard_event_finalized_updates()"));
+  assert.match(eventDualReports, /as \$\$[\s\S]*?end\s+\$\$;/);
 });
 
 test("event finalization guard has no forward dependency on dual-report columns", () => {
