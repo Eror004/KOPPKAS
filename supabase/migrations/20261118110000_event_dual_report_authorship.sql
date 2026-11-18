@@ -124,7 +124,7 @@ begin
        or new.financial_report_by is null
        or new.financial_report_submitted_at is null
        or new.financial_report_by = new.final_report_by
-       or nullif(trim(new.final_report, '') is null then
+       or nullif(trim(new.final_report), '') is null then
       raise exception 'Both event reports must be complete before final approval'
         using errcode = '22023';
     end if;
@@ -137,6 +137,18 @@ begin
     if finance_author_role is distinct from 'bendahara' then
       raise exception 'Financial report author must remain an active Bendahara'
         using errcode = '42501';
+    end if;
+
+    select r.submitted_by, r.submitted_at
+      into finance_report_author, finance_report_submitted_at
+    from public.event_financial_reports r
+    where r.event_id = new.id;
+
+    if not found
+       or finance_report_author is distinct from new.financial_report_by
+       or finance_report_submitted_at is distinct from new.financial_report_submitted_at then
+      raise exception 'Bendahara financial report record is missing or mismatched'
+        using errcode = '22023';
     end if;
   end if;
 
