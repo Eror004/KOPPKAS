@@ -83,3 +83,22 @@ These are un-applied branch changes according to remote migration history. This 
 The live project has a migration-history provenance gap and a version-ID mismatch. The safe next action is not to push migrations. Recover the missing cleanup migration and establish a verified canonical baseline first.
 
 No production database changes, migration repairs, Git merges, or deployments were performed for this reconciliation.
+
+## Static SQL review — follow-up findings
+
+### Public letter column privilege gap found and patched in the branch
+
+The first review of `20261118060000_public_letter_verification_privacy.sql` found that it revoked table-level SELECT from `anon`, but did not explicitly revoke legacy column-level SELECT grants. PostgreSQL keeps column-level grants separate from table-level grants. The earlier live audit had found an anonymous grant on `official_letters.body`.
+
+The branch migration now explicitly revokes table-level SELECT from `anon, public` and column-level SELECT on `(body, category, letter_number)` from `anon, public`, then re-grants only the intended verification metadata columns to `anon`. The schema-invariant test now asserts both revokes. This is a branch-only correction; it has not been applied to the live project.
+
+### Event finalization migration ordering dependency
+
+`20261118050000_event_finance_finalization_guards.sql` installs a trigger function that reads report-author columns added later by `20261118110000_event_dual_report_authorship.sql`. The later migration explicitly disables that trigger while adding/backfilling those columns, then re-enables it. The chain therefore has an intentional forward dependency and a deployment interval in which application updates to `events` could fail if they reach the trigger before the later migration completes. Keep application writes to events quiesced across this migration sequence, or refactor the trigger/migrations to eliminate the forward dependency before production use.
+
+### Staging and verification boundary
+
+- No Supabase development branch was created because the user target is Rp0 and branch compute may incur charges.
+- No local PostgreSQL/Supabase runtime was available through the current connector-only workflow, so SQL integration tests and six-role impersonation were not run.
+- GitHub CI was triggered for the privilege-revoke regression change; its result must be checked separately.
+- Static SQL review is not equivalent to executing the migration chain against a clean database or testing RLS as each role.
