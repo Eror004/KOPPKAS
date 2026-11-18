@@ -16,8 +16,8 @@ This protection uses the Supabase Auth **Password Verification Hook**. The hook 
 - Failed attempts 1–4: Supabase Auth handles the invalid credentials response.
 - Failed attempt 5: 15-minute lockout.
 - Further failed attempts after each 15-minute lockout continue the counter.
-- Failed attempt 10: 1-hour lockout and `requires_admin_unlock` is set.
-- Once the 10-attempt threshold is reached, the account remains blocked after the hour until a Ketua Pemuda resets the login-protection state from **Dashboard → Manajemen Akun**.
+- Failed attempt 10: 1-hour lockout.
+- After the hour expires, the next sign-in attempt requires additional verification; a Ketua Pemuda must reset the login-protection state from **Dashboard → Manajemen Akun**.
 - A successful password verification clears the counter if the account is not currently locked and has not reached the admin-unlock state.
 - Resetting the account password through Manajemen Akun also clears the lockout state.
 
