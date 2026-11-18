@@ -166,3 +166,14 @@ Static review of `20261118150000_monthly_dues_idempotency_payload_guard.sql` fou
 - The clean local migration chain has therefore **not yet passed**.
 - Migrations after `20261118110000` remain unverified by execution until the clean reset is rerun.
 - Remote Supabase migration history remains 13 records; no migration repair, apply, or production DDL/DML was performed.
+
+
+### CI #200 follow-up and corrected verification
+
+CI #200 exposed two additional verification issues on the PR merge ref:
+- The schema-invariant test file contained an invalid over-escaped regular expression, preventing the test module from loading. The assertions now use direct string checks and a valid dollar-quote expression.
+- The clean migration job still reported the unmatched SQL body delimiter in `20261118110000_event_dual_report_authorship.sql`. The delimiter is now corrected to `as $$` / `end $$;` in the current branch head.
+
+The event-ledger trigger itself was already installed by `20261118050000_event_finance_finalization_guards.sql`; migration `20261118160000_event_ledger_idempotency.sql` replaces the same trigger function, so the trigger remains bound to the hardened implementation. A regression assertion now covers that continuity. The earlier note suggesting the trigger was missing was incorrect and is superseded by this finding.
+
+The fixes above were committed after CI #200. No successful CI run has yet been confirmed for the latest branch head. Clean migration-chain execution, typecheck, lint, build, and role-scoped integration tests remain pending verification.
