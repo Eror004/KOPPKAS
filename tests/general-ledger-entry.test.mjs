@@ -7,7 +7,7 @@ const [actions, form, page, hardening] = await Promise.all([
   read("../src/app/dashboard/uang-keseluruhan/actions.ts"),
   read("../src/app/dashboard/uang-keseluruhan/entry-form.tsx"),
   read("../src/app/dashboard/uang-keseluruhan/page.tsx"),
-  read("../supabase/migrations/20261117001000_access_hardening.sql"),
+  read("../supabase/migrations/20261118033900_access_hardening.sql"),
 ]);
 
 test("manual general-ledger entries are restricted to finance roles and source_type manual", () => {

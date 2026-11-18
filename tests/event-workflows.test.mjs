@@ -9,7 +9,7 @@ const [actions, page, controls, dualReport, finalization, approval, financeActio
   read("../src/app/dashboard/kegiatan/workflow-controls.tsx"),
   read("../supabase/migrations/20261118110000_event_dual_report_authorship.sql"),
   read("../supabase/migrations/20261118050000_event_finance_finalization_guards.sql"),
-  read("../supabase/migrations/20261117000500_approval_guards.sql"),
+  read("../supabase/migrations/20261118033848_approval_guards.sql"),
   read("../src/app/dashboard/keuangan-kegiatan/actions.ts"),
   read("../src/app/dashboard/keuangan-kegiatan/entry-form.tsx"),
   read("../supabase/migrations/20261118160000_event_ledger_idempotency.sql"),

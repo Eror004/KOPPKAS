@@ -7,7 +7,7 @@ const [migration, permissions, workflow, core, actions] = await Promise.all([
   read("../supabase/migrations/20261118190000_secretary_monthly_dues_read_access.sql"),
   read("../src/lib/auth/permissions.ts"),
   read("../src/app/dashboard/uang-kas-bulanan/page.tsx"),
-  read("../supabase/migrations/20261117000300_dues_and_event_workflows.sql"),
+  read("../supabase/migrations/20261118033844_dues_and_event_workflows.sql"),
   read("../src/app/dashboard/uang-kas-bulanan/actions.ts"),
 ]);
 
