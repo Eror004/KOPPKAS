@@ -26,7 +26,7 @@ test("event creator submits narrative report and Bendahara submits separate fina
   assert.match(actions, /event\.created_by !== actor\.profile\.id/);
   assert.match(dualReport, /Only Bendahara may submit the event financial report/);
   assert.match(dualReport, /Only the event creator acting as Ketua Panitia may submit the narrative report/);
-  assert.match(dualReport, /new\.financial_report_by = new\.final_report_by/);
+  assert.match(dualReport, /new\.financial_report_by = new\.final_report_by/);\n  assert.match(dualReport, /new\.final_report_by is distinct from new\.committee_chair_profile_id/);\n  assert.match(dualReport, /profiles_read_active_org_accounts/);
   assert.match(dualReport, /public\.event_financial_reports/);
   assert.match(dualReport, /event_financial_reports_read_finance_roles/);
 });
@@ -47,7 +47,7 @@ test("event register exposes role-aware workflow controls", () => {
   assert.match(page, /EventWorkflowControls/);
   assert.match(page, /canReadEventFinance/);
   assert.match(page, /event_financial_reports/);
-  assert.match(actions, /updateEventDetails/);
+  assert.match(actions, /updateEventDetails/);\n  assert.match(actions, /committee_chair_profile_id: user\.profile\.id/);\n  assert.match(controls, /Ketua Panitia<select name="committee_chair_profile_id"/);
   assert.match(actions, /addEventCommitteeMember/);
   assert.match(controls, /submitEventForApproval/);
   assert.match(controls, /approveEventFinalReport/);
