@@ -33,4 +33,4 @@ This protection uses the Supabase Auth **Password Verification Hook**. The hook 
 
 `SUPABASE_SECRET_KEY` is also required by the Ketua-only account manager and the public contact form's hashed-IP rate limiter. Keep it server-only in Vercel and local environment variables; never use a `NEXT_PUBLIC_` prefix and never paste the secret into chat or source control.
 
-The public contact form allows five messages per client IP in a rolling ten-minute window. It stores only a SHA-256 hash of the IP and fails closed if the trusted client IP or server-side key is unavailable.
+The public contact form allows five messages per client IP in a rolling ten-minute window. It stores only a HMAC-SHA256 fingerprint of the IP, keyed with the server secret and fails closed if the trusted client IP or server-side key is unavailable.
