@@ -20,6 +20,7 @@ const navigation: Array<{ href: string; label: string; module: ModuleKey }> = [
   { href: "/dashboard/riwayat-aktivitas", label: "Aktivitas", module: "activity" },
   { href: "/dashboard/inbox", label: "INBOX", module: "inbox" },
   { href: "/dashboard/notifikasi", label: "Notifikasi", module: "notifications" },
+  { href: "/dashboard/akun", label: "Manajemen Akun", module: "accounts" },
 ];
 
 export async function ModuleShell({ title, children }: { title: string; children: React.ReactNode }) {
