@@ -2,6 +2,16 @@
 begin;
 
 drop policy if exists "letters_update_leadership_secretary" on public.official_letters;
+drop policy if exists "letters_read_authenticated" on public.official_letters;
+create policy "letters_read_general_or_finance" on public.official_letters
+for select to authenticated
+using (
+  app_private.current_app_role() is not null
+  and (
+    category = 'umum'
+    or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','bendahara']::public.app_role[])
+  )
+);
 create policy "letters_update_owner_or_leadership" on public.official_letters
 for update to authenticated
 using (
