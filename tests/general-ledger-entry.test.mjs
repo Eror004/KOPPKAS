@@ -19,6 +19,8 @@ test("manual general-ledger entries are restricted to finance roles and source_t
 
 test("manual finance form uses a stable idempotency key and duplicate verification", () => {
   assert.match(form, /crypto\.randomUUID\(\)/);
+  assert.match(form, /useRef<string \| null>\(null\)/);
+  assert.match(form, /if \(result\.success\) idempotencyKeyRef\.current = null/);
   assert.match(actions, /source_id: idempotencyKey/);
   assert.match(actions, /error\?\.code === "23505"/);
   assert.match(actions, /existing\.created_by === user\.profile\.id/);
