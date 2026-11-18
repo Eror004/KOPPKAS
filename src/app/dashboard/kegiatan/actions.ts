@@ -122,14 +122,11 @@ export async function submitEventFinalReport(formData: FormData) {
   if (event.financial_report_by === actor.profile.id) finishEventAction("error", "Laporan Ketua Panitia dan Bendahara harus berasal dari dua akun berbeda.");
   if (report.length < 10 || report.length > 10000) finishEventAction("error", "Laporan kegiatan harus berisi 10–10.000 karakter.");
 
-  const { error } = await supabase.from("events").update({
-    final_report: report,
-    final_report_by: actor.profile.id,
-    final_report_submitted_at: new Date().toISOString(),
-    status: "menunggu_laporan",
-    updated_at: new Date().toISOString(),
-  }).eq("id", event.id);
-  if (error) finishEventAction("error", "Laporan akhir gagal diserahkan. Pastikan laporan Bendahara sudah lengkap.");
+  const { error } = await supabase.rpc("submit_event_narrative_report", {
+    p_event_id: event.id,
+    p_report: report,
+  });
+  if (error) finishEventAction("error", "Laporan akhir gagal diserahkan. Pastikan Ketua Panitia dan Bendahara sudah menyerahkan laporan masing-masing.");
   revalidatePath(eventPath);
   finishEventAction("success", "Kedua laporan sudah lengkap dan menunggu persetujuan akhir.");
 }
