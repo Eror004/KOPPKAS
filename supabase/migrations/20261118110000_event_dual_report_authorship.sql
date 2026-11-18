@@ -8,7 +8,9 @@ alter table public.events
   add column financial_report_by uuid references public.profiles(id) on delete restrict,
   add column financial_report_submitted_at timestamptz;
 
+alter table public.events disable trigger guard_event_finalized_updates;
 update public.events set committee_chair_profile_id = created_by where committee_chair_profile_id is null;
+alter table public.events enable trigger guard_event_finalized_updates;
 alter table public.events alter column committee_chair_profile_id set not null;
 
 drop policy if exists "profiles_read_active_org_accounts" on public.profiles;
@@ -95,6 +97,10 @@ begin
     where p.id = new.committee_chair_profile_id;
     if chair_is_active is distinct from true then
       raise exception 'Ketua Panitia must be an active organization account'
+        using errcode = '42501';
+    end if;
+    if new.financial_report_by is not null and new.committee_chair_profile_id = new.financial_report_by then
+      raise exception 'Ketua Panitia and Bendahara report authors must be different accounts'
         using errcode = '42501';
     end if;
   end if;
