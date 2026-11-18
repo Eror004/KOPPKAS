@@ -70,7 +70,7 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
                 <label>Reset password<input name="password" type="password" minLength={5} maxLength={128} required autoComplete="new-password" placeholder="Password baru, minimal 5 karakter" /></label>
                 <button type="submit">Perbarui password</button>
               </form>
-              <form action={unlockAccount} style={{ marginTop: 10 }}>
+              <form action={unlockAccount} className="module-form" style={{ maxWidth: "none", marginTop: 10, padding: 0, border: 0 }}>
                 <input type="hidden" name="user_id" value={account.id} />
                 <button type="submit" className="secondary-button">Reset penguncian login</button>
               </form>
