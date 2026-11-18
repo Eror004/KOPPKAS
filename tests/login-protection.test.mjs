@@ -13,7 +13,9 @@ const [migration, login, authClient, accountActions] = await Promise.all([
 test("progressive login protection applies 15-minute and 1-hour lockouts", () => {
   assert.match(migration, /next_attempt_count >= 5 then now\(\) \+ interval '15 minutes'/);
   assert.match(migration, /next_attempt_count >= 10 then now\(\) \+ interval '1 hour'/);
-  assert.match(migration, /requires_admin_unlock = next_attempt_count >= 10/);
+  assert.match(migration, /requires_admin_unlock = false/);
+  assert.match(migration, /attempt_row\.failed_attempts >= 10/);
+  assert.match(migration, /attempt_row\.locked_until <= now\(\)/);
 });
 
 test("accounts at the 10-attempt threshold require Ketua admin unlock", () => {
