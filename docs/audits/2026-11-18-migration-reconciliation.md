@@ -135,3 +135,10 @@ These are source inspections, not end-to-end runtime tests.
 - The six role policies have not been exercised with real role-scoped test identities.
 - The migration history mismatch and missing `cleanup_empty_conflicting_tables` source remain unresolved.
 - No production SQL, migration repair, merge, or deployment has been performed.
+
+
+### CI verification after the event ordering correction
+
+- CI #188 initially failed because two pre-existing regression assertions still expected the new report-author columns to be checked by the earlier migration. The failure was in stale test expectations, not a TypeScript, lint, or build error.
+- The assertions were updated to verify that the early migration has no forward references and that the later migration adds the extended guard.
+- CI #192 passed on commit `08af7509e20e7a846eb78c93eecca3c3ac219b01`: npm install, schema invariant tests, TypeScript, ESLint, and production build all succeeded.
