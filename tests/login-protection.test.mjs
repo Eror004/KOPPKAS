@@ -41,5 +41,6 @@ test("server Auth client forwards trusted IP only when a secret key is configure
   assert.match(authClient, /process\.env\.SUPABASE_SECRET_KEY/);
   assert.match(authClient, /Sb-Forwarded-For/);
   assert.match(authClient, /x-real-ip/);
-  assert.match(authClient, /x-forwarded-for/);\n  assert.match(authClient, /isIP\(candidateIp\)/);
+  assert.match(authClient, /x-forwarded-for/);
+  assert.match(authClient, /isIP\(candidateIp\)/);
 });
