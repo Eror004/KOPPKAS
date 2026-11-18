@@ -18,7 +18,7 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
       <ModuleShell title="Manajemen Akun">
         <main className="module-page">
           <div className="module-page-head"><div><p className="eyebrow">ACCOUNT CONTROL</p><h1>Manajemen Akun</h1><p>Pembuatan akun, pengaturan jabatan, status aktif, dan reset password.</p></div></div>
-          <div className="module-alert" role="alert">Fitur ini belum diaktifkan. Tambahkan SUPABASE_SERVICE_ROLE_KEY sebagai environment variable server-only pada deployment dan environment lokal. Jangan pernah memakai awalan NEXT_PUBLIC_ untuk secret ini.</div>
+          <div className="module-alert" role="alert">Fitur ini belum diaktifkan. Tambahkan SUPABASE_SECRET_KEY (disarankan) atau SUPABASE_SERVICE_ROLE_KEY sebagai environment variable server-only pada deployment dan environment lokal. Jangan pernah memakai awalan NEXT_PUBLIC_ untuk secret ini.</div>
         </main>
       </ModuleShell>
     );
