@@ -21,6 +21,7 @@ type CommitteeItem = {
 type EventWorkflowItem = {
   id: string;
   created_by: string;
+  committee_chair_profile_id: string;
   status: string;
   title: string;
   description: string | null;
@@ -52,17 +53,21 @@ export function EventWorkflowControls({
   actorId,
   role,
   members,
+  profiles,
   financialReport,
 }: {
   event: EventWorkflowItem;
   actorId: string;
   role: AppRole;
   members: { id: string; full_name: string }[];
+  profiles: { id: string; full_name: string; role: AppRole }[];
   financialReport: string | null;
 }) {
   const isLeader = role === "ketua_pemuda" || role === "wakil_ketua_pemuda";
   const isSecretary = role === "sekretaris";
   const isCreator = event.created_by === actorId;
+  const isChair = event.committee_chair_profile_id === actorId;
+  const chairProfile = profiles.find((profile) => profile.id === event.committee_chair_profile_id);
   const canCancel = isLeader && event.status !== "selesai" && event.status !== "dibatalkan";
   const canEdit = (isCreator || isSecretary) && ["draft", "terbit", "berlangsung"].includes(event.status);
   const canManageCommittee = (isCreator || isSecretary || isLeader) &&
@@ -77,6 +82,7 @@ export function EventWorkflowControls({
           <form action={updateEventDetails} className="module-form">
             <input type="hidden" name="event_id" value={event.id} />
             <label>Nama kegiatan<input name="title" defaultValue={event.title} minLength={3} maxLength={160} required /></label>
+            <label>Ketua Panitia<select name="committee_chair_profile_id" defaultValue={event.committee_chair_profile_id} required>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.full_name} — {profile.role.replaceAll("_", " ")}</option>)}</select></label>
             <label>Lokasi<input name="location" defaultValue={event.location ?? ""} maxLength={180} /></label>
             <label>Mulai<input name="starts_at" type="datetime-local" defaultValue={toJakartaDateTime(event.starts_at)} /></label>
             <label>Selesai<input name="ends_at" type="datetime-local" defaultValue={toJakartaDateTime(event.ends_at)} /></label>
@@ -86,6 +92,7 @@ export function EventWorkflowControls({
         )}
 
         <section className="event-committee-panel">
+          <p className="event-chair-state">Ketua Panitia: <strong>{chairProfile?.full_name ?? "Belum ditentukan"}</strong></p>
           <div className="module-form-heading"><div><p className="eyebrow">EVENT COMMITTEE</p><h3>Panitia kegiatan</h3></div><span>{committee.length} ANGGOTA</span></div>
           {committee.length ? <ul className="event-committee-list">{committee.map((item) => {
             const member = Array.isArray(item.members) ? item.members[0] : item.members;
@@ -131,7 +138,7 @@ export function EventWorkflowControls({
           </form>
         )}
 
-        {event.status === "berlangsung" && isCreator && event.financial_report_by && !event.final_report_submitted_at && event.financial_report_by !== actorId && (
+        {event.status === "berlangsung" && isChair && event.financial_report_by && !event.final_report_submitted_at && event.financial_report_by !== actorId && (
           <form action={submitEventFinalReport} className="module-form">
             <input type="hidden" name="event_id" value={event.id} />
             <label>Laporan kegiatan Ketua Panitia<textarea name="final_report" minLength={10} maxLength={10000} rows={4} required placeholder="Pelaksanaan kegiatan, hasil, peserta, evaluasi dan dokumentasi..." /></label>
