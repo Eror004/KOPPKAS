@@ -60,7 +60,7 @@ export function EventWorkflowControls({
   actorId: string;
   role: AppRole;
   members: { id: string; full_name: string }[];
-  profiles: { id: string; full_name: string; role: AppRole }[];
+  profiles: { id: string; full_name: string; role: string }[];
   financialReport: string | null;
 }) {
   const isLeader = role === "ketua_pemuda" || role === "wakil_ketua_pemuda";
