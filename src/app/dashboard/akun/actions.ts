@@ -36,16 +36,17 @@ export async function createAccount(formData: FormData) {
 
   if (authError || !created.user) finish("error", "Akun gagal dibuat. Periksa email dan konfigurasi Auth.");
 
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: created.user.id,
-    full_name: fullName,
-    role,
-    is_active: true,
-  });
+  // The on_auth_user_created trigger has already inserted a role-less profile.
+  // Update that row instead of inserting a duplicate profile for the same Auth user.
+  const { data: profile, error: profileError } = await admin.from("profiles")
+    .update({ full_name: fullName, role, is_active: true })
+    .eq("id", created.user.id)
+    .select("id")
+    .maybeSingle();
 
-  if (profileError) {
+  if (profileError || !profile) {
     await admin.auth.admin.deleteUser(created.user.id);
-    finish("error", "Profil akun gagal dibuat. Pembuatan akun dibatalkan.");
+    finish("error", "Profil akun gagal diperbarui. Pembuatan akun dibatalkan.");
   }
 
   const { error: auditError } = await admin.from("activity_logs").insert({
