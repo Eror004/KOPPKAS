@@ -217,6 +217,8 @@ export async function addEventCommitteeMember(formData: FormData) {
   const committeeRole = String(formData.get("committee_role") ?? "").trim();
   if (!uuidPattern.test(memberId)) finishEventAction("error", "Pilih anggota yang valid.");
   if (committeeRole.length < 2 || committeeRole.length > 80) finishEventAction("error", "Nama posisi panitia harus berisi 2–80 karakter.");
+  const { data: member } = await supabase.from("members").select("id").eq("id", memberId).is("archived_at", null).maybeSingle();
+  if (!member) finishEventAction("error", "Anggota tidak ditemukan atau sudah diarsipkan.");
 
   const { error } = await supabase.from("event_committee").insert({
     event_id: event.id,
