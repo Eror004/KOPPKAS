@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 const [action, migration] = await Promise.all([
   read("../src/app/public/contact/actions.ts"),
-  read("../supabase/migrations/20261118140000_public_contact_rate_limit.sql"),
+  read("../supabase/migrations/20261118074617_public_contact_rate_limit.sql"),
 ]);
 
 test("public contact validates and hashes the trusted client IP before message insertion", () => {

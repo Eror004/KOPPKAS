@@ -4,8 +4,8 @@ import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 const [migration, deletePolicy, page, form, action] = await Promise.all([
-  read("../supabase/migrations/20261118170000_private_document_storage.sql"),
-  read("../supabase/migrations/20261118180000_private_storage_delete_active_role_guard.sql"),
+  read("../supabase/migrations/20261118074627_private_document_storage.sql"),
+  read("../supabase/migrations/20261118074629_private_storage_delete_active_role_guard.sql"),
   read("../src/app/dashboard/dokumentasi/page.tsx"),
   read("../src/app/dashboard/dokumentasi/upload-form.tsx"),
   read("../src/app/dashboard/dokumentasi/actions.ts"),
@@ -45,7 +45,7 @@ test("private files are displayed through short-lived signed URLs", () => {
   assert.match(page, /\.eq\("visibility", "internal"\)/);
 });
 
-const storageRoleAlignment = await read("../supabase/migrations/20261118230000_private_storage_role_alignment.sql");
+const storageRoleAlignment = await read("../supabase/migrations/20261118074644_private_storage_role_alignment.sql");
 
 test("private storage updates exclude Bendahara and deletion is Ketua-only", () => {
   assert.match(storageRoleAlignment, /koppkas_docs_update_owner_or_admin/);

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const migration = await readFile(new URL("../supabase/migrations/20261118150000_monthly_dues_idempotency_payload_guard.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../supabase/migrations/20261118074623_monthly_dues_idempotency_payload_guard.sql", import.meta.url), "utf8");
 
 test("monthly dues idempotency validates member-period, amount and normalized note", () => {
   assert.match(migration, /existing_payment\.monthly_dues_id <> p_monthly_dues_id/);

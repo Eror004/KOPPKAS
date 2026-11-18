@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 const [migration, login, loginPage, authClient, accountActions] = await Promise.all([
-  read("../supabase/migrations/20261118090000_progressive_login_protection.sql"),
+  read("../supabase/migrations/20261118074605_progressive_login_protection.sql"),
   read("../src/app/login/actions.ts"),
   read("../src/app/login/page.tsx"),
   read("../src/lib/supabase/auth.ts"),

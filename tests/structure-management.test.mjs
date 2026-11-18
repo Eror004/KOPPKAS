@@ -7,7 +7,7 @@ const [permissions, actions, page, hardening] = await Promise.all([
   read("../src/lib/auth/permissions.ts"),
   read("../src/app/dashboard/struktur/actions.ts"),
   read("../src/app/dashboard/struktur/page.tsx"),
-  read("../supabase/migrations/20261118080000_committee_dues_letters_audit_hardening.sql"),
+  read("../supabase/migrations/20261118074603_committee_dues_letters_audit_hardening.sql"),
 ]);
 
 test("Secretary is the only role with structure management permissions", () => {

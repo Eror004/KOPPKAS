@@ -104,12 +104,12 @@ test("public event listings expose only approved statuses", () => {
 });
 
 
-const eventFinalization = migration("20261118050000_event_finance_finalization_guards.sql");
-const letterPrivacy = migration("20261118060000_public_letter_verification_privacy.sql");
-const eventBalance = migration("20261118070000_event_ledger_balance_summary.sql");
-const eventDualReports = migration("20261118110000_event_dual_report_authorship.sql");
-const duesIdempotency = migration("20261118150000_monthly_dues_idempotency_payload_guard.sql");
-const eventLedgerIdempotency = migration("20261118160000_event_ledger_idempotency.sql");
+const eventFinalization = migration("20261118074546_event_finance_finalization_guards.sql");
+const letterPrivacy = migration("20261118074558_public_letter_verification_privacy.sql");
+const eventBalance = migration("20261118074601_event_ledger_balance_summary.sql");
+const eventDualReports = migration("20261118074613_event_dual_report_authorship.sql");
+const duesIdempotency = migration("20261118074623_monthly_dues_idempotency_payload_guard.sql");
+const eventLedgerIdempotency = migration("20261118074625_event_ledger_idempotency.sql");
 
 test("public letter verification never exposes financial letters or full letter bodies", () => {
   assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
@@ -144,7 +144,7 @@ test("event finance dashboard aggregate is lifetime-scoped, not limited to lates
 });
 
 
-const committeeHardening = migration("20261118080000_committee_dues_letters_audit_hardening.sql");
+const committeeHardening = migration("20261118074603_committee_dues_letters_audit_hardening.sql");
 
 test("event committee management is limited to creator and core leadership before closeout", () => {
   assert.match(committeeHardening, /drop policy if exists "event_committee_manage_authenticated"/);
@@ -182,7 +182,7 @@ test("activity audit covers structure, event committee and media", () => {
 });
 
 
-const accountAuditGrants = migration("20261118100000_server_account_audit_grants.sql");
+const accountAuditGrants = migration("20261118074611_server_account_audit_grants.sql");
 
 test("server-side account administration can write profiles and actor-attributed audit events", () => {
   assert.match(accountAuditGrants, /grant select, insert, update, delete on public\.profiles to service_role/);
@@ -203,7 +203,7 @@ test("event finalization guard has no forward dependency on dual-report columns"
 });
 
 
-const eventApprovalActor = migration("20261118200000_event_approval_actor_attribution.sql");
+const eventApprovalActor = migration("20261118074637_event_approval_actor_attribution.sql");
 
 test("event approval and cancellation metadata are bound to the authenticated actor exactly once", () => {
   assert.match(eventApprovalActor, /new\.approved_by is distinct from auth\.uid\(\)/);
@@ -216,7 +216,7 @@ test("event approval and cancellation metadata are bound to the authenticated ac
 });
 
 
-const lastActiveKetuaGuard = migration("20261118210000_last_active_ketua_guard.sql");
+const lastActiveKetuaGuard = migration("20261118074639_last_active_ketua_guard.sql");
 
 test("database serializes changes that could remove the last active Ketua account", () => {
   assert.match(lastActiveKetuaGuard, /pg_advisory_xact_lock\(74102820261118::bigint\)/);
@@ -227,7 +227,7 @@ test("database serializes changes that could remove the last active Ketua accoun
 });
 
 
-const announcementMediaRoleRls = migration("20261118220000_announcement_media_role_rls.sql");
+const announcementMediaRoleRls = migration("20261118074641_announcement_media_role_rls.sql");
 
 test("announcement and media database policies match approved role boundaries", () => {
   assert.match(announcementMediaRoleRls, /announcements_insert_authorized_roles/);

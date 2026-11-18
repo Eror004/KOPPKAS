@@ -8,8 +8,8 @@ const [actions, page, controls, permissions, migration, privacy] = await Promise
   read("../src/app/dashboard/surat-dokumen/page.tsx"),
   read("../src/app/dashboard/surat-dokumen/workflow-controls.tsx"),
   read("../src/lib/auth/permissions.ts"),
-  read("../supabase/migrations/20261118120000_letter_draft_owner_permissions.sql"),
-  read("../supabase/migrations/20261118060000_public_letter_verification_privacy.sql"),
+  read("../supabase/migrations/20261118074615_letter_draft_owner_permissions.sql"),
+  read("../supabase/migrations/20261118074558_public_letter_verification_privacy.sql"),
 ]);
 
 test("letter owners can edit their own drafts while Secretary manages general letters", () => {
