@@ -46,17 +46,18 @@ language plpgsql
 security invoker
 set search_path = ''
 as $event_chair$
-declare chair_is_active boolean;
+declare chair_role public.app_role;
 begin
   if new.committee_chair_profile_id is null then
     new.committee_chair_profile_id := new.created_by;
   end if;
 
-  select p.is_active into chair_is_active
+  select p.role into chair_role
   from public.profiles p
-  where p.id = new.committee_chair_profile_id;
+  where p.id = new.committee_chair_profile_id
+    and p.is_active = true;
 
-  if chair_is_active is distinct from true then
+  if chair_role is null then
     raise exception 'Ketua Panitia must be an active organization account'
       using errcode = '42501';
   end if;
@@ -81,7 +82,7 @@ declare
   finance_author_role public.app_role;
   finance_report_author uuid;
   finance_report_submitted_at timestamptz;
-  chair_is_active boolean;
+  chair_role public.app_role;
 begin
   role_now := app_private.current_app_role();
 
@@ -92,10 +93,11 @@ begin
       raise exception 'Only the event creator or Secretary may assign the Ketua Panitia'
         using errcode = '42501';
     end if;
-    select p.is_active into chair_is_active
+    select p.role into chair_role
     from public.profiles p
-    where p.id = new.committee_chair_profile_id;
-    if chair_is_active is distinct from true then
+    where p.id = new.committee_chair_profile_id
+      and p.is_active = true;
+    if chair_role is null then
       raise exception 'Ketua Panitia must be an active organization account'
         using errcode = '42501';
     end if;
@@ -140,6 +142,7 @@ begin
         using errcode = '55000';
     end if;
     if auth.uid() is null
+       or role_now is null
        or new.committee_chair_profile_id is distinct from auth.uid()
        or new.final_report_by is distinct from auth.uid()
        or new.final_report_submitted_at is null
@@ -171,10 +174,11 @@ begin
         using errcode = '42501';
     end if;
 
-    select p.is_active into chair_is_active
+    select p.role into chair_role
     from public.profiles p
-    where p.id = new.committee_chair_profile_id;
-    if chair_is_active is distinct from true then
+    where p.id = new.committee_chair_profile_id
+      and p.is_active = true;
+    if chair_role is null then
       raise exception 'Ketua Panitia must remain active when submitting the final report'
         using errcode = '42501';
     end if;
