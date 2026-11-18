@@ -42,7 +42,7 @@ const permissions: Record<AppRole, Partial<Record<ModuleKey, PermissionAction[]>
   },
   ketua_rt_01: {
     dashboard: ["read"], members: ["read"], structure: ["read"], events: ["read", "create"],
-    letters: ["read", "create"], announcements: ["read", "create", "update"], media: ["read", "create", "update"],
+    letters: ["read", "create", "update"], announcements: ["read", "create", "update"], media: ["read", "create", "update"],
     notifications: ["read", "update"], inbox: ["read"],
   },
 };
