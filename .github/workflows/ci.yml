@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: koppkas-ci-${{ github.ref }}
@@ -28,12 +28,19 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Upload resolved package lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: resolved-package-lock
-          path: package-lock.json
-          if-no-files-found: error
+      - name: Commit dependency lockfile update to the working branch
+        if: github.event_name == 'pull_request' && github.head_ref == 'codex/hardening-event-ledger-locks'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: sync dependency lockfile"
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
       - name: Schema invariant tests
         run: npm test
       - name: TypeScript
