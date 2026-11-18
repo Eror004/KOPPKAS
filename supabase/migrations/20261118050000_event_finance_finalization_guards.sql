@@ -21,11 +21,6 @@ begin
     or new.starts_at is distinct from old.starts_at
     or new.ends_at is distinct from old.ends_at
     or new.final_report is distinct from old.final_report
-    or new.committee_chair_profile_id is distinct from old.committee_chair_profile_id
-    or new.final_report_by is distinct from old.final_report_by
-    or new.final_report_submitted_at is distinct from old.final_report_submitted_at
-    or new.financial_report_by is distinct from old.financial_report_by
-    or new.financial_report_submitted_at is distinct from old.financial_report_submitted_at
   ) then
     raise exception 'Event details and final report are locked while awaiting approval'
       using errcode = '55000';
