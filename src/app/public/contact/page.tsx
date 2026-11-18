@@ -22,16 +22,17 @@ export default function PublicContactPage() {
         ) : (
           <form action={action} className="contact-form">
             <div className="contact-form-grid">
-              <label>Nama lengkap<input name="sender_name" minLength={2} maxLength={120} required placeholder="Nama kamu" /></label>
-              <label>Kontak yang bisa dihubungi<input name="sender_contact" minLength={5} maxLength={160} required placeholder="WhatsApp atau email" /></label>
+              <label>Nama lengkap<input name="sender_name" minLength={2} maxLength={120} required placeholder="Nama kamu" autoComplete="name" /></label>
+              <label>Nomor WhatsApp<input name="sender_contact" type="tel" inputMode="tel" autoComplete="tel" minLength={8} maxLength={32} required placeholder="Contoh: 08xxxxxxxxxx" aria-describedby="whatsapp-help" /></label>
             </div>
+            <p id="whatsapp-help" className="contact-privacy">Gunakan nomor WhatsApp aktif agar pengurus dapat menghubungi kamu. Kanal kontak organisasi saat ini hanya WhatsApp.</p>
             <label>Kategori pesan<select name="category" required defaultValue=""><option value="" disabled>Pilih kategori</option><option value="Pertanyaan">Pertanyaan</option><option value="Saran">Saran</option><option value="Aspirasi">Aspirasi</option><option value="Laporan">Laporan</option><option value="Lainnya">Lainnya</option></select></label>
             <label>Subjek<input name="subject" minLength={3} maxLength={160} required placeholder="Ringkasan pesan" /></label>
             <label>Isi pesan<textarea name="message" minLength={10} maxLength={5000} required rows={6} placeholder="Ceritakan hal yang ingin disampaikan..." /></label>
             <label className="contact-honeypot" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
             {state.error && <p className="contact-error" role="alert">{state.error}</p>}
             <button type="submit" disabled={pending}>{pending ? "Mengirim pesan..." : "Kirim pesan"} <Send size={16} /></button>
-            <p className="contact-privacy">Informasi kontak digunakan untuk keperluan tindak lanjut pesan oleh pengurus.</p>
+            <p className="contact-privacy">Informasi kontak digunakan hanya untuk keperluan tindak lanjut pesan oleh pengurus.</p>
           </form>
         )}
       </section>
