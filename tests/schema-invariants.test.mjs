@@ -161,3 +161,11 @@ test("activity audit covers structure, event committee, profiles and media", () 
     assert.match(committeeHardening, /create trigger audit_%I/);
   }
 });
+
+
+const accountAuditGrants = migration("20261118100000_server_account_audit_grants.sql");
+
+test("server-side account administration can write profiles and actor-attributed audit events", () => {
+  assert.match(accountAuditGrants, /grant select, insert, update, delete on public\.profiles to service_role/);
+  assert.match(accountAuditGrants, /grant insert on public\.activity_logs to service_role/);
+});
