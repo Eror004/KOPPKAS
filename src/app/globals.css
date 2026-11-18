@@ -403,3 +403,13 @@ h1,h2,h3,p{margin-top:0}
 .event-report-review section p,.letter-preview p{white-space:pre-wrap;overflow-wrap:anywhere;color:#496477;font-size:12px;line-height:1.65}
 .letter-preview{grid-column:1/-1;border:1px solid #e0eaf0;border-radius:10px;padding:14px;background:#fbfdfe}
 .letter-preview strong{color:#24445a;font-size:13px}
+
+.event-committee-panel{grid-column:1/-1;border:1px solid #e0eaf0;border-radius:12px;padding:14px;background:#fff}
+.event-committee-panel .module-form{max-width:none;margin:12px 0 0}
+.event-committee-panel .module-form-heading{margin-bottom:10px}
+.event-committee-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.event-committee-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf2f5}
+.event-committee-list li:last-child{border-bottom:0}
+.event-committee-list li strong{display:block;color:#24445a;font-size:12px}
+.event-committee-list li small{display:block;color:#7a8f9e;font-size:10px;margin-top:3px}
+.event-committee-list .module-form{margin:0;padding:0;border:0;max-width:none}
