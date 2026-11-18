@@ -32,7 +32,7 @@ test("event committee mutations are limited to event creators and core leadershi
   assert.match(hardening, /e\.created_by = \(select auth\.uid\(\)\)/);
   assert.match(hardening, /'ketua_pemuda','wakil_ketua_pemuda','sekretaris'/);
   assert.match(hardening, /e\.status not in \('menunggu_laporan', 'selesai', 'dibatalkan'\)/);
-  assert.doesNotMatch(hardening, /event_committee_manage_authenticated/);
+  assert.match(hardening, /drop policy if exists "event_committee_manage_authenticated"/);
 });
 
 test("monthly dues register rows cannot be deleted by authenticated users", () => {
