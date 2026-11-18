@@ -15,6 +15,12 @@ function getLoginErrorMessage(error: { code?: string; status?: number; message?:
   if (code === "user_banned" || message.includes("user is banned")) {
     return "Akun sedang dinonaktifkan. Hubungi Ketua Pemuda.";
   }
+  if (message.includes("15 menit")) {
+    return "Akun terkunci sementara. Coba lagi setelah 15 menit.";
+  }
+  if (message.includes("verifikasi tambahan")) {
+    return "Akun memerlukan verifikasi tambahan oleh Ketua Pemuda.";
+  }
   if (error.status === 429 || code.includes("rate_limit") || message.includes("too many requests")) {
     return "Terlalu banyak percobaan login. Tunggu sebentar lalu coba lagi.";
   }
