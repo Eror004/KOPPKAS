@@ -60,6 +60,7 @@ begin
        or new.final_report_submitted_at is null
        or new.financial_report_by is null
        or new.financial_report_submitted_at is null
+       or new.financial_report_by = new.final_report_by
        or nullif(trim(new.financial_report), '') is null then
       raise exception 'Narrative report by Ketua Panitia and financial report by Bendahara are both required'
         using errcode = '22023';
@@ -86,6 +87,16 @@ begin
        or nullif(trim(new.financial_report), '') is null then
       raise exception 'Both event reports must be complete before final approval'
         using errcode = '22023';
+    end if;
+
+    select p.role into finance_author_role
+    from public.profiles p
+    where p.id = new.financial_report_by
+      and p.is_active = true;
+
+    if finance_author_role is distinct from 'bendahara' then
+      raise exception 'Financial report author must remain an active Bendahara'
+        using errcode = '42501';
     end if;
   end if;
 
