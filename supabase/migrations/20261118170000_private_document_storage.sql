@@ -42,7 +42,7 @@ for update to authenticated
 using (
   bucket_id = 'koppkas-documents'
   and (
-    (storage.foldername(name))[1] = (select auth.uid())::text
+    ((storage.foldername(name))[1] = (select auth.uid())::text and app_private.current_app_role() is not null)
     or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
   )
 )
@@ -92,7 +92,7 @@ for update to authenticated
 using (
   visibility = 'internal'
   and (
-    uploaded_by = (select auth.uid())
+    (uploaded_by = (select auth.uid()) and app_private.current_app_role() is not null)
     or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
   )
 )
