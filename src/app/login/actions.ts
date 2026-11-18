@@ -12,8 +12,8 @@ export async function signIn(_previous: LoginState, formData: FormData): Promise
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Masukkan alamat email yang valid." };
   }
-  if (password.length < 12) {
-    return { error: "Password tidak valid." };
+  if (password.length < 5) {
+    return { error: "Email atau password tidak sesuai." };
   }
 
   try {
