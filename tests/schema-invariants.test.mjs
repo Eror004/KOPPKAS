@@ -201,3 +201,16 @@ test("event finalization guard has no forward dependency on dual-report columns"
   assert.match(eventDualReports, /create or replace function app_private\.guard_event_finalized_updates/);
   assert.match(eventDualReports, /new\.financial_report_submitted_at is distinct from old\.financial_report_submitted_at/);
 });
+
+
+const eventApprovalActor = migration("20261118200000_event_approval_actor_attribution.sql");
+
+test("event approval and cancellation metadata are bound to the authenticated actor exactly once", () => {
+  assert.match(eventApprovalActor, /new\.approved_by is distinct from auth\.uid\(\)/);
+  assert.match(eventApprovalActor, /new\.cancelled_by is distinct from auth\.uid\(\)/);
+  assert.match(eventApprovalActor, /new\.final_report_approved_by is distinct from auth\.uid\(\)/);
+  assert.match(eventApprovalActor, /old\.approved_by is not null/);
+  assert.match(eventApprovalActor, /old\.cancelled_by is not null/);
+  assert.match(eventApprovalActor, /old\.final_report_approved_by is not null/);
+  assert.match(eventApprovalActor, /create trigger guard_event_approval_actor/);
+});
