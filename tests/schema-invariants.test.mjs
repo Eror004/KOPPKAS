@@ -113,7 +113,9 @@ test("public letter verification never exposes financial letters or full letter 
   assert.match(letterPrivacy, /revoke select on public\.official_letters from anon/);
   assert.match(letterPrivacy, /l\.category = 'umum'/);
   assert.match(letterPrivacy, /create or replace view public\.public_letter_verifications/);
-  assert.match(letterPrivacy, /security_barrier = true, security_invoker = false/);
+  assert.match(letterPrivacy, /security_barrier = true, security_invoker = true/);
+  assert.match(letterPrivacy, /grant select \(id, letter_number, subject, category, status, approved_at, created_at\)/);
+  assert.match(letterPrivacy, /for select to anon[\s\S]*?status = 'terbit' and category = 'umum'/);
   assert.match(letterPrivacy, /grant select on public\.public_letter_verifications to anon/);
   assert.doesNotMatch(letterPrivacy, /l\.body/);
 });
