@@ -35,7 +35,7 @@ export async function ModuleShell({ title, children }: { title: string; children
           <div className="module-shell-current"><span>RUANG KERJA</span><i aria-hidden="true">/</i>{title}</div>
           <div className="module-shell-role">{user.role.replaceAll("_", " ")}</div>
         </header>
-        <main className="module-shell-content">{children}</main>
+        <div className="module-shell-content">{children}</div>
         <footer className="module-shell-footer">© 2026 KOPPKAS · PEMUDA KAMPUNG SAWAH KAUM</footer>
       </div>
     </div>
