@@ -3,7 +3,7 @@ import { ModuleShell } from "@/components/module-shell";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { ROLE_LABELS, APP_ROLES } from "@/lib/auth/roles";
 import { createAdminClient, hasSupabaseAdminConfig } from "@/lib/supabase/admin";
-import { createAccount, resetAccountPassword, updateAccount } from "./actions";
+import { createAccount, resetAccountPassword, unlockAccount, updateAccount } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +69,10 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
                 <input type="hidden" name="user_id" value={account.id} />
                 <label>Reset password<input name="password" type="password" minLength={5} maxLength={128} required autoComplete="new-password" placeholder="Password baru, minimal 5 karakter" /></label>
                 <button type="submit">Perbarui password</button>
+              </form>
+              <form action={unlockAccount} style={{ marginTop: 10 }}>
+                <input type="hidden" name="user_id" value={account.id} />
+                <button type="submit" className="secondary-button">Reset penguncian login</button>
               </form>
             </article>
           ))}</div> : <div className="module-empty">Belum ada akun pengurus yang terdaftar.</div>}
