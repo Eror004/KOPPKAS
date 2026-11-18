@@ -56,7 +56,7 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
             <article className="member-group" key={account.id} style={{ padding: 16, margin: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                 <div><strong style={{ color: "#24445a", fontSize: 13 }}>{account.full_name}</strong><p style={{ color: "#7a8f9e", fontSize: 11, margin: "4px 0" }}>{account.email}</p></div>
-                <span className={account.is_active ? "status-pill status-active" : "status-pill"}>{account.is_active ? "AKTIF" : "NONAKTIF"}</span>
+                <span className={account.is_active ? "account-status active" : "account-status inactive"}>{account.is_active ? "AKTIF" : "NONAKTIF"}</span>
               </div>
               <form action={updateAccount} className="module-form" style={{ maxWidth: "none", marginTop: 12, padding: 0, border: 0 }}>
                 <input type="hidden" name="user_id" value={account.id} />
