@@ -20,6 +20,20 @@ grant usage on schema public to supabase_auth_admin;
 grant all on public.login_protection_attempts to supabase_auth_admin;
 grant all on public.login_protection_attempts to service_role;
 
+create or replace view public.login_protection_status
+with (security_invoker = true)
+as
+select
+  user_id,
+  failed_attempts,
+  locked_until,
+  requires_admin_unlock,
+  locked_until is not null and locked_until > now() as is_currently_locked
+from public.login_protection_attempts;
+
+revoke all on public.login_protection_status from public, anon, authenticated;
+grant select on public.login_protection_status to service_role;
+
 create or replace function public.hook_password_verification_attempt(event jsonb)
 returns jsonb
 language plpgsql
