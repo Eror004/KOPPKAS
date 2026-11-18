@@ -31,7 +31,10 @@ const workspaceNav: NavItem[] = [
   { label: "Dokumentasi", icon: FolderKanban },
   { label: "Laporan", icon: BookOpenText },
 ];
-const accountNav: NavItem[] = [\n  { label: "Manajemen Akun", icon: ShieldCheck },\n];\nconst utilityNav: NavItem[] = [
+const accountNav: NavItem[] = [
+  { label: "Manajemen Akun", icon: ShieldCheck },
+];
+const utilityNav: NavItem[] = [
   { label: "Inbox", icon: Inbox },
   { label: "Notifikasi", icon: Bell },
   { label: "Riwayat Aktivitas", icon: Activity },
@@ -97,7 +100,8 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
       "Pengumuman": "/dashboard/pengumuman",
       "Dokumentasi": "/dashboard/dokumentasi",
       "Laporan": "/dashboard/laporan",
-      "Riwayat Aktivitas": "/dashboard/riwayat-aktivitas",\n      "Manajemen Akun": "/dashboard/akun",
+      "Riwayat Aktivitas": "/dashboard/riwayat-aktivitas",
+      "Manajemen Akun": "/dashboard/akun",
     };
     if (routes[label]) router.push(routes[label]);
   };
