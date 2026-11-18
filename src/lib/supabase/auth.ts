@@ -1,17 +1,25 @@
 import "server-only";
 
+import { isIP } from "node:net";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getSupabaseEnv } from "./env";
 
 export async function createAuthClient() {
   const { url, key } = getSupabaseEnv();
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
   const cookieStore = await cookies();
+  const headerStore = await headers();
+  const candidateIp = headerStore.get("x-real-ip") ??
+    (process.env.NODE_ENV !== "production" ? headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() : undefined);
+  const forwardedIp = candidateIp && isIP(candidateIp) ? candidateIp : undefined;
 
-  // User authentication must use the publishable key, just like the
-  // browser/server session clients. A secret key is reserved for trusted
-  // administrative operations and must not become the user's API identity.
-  return createServerClient(url, key, {
+  return createServerClient(url, secretKey ?? key, {
+    global: {
+      headers: secretKey && forwardedIp
+        ? { "Sb-Forwarded-For": forwardedIp }
+        : {},
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
