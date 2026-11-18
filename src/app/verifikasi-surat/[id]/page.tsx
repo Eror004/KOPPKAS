@@ -20,8 +20,8 @@ export default async function VerifyLetterPage({ params }: { params: Promise<{ i
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("verify_public_letter", { target_letter_id: id });
-    if (!error && data?.length) letter = data[0];
+    const { data, error } = await supabase.from("public_letter_verifications").select("letter_number,subject,category,status,approved_at,created_at").eq("id", id).maybeSingle();
+    if (!error && data) letter = data;
   } catch {
     letter = null;
   }
