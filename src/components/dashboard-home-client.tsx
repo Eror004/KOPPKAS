@@ -123,7 +123,8 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
           <NavGroup title="MENU UTAMA" items={primaryNav} active={active} role={role} onSelect={chooseModule} />
           <NavGroup title="KEUANGAN" items={financeNav} active={active} role={role} onSelect={chooseModule} />
           <NavGroup title="ADMINISTRASI" items={workspaceNav} active={active} role={role} onSelect={chooseModule} />
-          <NavGroup title="PUSAT INFORMASI" items={utilityNav} active={active} role={role} onSelect={chooseModule} />\n          <NavGroup title="ADMINISTRASI SISTEM" items={accountNav} active={active} role={role} onSelect={chooseModule} />
+          <NavGroup title="PUSAT INFORMASI" items={utilityNav} active={active} role={role} onSelect={chooseModule} />
+          <NavGroup title="ADMINISTRASI SISTEM" items={accountNav} active={active} role={role} onSelect={chooseModule} />
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><div className="help-icon"><CircleHelp size={17} /></div><div><strong>Butuh bantuan?</strong><span>Pusat panduan penggunaan</span></div><ChevronRight size={15} /></div>
