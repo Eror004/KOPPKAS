@@ -1,4 +1,4 @@
-import { approveLetter, cancelLetter, submitLetterForApproval } from "./actions";
+import { approveLetter, cancelLetter, submitLetterForApproval, updateLetterDraft } from "./actions";
 import type { AppRole } from "@/lib/auth/roles";
 
 type LetterWorkflowItem = {
@@ -22,7 +22,7 @@ export function LetterWorkflowControls({
 }) {
   const isLeader = role === "ketua_pemuda" || role === "wakil_ketua_pemuda";
   const isOwner = letter.created_by === actorId;
-  const canSubmit = isOwner || (role === "sekretaris" && letter.category === "umum");
+  const canSubmit = isOwner || (role === "sekretaris" && letter.category === "umum");\n  const canEdit = isOwner || isLeader || (role === "sekretaris" && letter.category === "umum");
 
   return (
     <details className="letter-workflow-controls">
@@ -30,7 +30,7 @@ export function LetterWorkflowControls({
       <div className="letter-workflow-body">
         <div className="letter-preview"><strong>{letter.subject}</strong><p>{letter.body}</p></div>
 
-        {letter.status === "draft" && canSubmit && (
+        {letter.status === "draft" && canEdit && <form action={updateLetterDraft} className="module-form">\n          <input type="hidden" name="letter_id" value={letter.id} />\n          <label>Perihal<input name="subject" defaultValue={letter.subject} minLength={3} maxLength={180} required /></label>\n          <label>Isi surat<textarea name="body" defaultValue={letter.body} minLength={10} maxLength={20000} rows={6} required /></label>\n          <button type="submit">Simpan draft</button>\n        </form>}\n\n        {letter.status === "draft" && canSubmit && (
           <form action={submitLetterForApproval} className="module-form">
             <input type="hidden" name="letter_id" value={letter.id} />
             <p>Ajukan draft untuk persetujuan dan penerbitan resmi.</p>
