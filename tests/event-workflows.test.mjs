@@ -20,12 +20,13 @@ test("event publication and cancellation require leadership approvals", () => {
   assert.match(approval, /Only Ketua or Wakil Ketua may cancel an event/);
 });
 
-test("event creator submits narrative report and Bendahara submits separate finance report", () => {
+test("designated Ketua Panitia submits narrative report and Bendahara submits separate finance report", () => {
   assert.match(actions, /submit_event_financial_report/);
   assert.match(actions, /actor\.role !== "bendahara"/);
-  assert.match(actions, /event\.committee_chair_profile_id !== actor\.profile\.id/);\n  assert.match(actions, /submit_event_narrative_report/);\n  assert.match(dualReport, /Only the designated Ketua Panitia may submit the narrative report/);
+  assert.match(actions, /event\.committee_chair_profile_id !== actor\.profile\.id/);
+  assert.match(actions, /submit_event_narrative_report/);
+  assert.match(dualReport, /Only the designated Ketua Panitia may submit the narrative report/);
   assert.match(dualReport, /Only Bendahara may submit the event financial report/);
-  assert.match(dualReport, /Only the event creator acting as Ketua Panitia may submit the narrative report/);
   assert.match(dualReport, /new\.financial_report_by = new\.final_report_by/);
   assert.match(dualReport, /new\.final_report_by is distinct from new\.committee_chair_profile_id/);
   assert.match(dualReport, /profiles_read_active_org_accounts/);
@@ -38,7 +39,8 @@ test("event creator submits narrative report and Bendahara submits separate fina
 });
 
 test("event final approval requires both reports and an active Bendahara author", () => {
-  assert.match(dualReport, /Both event reports must be complete before final approval/);\n  assert.match(dualReport, /Only the designated Ketua Panitia may submit a final report/);
+  assert.match(dualReport, /Both event reports must be complete before final approval/);
+  assert.match(dualReport, /Only the designated Ketua Panitia may submit a final report/);
   assert.match(dualReport, /Financial report author must remain an active Bendahara/);
   assert.match(actions, /approve_event_final_report/);
 });
