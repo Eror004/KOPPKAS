@@ -1,8 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
+const migrationFiles = await readdir(new URL("../supabase/migrations/", import.meta.url));
+const narrativeActiveActorFile = migrationFiles.find((name) => name.endsWith("_event_narrative_active_actor_guard.sql"));
+assert.ok(narrativeActiveActorFile, "active actor guard migration must exist");
+const narrativeActiveActor = await read(`../supabase/migrations/${narrativeActiveActorFile}`);
 const [actions, page, controls, dualReport, finalization, approval, financeActions, financeForm, ledgerIdempotency] = await Promise.all([
   read("../src/app/dashboard/kegiatan/actions.ts"),
   read("../src/app/dashboard/kegiatan/page.tsx"),
@@ -77,4 +81,11 @@ test("event finance entries use idempotency keys and verify duplicate payloads",
   assert.match(financeForm, /crypto\.randomUUID\(\)/);
   assert.match(ledgerIdempotency, /event_ledger_entries_idempotency_key_uidx/);
   assert.match(ledgerIdempotency, /Event finance idempotency key is required/);
+});
+
+
+test("narrative report submission requires an active organization account", () => {
+  assert.match(narrativeActiveActor, /role_now := app_private\.current_app_role\(\)/);
+  assert.match(narrativeActiveActor, /if role_now is null then/);
+  assert.match(narrativeActiveActor, /Only the designated Ketua Panitia may submit the narrative report/);
 });
