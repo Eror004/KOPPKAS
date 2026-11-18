@@ -61,7 +61,7 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
               <form action={updateAccount} className="module-form" style={{ maxWidth: "none", marginTop: 12, padding: 0, border: 0 }}>
                 <input type="hidden" name="user_id" value={account.id} />
                 <label>Nama lengkap<input name="full_name" defaultValue={account.full_name} minLength={2} maxLength={120} required /></label>
-                <label>Jabatan<select name="role" defaultValue={account.role ?? ""} required>{APP_ROLES.map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}</select></label>
+                <label>Jabatan<select name="role" defaultValue={account.role ?? ""} required><option value="" disabled>Pilih jabatan</option>{APP_ROLES.map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}</select></label>
                 <label>Status akun<select name="is_active" defaultValue={account.is_active ? "on" : "off"}><option value="on">Aktif</option><option value="off">Nonaktif</option></select></label>
                 <button type="submit"><ShieldCheck size={15} /> Simpan perubahan</button>
               </form>
