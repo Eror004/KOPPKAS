@@ -12,7 +12,7 @@ with check (
     select 1
     from public.events e
     where e.id = event_id
-      and e.status not in ('selesai', 'dibatalkan')
+      and e.status not in ('menunggu_laporan', 'selesai', 'dibatalkan')
       and (
         e.created_by = (select auth.uid())
         or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
@@ -27,7 +27,7 @@ using (
     select 1
     from public.events e
     where e.id = event_id
-      and e.status not in ('selesai', 'dibatalkan')
+      and e.status not in ('menunggu_laporan', 'selesai', 'dibatalkan')
       and (
         e.created_by = (select auth.uid())
         or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
@@ -39,7 +39,7 @@ with check (
     select 1
     from public.events e
     where e.id = event_id
-      and e.status not in ('selesai', 'dibatalkan')
+      and e.status not in ('menunggu_laporan', 'selesai', 'dibatalkan')
       and (
         e.created_by = (select auth.uid())
         or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
@@ -54,7 +54,7 @@ using (
     select 1
     from public.events e
     where e.id = event_id
-      and e.status not in ('selesai', 'dibatalkan')
+      and e.status not in ('menunggu_laporan', 'selesai', 'dibatalkan')
       and (
         e.created_by = (select auth.uid())
         or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
