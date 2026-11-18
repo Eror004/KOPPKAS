@@ -133,7 +133,7 @@ test("finalized event data and event ledger are protected by database triggers",
 
 test("event ledger insert trigger remains installed while its guard function is hardened", () => {
   assert.match(eventFinalization, /create trigger guard_event_ledger_insert/);
-  assert.match(eventLedgerIdempotency, /create or replace function app_private\\.guard_event_ledger_insert/);
+  assert.ok(eventLedgerIdempotency.includes("create or replace function app_private.guard_event_ledger_insert()"));
   assert.match(eventLedgerIdempotency, /Event finance idempotency key is required/);
 });
 
