@@ -26,7 +26,9 @@ test("event creator submits narrative report and Bendahara submits separate fina
   assert.match(actions, /event\.created_by !== actor\.profile\.id/);
   assert.match(dualReport, /Only Bendahara may submit the event financial report/);
   assert.match(dualReport, /Only the event creator acting as Ketua Panitia may submit the narrative report/);
-  assert.match(dualReport, /new\.financial_report_by = new\.final_report_by/);\n  assert.match(dualReport, /public\.event_financial_reports/);\n  assert.match(dualReport, /event_financial_reports_read_finance_roles/);
+  assert.match(dualReport, /new\.financial_report_by = new\.final_report_by/);
+  assert.match(dualReport, /public\.event_financial_reports/);
+  assert.match(dualReport, /event_financial_reports_read_finance_roles/);
 });
 
 test("event final approval requires both reports and an active Bendahara author", () => {
@@ -42,7 +44,11 @@ test("event reports and details are immutable during approval and after closeout
 });
 
 test("event register exposes role-aware workflow controls", () => {
-  assert.match(page, /EventWorkflowControls/);\n  assert.match(page, /canReadEventFinance/);\n  assert.match(page, /event_financial_reports/);\n  assert.match(actions, /updateEventDetails/);\n  assert.match(actions, /addEventCommitteeMember/);
+  assert.match(page, /EventWorkflowControls/);
+  assert.match(page, /canReadEventFinance/);
+  assert.match(page, /event_financial_reports/);
+  assert.match(actions, /updateEventDetails/);
+  assert.match(actions, /addEventCommitteeMember/);
   assert.match(controls, /submitEventForApproval/);
   assert.match(controls, /approveEventFinalReport/);
   assert.match(controls, /cancelEvent/);
