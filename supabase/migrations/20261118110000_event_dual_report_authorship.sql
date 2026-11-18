@@ -45,7 +45,7 @@ returns trigger
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $event_chair$
 declare chair_is_active boolean;
 begin
   if new.committee_chair_profile_id is null then
@@ -63,7 +63,7 @@ begin
 
   return new;
 end
-$;
+$event_chair$;
 
 drop trigger if exists set_event_chair_default on public.events;
 create trigger set_event_chair_default
