@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireModulePermission } from "@/lib/auth/require-role";
 
@@ -27,8 +28,6 @@ export async function createOfficialLetter(_previous: LetterActionState, formDat
   revalidatePath("/dashboard/surat-dokumen");
   return { success: "Draft surat berhasil dibuat. Nomor surat dialokasikan otomatis oleh database." };
 }
-
-import { redirect } from "next/navigation";
 
 const letterPath = "/dashboard/surat-dokumen";
 const letterUuidPattern = /^[0-9a-f-]{36}$/i;
