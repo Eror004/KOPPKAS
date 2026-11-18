@@ -25,13 +25,15 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
   }
 
   const admin = createAdminClient();
-  const [{ data: profiles, error: profilesError }, { data: authUsers, error: authError }] = await Promise.all([
+  const [{ data: profiles, error: profilesError }, { data: authUsers, error: authError }, { data: lockRows, error: lockError }] = await Promise.all([
     admin.from("profiles").select("id,full_name,role,is_active,created_at").order("created_at", { ascending: true }),
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    admin.from("login_protection_attempts").select("user_id,failed_attempts,locked_until,requires_admin_unlock"),
   ]);
 
   const emails = new Map((authUsers?.users ?? []).map((user) => [user.id, user.email ?? "Email tidak tersedia"]));
-  const accounts = (profiles ?? []).map((profile) => ({ ...profile, email: emails.get(profile.id) ?? "Email tidak tersedia" }));
+  const protections = new Map((lockRows ?? []).map((row) => [row.user_id, row]));
+  const accounts = (profiles ?? []).map((profile) => ({ ...profile, email: emails.get(profile.id) ?? "Email tidak tersedia", protection: protections.get(profile.id) ?? null }));
 
   return (
     <ModuleShell title="Manajemen Akun">
@@ -40,6 +42,7 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
         {query.error && <p className="form-feedback error" role="alert">{query.error}</p>}
         {query.success && <p className="form-feedback success" role="status">{query.success}</p>}
         {(profilesError || authError) && <div className="module-alert" role="alert">Daftar akun tidak dapat dimuat lengkap. Periksa konfigurasi Supabase Auth dan database.</div>}
+        {lockError && <div className="module-alert" role="alert">Status perlindungan login belum tersedia. Pastikan migrasi progressive login protection sudah diterapkan.</div>}
 
         <form action={createAccount} className="module-form">
           <div className="module-form-heading"><div><p className="eyebrow">AKUN BARU</p><h3>Buat akun pengurus</h3></div><span className="add-member-icon"><UserPlus size={18} /></span></div>
@@ -56,7 +59,7 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
             <article className="member-group" key={account.id} style={{ padding: 16, margin: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                 <div><strong style={{ color: "#24445a", fontSize: 13 }}>{account.full_name}</strong><p style={{ color: "#7a8f9e", fontSize: 11, margin: "4px 0" }}>{account.email}</p></div>
-                <span className={account.is_active ? "account-status active" : "account-status inactive"}>{account.is_active ? "AKTIF" : "NONAKTIF"}</span>
+                <span className={account.protection?.requires_admin_unlock ? "account-status inactive" : account.protection?.locked_until && new Date(account.protection.locked_until).getTime() > Date.now() ? "account-status inactive" : account.is_active ? "account-status active" : "account-status inactive"}>{account.protection?.requires_admin_unlock ? "VERIFIKASI KETUA" : account.protection?.locked_until && new Date(account.protection.locked_until).getTime() > Date.now() ? "TERKUNCI SEMENTARA" : account.is_active ? "AKTIF" : "NONAKTIF"}</span>
               </div>
               <form action={updateAccount} className="module-form" style={{ maxWidth: "none", marginTop: 12, padding: 0, border: 0 }}>
                 <input type="hidden" name="user_id" value={account.id} />
@@ -70,10 +73,10 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
                 <label>Reset password<input name="password" type="password" minLength={5} maxLength={128} required autoComplete="new-password" placeholder="Password baru, minimal 5 karakter" /></label>
                 <button type="submit">Perbarui password</button>
               </form>
-              <form action={unlockAccount} className="module-form" style={{ maxWidth: "none", marginTop: 10, padding: 0, border: 0 }}>
+              {account.protection && <form action={unlockAccount} className="module-form" style={{ maxWidth: "none", marginTop: 10, padding: 0, border: 0 }}>
                 <input type="hidden" name="user_id" value={account.id} />
                 <button type="submit" className="secondary-button">Reset penguncian login</button>
-              </form>
+              </form>}
             </article>
           ))}</div> : <div className="module-empty">Belum ada akun pengurus yang terdaftar.</div>}
         </section>
