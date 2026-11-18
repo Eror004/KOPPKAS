@@ -141,7 +141,7 @@ test("event committee management is limited to creator and core leadership befor
   assert.match(committeeHardening, /event_committee_insert_event_managers/);
   assert.match(committeeHardening, /event_committee_update_event_managers/);
   assert.match(committeeHardening, /event_committee_delete_event_managers/);
-  assert.match(committeeHardening, /e\.status not in \('selesai', 'dibatalkan'\)/);
+  assert.match(committeeHardening, /e\.status not in \('menunggu_laporan', 'selesai', 'dibatalkan'\)/);
   assert.match(committeeHardening, /e\.created_by = \(select auth\.uid\(\)\)/);
 });
 
