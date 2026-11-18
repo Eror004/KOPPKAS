@@ -1,6 +1,6 @@
 "use server";
 
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,7 +29,9 @@ export async function submitContact(_previous: ContactState, formData: FormData)
       (process.env.NODE_ENV !== "production" ? headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() : undefined);
     if (!candidateIp || !isIP(candidateIp)) return { error: "Layanan kontak sementara tidak tersedia. Silakan gunakan WhatsApp resmi organisasi." };
 
-    const ipHash = createHash("sha256").update(candidateIp).digest("hex");
+    const rateLimitSecret = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!rateLimitSecret) return { error: "Layanan kontak sementara tidak tersedia. Silakan gunakan WhatsApp resmi organisasi." };
+    const ipHash = createHmac("sha256", rateLimitSecret).update(candidateIp).digest("hex");
     const admin = createAdminClient();
     const { data: allowed, error: rateLimitError } = await admin.rpc("consume_public_contact_rate_limit", {
       p_ip_hash: ipHash,
