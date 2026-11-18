@@ -1,5 +1,5 @@
-const CACHE_NAME = "koppkas-static-v1";
-const STATIC_ASSETS = ["/icon.svg", "/manifest.webmanifest"];
+const CACHE_NAME = "koppkas-static-v2";
+const STATIC_ASSETS = ["/icon.svg", "/manifest.webmanifest", "/offline.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -23,12 +23,25 @@ self.addEventListener("fetch", (event) => {
 
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
+  // A navigation may fall back to a static offline shell only. The requested
+  // page, dashboard data, Auth state, and financial records are never cached.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const offlineShell = await caches.match("/offline.html");
+        return offlineShell ?? Response.error();
+      })
+    );
+    return;
+  }
+
   // Cache only immutable Next.js build assets and public brand assets.
   // Never cache dashboard pages, API responses, Auth cookies, or private records.
   const isStaticAsset =
     url.pathname.startsWith("/_next/static/") ||
     url.pathname === "/icon.svg" ||
-    url.pathname === "/manifest.webmanifest";
+    url.pathname === "/manifest.webmanifest" ||
+    url.pathname === "/offline.html";
 
   if (!isStaticAsset) return;
 
@@ -41,7 +54,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return response;
-      });
+      })
     })
   );
 });
