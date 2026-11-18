@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isIP } from "node:net";
 import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
 import { getSupabaseEnv } from "./env";
@@ -9,9 +10,10 @@ export async function createAuthClient() {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   const cookieStore = await cookies();
   const headerStore = await headers();
-  const forwardedIp =
+  const candidateIp =
     headerStore.get("x-real-ip") ??
-    headerStore.get("x-forwarded-for")?.split(",")[0]?.trim();
+    headerStore.get("x-forwarded-for")?.split(",").at(-1)?.trim();
+  const forwardedIp = candidateIp && isIP(candidateIp) ? candidateIp : undefined;
 
   return createServerClient(url, secretKey ?? key, {
     global: {
