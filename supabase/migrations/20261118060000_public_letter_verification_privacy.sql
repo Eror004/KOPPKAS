@@ -2,14 +2,21 @@
 begin;
 
 drop policy if exists "letters_public_verify_published" on public.official_letters;
+drop policy if exists "letters_public_verify_general_metadata" on public.official_letters;
 revoke select on public.official_letters from anon;
+
+create policy "letters_public_verify_general_metadata" on public.official_letters
+for select to anon
+using (status = 'terbit' and category = 'umum');
+
+-- Column-level grants prevent anon from selecting body or other private columns.
+grant select (id, letter_number, subject, category, status, approved_at, created_at)
+on public.official_letters to anon;
 
 drop function if exists public.verify_public_letter(uuid);
 
--- This deliberately owner-privileged projection is the only public read surface.
--- It exposes no body or financial category and cannot be used to query the base table.
 create or replace view public.public_letter_verifications
-with (security_barrier = true, security_invoker = false)
+with (security_barrier = true, security_invoker = true)
 as
 select
   l.id,
