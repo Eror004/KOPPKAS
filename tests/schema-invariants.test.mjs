@@ -110,8 +110,8 @@ const eventBalance = migration("20261118070000_event_ledger_balance_summary.sql"
 
 test("public letter verification never exposes financial letters or full letter bodies", () => {
   assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
-  assert.match(letterPrivacy, /revoke select on public\\.official_letters from anon, public/);
-  assert.match(letterPrivacy, /revoke select \\(body, category, letter_number\\) on public\\.official_letters from anon, public/);
+  assert.ok(letterPrivacy.includes("revoke select on public.official_letters from anon, public;"));
+  assert.ok(letterPrivacy.includes("revoke select (body, category, letter_number) on public.official_letters from anon, public;"));
   assert.match(letterPrivacy, /l\.category = 'umum'/);
   assert.match(letterPrivacy, /create or replace view public\.public_letter_verifications/);
   assert.match(letterPrivacy, /security_barrier = true, security_invoker = true/);
