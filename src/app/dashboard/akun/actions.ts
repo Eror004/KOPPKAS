@@ -104,7 +104,22 @@ export async function resetAccountPassword(formData: FormData) {
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(targetId, { password });
   if (error) finish("error", "Password akun gagal diperbarui.");
+  const { error: unlockError } = await admin.from("login_protection_attempts").delete().eq("user_id", targetId);
+  if (unlockError) finish("error", "Password berubah, tetapi status penguncian belum dapat direset. Periksa migrasi perlindungan login.");
 
   revalidatePath(accountPath);
-  finish("success", "Password akun berhasil diperbarui. Sampaikan password sementara melalui kanal aman.");
+  finish("success", "Password akun berhasil diperbarui dan status penguncian direset. Sampaikan password sementara melalui kanal aman.");
+}
+
+export async function unlockAccount(formData: FormData) {
+  await requireModulePermission("accounts", "manage");
+  const targetId = String(formData.get("user_id") ?? "");
+  if (!uuidPattern.test(targetId)) finish("error", "Akun tujuan tidak valid.");
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("login_protection_attempts").delete().eq("user_id", targetId);
+  if (error) finish("error", "Status penguncian gagal direset. Pastikan migrasi perlindungan login sudah diterapkan.");
+
+  revalidatePath(accountPath);
+  finish("success", "Status penguncian login berhasil direset oleh Ketua Pemuda.");
 }
