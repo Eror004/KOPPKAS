@@ -6,7 +6,8 @@ create policy "letters_update_owner_or_leadership" on public.official_letters
 for update to authenticated
 using (
   created_by = (select auth.uid())
-  or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda']::public.app_role[])
+  or (category = 'umum' and app_private.current_app_role() = 'sekretaris')
 )
 with check (
   created_by = (select auth.uid())
