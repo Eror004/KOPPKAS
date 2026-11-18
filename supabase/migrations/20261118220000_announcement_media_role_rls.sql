@@ -19,12 +19,22 @@ with check (
 create policy "announcements_update_owners_and_core" on public.announcements
 for update to authenticated
 using (
-  created_by = (select auth.uid())
-  or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  app_private.has_any_role(array[
+    'ketua_pemuda','wakil_ketua_pemuda','sekretaris','ketua_rw_01','ketua_rt_01'
+  ]::public.app_role[])
+  and (
+    created_by = (select auth.uid())
+    or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  )
 )
 with check (
-  created_by = (select auth.uid())
-  or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  app_private.has_any_role(array[
+    'ketua_pemuda','wakil_ketua_pemuda','sekretaris','ketua_rw_01','ketua_rt_01'
+  ]::public.app_role[])
+  and (
+    created_by = (select auth.uid())
+    or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  )
 );
 
 -- Only Ketua Pemuda has delete permission for announcements.
@@ -46,12 +56,22 @@ with check (
 create policy "media_update_owners_and_core" on public.media_assets
 for update to authenticated
 using (
-  uploaded_by = (select auth.uid())
-  or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  app_private.has_any_role(array[
+    'ketua_pemuda','wakil_ketua_pemuda','sekretaris','ketua_rw_01','ketua_rt_01'
+  ]::public.app_role[])
+  and (
+    uploaded_by = (select auth.uid())
+    or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  )
 )
 with check (
-  uploaded_by = (select auth.uid())
-  or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  app_private.has_any_role(array[
+    'ketua_pemuda','wakil_ketua_pemuda','sekretaris','ketua_rw_01','ketua_rt_01'
+  ]::public.app_role[])
+  and (
+    uploaded_by = (select auth.uid())
+    or app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','sekretaris']::public.app_role[])
+  )
 );
 
 -- Media deletion is reserved for Ketua Pemuda.
