@@ -14,7 +14,7 @@ alter table public.events alter column committee_chair_profile_id set not null;
 drop policy if exists "profiles_read_active_org_accounts" on public.profiles;
 create policy "profiles_read_active_org_accounts" on public.profiles
 for select to authenticated
-using (is_active = true and app_private.current_app_role() is not null);
+using (is_active = true and role is not null and app_private.current_app_role() is not null);
 
 create table public.event_financial_reports (
   id uuid primary key default gen_random_uuid(),
@@ -296,6 +296,7 @@ begin
 end
 $$;
 
+revoke all on function app_private.set_event_chair_default() from public, anon, authenticated;
 revoke all on function app_private.guard_event_report_authorship() from public, anon, authenticated;
 revoke all on function public.submit_event_financial_report(uuid, text) from public, anon;
 grant execute on function public.submit_event_financial_report(uuid, text) to authenticated;
