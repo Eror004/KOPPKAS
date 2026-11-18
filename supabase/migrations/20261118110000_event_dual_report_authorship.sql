@@ -27,7 +27,7 @@ begin
       raise exception 'Bendahara financial report has already been submitted'
         using errcode = '55000';
     end if;
-    if auth.uid() is null or role_now <> 'bendahara'
+    if auth.uid() is null or role_now is distinct from 'bendahara'
        or new.financial_report_by is distinct from auth.uid()
        or new.financial_report_submitted_at is null
        or char_length(trim(coalesce(new.financial_report, ''))) < 10
@@ -70,7 +70,7 @@ begin
     where p.id = new.financial_report_by
       and p.is_active = true;
 
-    if finance_author_role <> 'bendahara' then
+    if finance_author_role is distinct from 'bendahara' then
       raise exception 'Financial report author must be an active Bendahara'
         using errcode = '42501';
     end if;
@@ -81,6 +81,7 @@ begin
        or new.final_report_submitted_at is null
        or new.financial_report_by is null
        or new.financial_report_submitted_at is null
+       or new.financial_report_by = new.final_report_by
        or nullif(trim(new.final_report), '') is null
        or nullif(trim(new.financial_report), '') is null then
       raise exception 'Both event reports must be complete before final approval'
