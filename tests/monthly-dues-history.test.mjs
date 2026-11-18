@@ -1,0 +1,24 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const page = await readFile(new URL("../src/app/dashboard/uang-kas-bulanan/page.tsx", import.meta.url), "utf8");
+
+test("monthly dues dashboard loads a rolling 12-period history", () => {
+  assert.match(page, /historyStart/);
+  assert.match(page, /\.gte\("dues_month", historyStart\)/);
+  assert.match(page, /for \(const row of allRows\)/);
+  assert.match(page, /Riwayat 12 periode terakhir/);
+});
+
+test("monthly dues recap distinguishes historical unpaid periods without debt language", () => {
+  assert.match(page, /PERIODE LAMA BELUM LUNAS/);
+  assert.match(page, /historicalUnpaid/);
+  assert.match(page, /bukan tagihan, utang wajib, atau dasar denda/);
+});
+
+test("current-month recording and payment controls remain available", () => {
+  assert.match(page, /RegisterForm/);
+  assert.match(page, /PaymentForm monthlyDuesId/);
+  assert.match(page, /InlineMemberForm/);
+});
