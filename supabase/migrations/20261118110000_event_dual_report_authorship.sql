@@ -2,10 +2,19 @@
 begin;
 
 alter table public.events
+  add column committee_chair_profile_id uuid references public.profiles(id) on delete restrict,
   add column final_report_by uuid references public.profiles(id) on delete restrict,
   add column final_report_submitted_at timestamptz,
   add column financial_report_by uuid references public.profiles(id) on delete restrict,
   add column financial_report_submitted_at timestamptz;
+
+update public.events set committee_chair_profile_id = created_by where committee_chair_profile_id is null;
+alter table public.events alter column committee_chair_profile_id set not null;
+
+drop policy if exists "profiles_read_active_org_accounts" on public.profiles;
+create policy "profiles_read_active_org_accounts" on public.profiles
+for select to authenticated
+using (is_active = true and app_private.current_app_role() is not null);
 
 create table public.event_financial_reports (
   id uuid primary key default gen_random_uuid(),
@@ -40,8 +49,25 @@ declare
   finance_author_role public.app_role;
   finance_report_author uuid;
   finance_report_submitted_at timestamptz;
+  chair_is_active boolean;
 begin
   role_now := app_private.current_app_role();
+
+  if new.committee_chair_profile_id is distinct from old.committee_chair_profile_id then
+    if old.status not in ('draft', 'terbit', 'berlangsung')
+       or auth.uid() is null
+       or (old.created_by is distinct from auth.uid() and role_now is distinct from 'sekretaris') then
+      raise exception 'Only the event creator or Secretary may assign the Ketua Panitia'
+        using errcode = '42501';
+    end if;
+    select p.is_active into chair_is_active
+    from public.profiles p
+    where p.id = new.committee_chair_profile_id;
+    if chair_is_active is distinct from true then
+      raise exception 'Ketua Panitia must be an active organization account'
+        using errcode = '42501';
+    end if;
+  end if;
 
   if new.financial_report_by is distinct from old.financial_report_by
      or new.financial_report_submitted_at is distinct from old.financial_report_submitted_at then
@@ -78,18 +104,18 @@ begin
         using errcode = '55000';
     end if;
     if auth.uid() is null
-       or new.created_by is distinct from auth.uid()
+       or new.committee_chair_profile_id is distinct from auth.uid()
        or new.final_report_by is distinct from auth.uid()
        or new.final_report_submitted_at is null
        or char_length(trim(coalesce(new.final_report, ''))) < 10
        or char_length(trim(coalesce(new.final_report, ''))) > 10000 then
-      raise exception 'Only the event creator acting as Ketua Panitia may submit the narrative report'
+      raise exception 'Only the designated Ketua Panitia may submit the narrative report'
         using errcode = '42501';
     end if;
   end if;
 
   if old.status = 'berlangsung' and new.status = 'menunggu_laporan' then
-    if new.final_report_by is distinct from new.created_by
+    if new.final_report_by is distinct from new.committee_chair_profile_id
        or new.final_report_submitted_at is null
        or new.financial_report_by is null
        or new.financial_report_submitted_at is null
@@ -106,6 +132,14 @@ begin
 
     if finance_author_role is distinct from 'bendahara' then
       raise exception 'Financial report author must be an active Bendahara'
+        using errcode = '42501';
+    end if;
+
+    select p.is_active into chair_is_active
+    from public.profiles p
+    where p.id = new.committee_chair_profile_id;
+    if chair_is_active is distinct from true then
+      raise exception 'Ketua Panitia must remain active when submitting the final report'
         using errcode = '42501';
     end if;
 
@@ -137,6 +171,14 @@ begin
 
     if finance_author_role is distinct from 'bendahara' then
       raise exception 'Financial report author must remain an active Bendahara'
+        using errcode = '42501';
+    end if;
+
+    select p.is_active into chair_is_active
+    from public.profiles p
+    where p.id = new.committee_chair_profile_id;
+    if chair_is_active is distinct from true then
+      raise exception 'Ketua Panitia must remain active until final approval'
         using errcode = '42501';
     end if;
 
