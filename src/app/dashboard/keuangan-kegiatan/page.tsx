@@ -11,7 +11,7 @@ export default async function EventFinancePage() {
   const user = await requireModulePermission("event_finance", "read");
   const supabase = await createClient();
   const [{ data: events }, { data: entries, error: entriesError }, { data: balances, error: balanceError }] = await Promise.all([
-    supabase.from("events").select("id,title").order("created_at", { ascending: false }),
+    supabase.from("events").select("id,title").in("status", ["terbit", "berlangsung"]).order("created_at", { ascending: false }),
     supabase.from("event_ledger_entries").select("id,event_id,direction,amount,description,occurred_at,events(title)").order("occurred_at", { ascending: false }).limit(100),
     supabase.from("event_ledger_balance_summary").select("total_in,total_out,net_balance,transaction_count").maybeSingle(),
   ]);
