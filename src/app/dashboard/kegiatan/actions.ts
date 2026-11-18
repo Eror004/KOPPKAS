@@ -22,7 +22,7 @@ export async function createEvent(_previous: EventActionState, formData: FormDat
   const supabase = await createClient();
   const { error } = await supabase.from("events").insert({
     title, description: description || null, location: location || null,
-    starts_at: date?.toISOString() ?? null, status: "draft", created_by: user.profile.id,
+    starts_at: date?.toISOString() ?? null, status: "draft", created_by: user.profile.id, committee_chair_profile_id: user.profile.id,
   });
   if (error) return { error: "Kegiatan gagal disimpan. Periksa koneksi dan hak akses." };
   revalidatePath("/dashboard/kegiatan");
@@ -40,7 +40,7 @@ async function loadEventForAction(id: string) {
   if (!uuidPattern.test(id)) finishEventAction("error", "Data kegiatan tidak valid.");
   const supabase = await createClient();
   const { data, error } = await supabase.from("events")
-    .select("id,created_by,status,financial_report_by,final_report_submitted_at,description,location,starts_at,ends_at")
+    .select("id,created_by,status,committee_chair_profile_id,financial_report_by,final_report_submitted_at,description,location,starts_at,ends_at")
     .eq("id", id)
     .maybeSingle();
   if (error || !data) finishEventAction("error", "Kegiatan tidak ditemukan atau tidak dapat diakses.");
@@ -117,7 +117,7 @@ export async function submitEventFinalReport(formData: FormData) {
   const { supabase, event } = await loadEventForAction(String(formData.get("event_id") ?? ""));
   const report = String(formData.get("final_report") ?? "").trim();
   if (event.status !== "berlangsung") finishEventAction("error", "Laporan naratif hanya dapat diserahkan saat kegiatan berlangsung.");
-  if (event.created_by !== actor.profile.id) finishEventAction("error", "Laporan naratif diserahkan oleh pembuat kegiatan yang bertindak sebagai Ketua Panitia.");
+  if (event.committee_chair_profile_id !== actor.profile.id) finishEventAction("error", "Laporan naratif hanya dapat diserahkan oleh akun Ketua Panitia yang ditunjuk.");
   if (!event.financial_report_by) finishEventAction("error", "Laporan Bendahara harus diserahkan terlebih dahulu.");
   if (event.financial_report_by === actor.profile.id) finishEventAction("error", "Laporan Ketua Panitia dan Bendahara harus berasal dari dua akun berbeda.");
   if (report.length < 10 || report.length > 10000) finishEventAction("error", "Laporan kegiatan harus berisi 10–10.000 karakter.");
@@ -181,6 +181,10 @@ export async function updateEventDetails(formData: FormData) {
   const location = String(formData.get("location") ?? "").trim();
   const startsAtRaw = String(formData.get("starts_at") ?? "").trim();
   const endsAtRaw = String(formData.get("ends_at") ?? "").trim();
+  const committeeChairId = String(formData.get("committee_chair_profile_id") ?? "");
+  if (!uuidPattern.test(committeeChairId)) finishEventAction("error", "Pilih akun Ketua Panitia yang valid.");
+  const { data: chairProfile } = await supabase.from("profiles").select("id").eq("id", committeeChairId).eq("is_active", true).maybeSingle();
+  if (!chairProfile) finishEventAction("error", "Akun Ketua Panitia tidak ditemukan atau sudah nonaktif.");
   if (title.length < 3 || title.length > 160) finishEventAction("error", "Nama kegiatan harus berisi 3–160 karakter.");
   if (description.length > 5000 || location.length > 180) finishEventAction("error", "Deskripsi atau lokasi terlalu panjang.");
 
@@ -193,6 +197,7 @@ export async function updateEventDetails(formData: FormData) {
 
   const { error } = await supabase.from("events").update({
     title,
+    committee_chair_profile_id: committeeChairId,
     description: description || null,
     location: location || null,
     starts_at: startsAt?.toISOString() ?? null,
