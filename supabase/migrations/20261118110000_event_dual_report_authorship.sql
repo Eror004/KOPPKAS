@@ -154,7 +154,7 @@ begin
   end if;
 
   if old.status = 'menunggu_laporan' and new.status = 'selesai' then
-    if new.final_report_by is distinct from new.created_by
+    if new.final_report_by is distinct from new.committee_chair_profile_id
        or new.final_report_submitted_at is null
        or new.financial_report_by is null
        or new.financial_report_submitted_at is null
