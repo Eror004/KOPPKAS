@@ -50,3 +50,11 @@ test("account management navigation is role-filtered", () => {
   assert.match(dashboard, /"Manajemen Akun": "accounts"/);
   assert.match(dashboard, /"Manajemen Akun": "\/dashboard\/akun"/);
 });
+
+
+test("new Auth users update the profile row created by the database trigger", () => {
+  assert.match(actions, /on_auth_user_created/);
+  assert.match(actions, /from\("profiles"\)\s*\.update\(\{ full_name: fullName, role, is_active: true \}\)/);
+  assert.match(actions, /\.eq\("id", created\.user\.id\)\s*\.select\("id"\)\s*\.maybeSingle\(\)/);
+  assert.doesNotMatch(actions, /from\("profiles"\)\.insert\(\{\s*id: created\.user\.id/);
+});
