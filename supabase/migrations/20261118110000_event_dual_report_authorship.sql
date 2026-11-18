@@ -38,6 +38,36 @@ create trigger audit_event_financial_reports
 after insert on public.event_financial_reports
 for each row execute procedure app_private.write_activity_log();
 
+create or replace function app_private.set_event_chair_default()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $
+declare chair_is_active boolean;
+begin
+  if new.committee_chair_profile_id is null then
+    new.committee_chair_profile_id := new.created_by;
+  end if;
+
+  select p.is_active into chair_is_active
+  from public.profiles p
+  where p.id = new.committee_chair_profile_id;
+
+  if chair_is_active is distinct from true then
+    raise exception 'Ketua Panitia must be an active organization account'
+      using errcode = '42501';
+  end if;
+
+  return new;
+end
+$;
+
+drop trigger if exists set_event_chair_default on public.events;
+create trigger set_event_chair_default
+before insert on public.events
+for each row execute procedure app_private.set_event_chair_default();
+
 create or replace function app_private.guard_event_report_authorship()
 returns trigger
 language plpgsql
