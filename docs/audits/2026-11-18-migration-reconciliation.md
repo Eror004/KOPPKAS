@@ -102,3 +102,36 @@ The branch migration now explicitly revokes table-level SELECT from `anon, publi
 - No local PostgreSQL/Supabase runtime was available through the current connector-only workflow, so SQL integration tests and six-role impersonation were not run.
 - GitHub CI was triggered for the privilege-revoke regression change; its result must be checked separately.
 - Static SQL review is not equivalent to executing the migration chain against a clean database or testing RLS as each role.
+
+
+## Follow-up review — event migration ordering corrected
+
+A deeper review confirmed a real deployment-window defect: migration `20261118050000_event_finance_finalization_guards.sql` created a trigger function that referenced five columns introduced only by migration `20261118110000_event_dual_report_authorship.sql`. PostgreSQL trigger-record field references are evaluated when the trigger executes, so an application event update between those migrations could fail.
+
+Branch-only correction:
+- The earlier migration now guards only event columns that exist at that point in the chain.
+- The dual-report migration replaces the trigger function with the extended version immediately after adding/backfilling the report-author columns.
+- A schema regression test asserts the early migration has no forward references and the later migration extends the guard only after adding the columns.
+
+This removes the identified forward-column dependency without changing the intended final lock behavior. It still needs clean-database SQL execution before any production use.
+
+## Application-to-migration contract spot check
+
+- Event finance entry action sends a UUID idempotency key and validates duplicate-key retries against event, direction, amount, description, and actor.
+- Monthly dues payment action calls the database RPC with a UUID idempotency key and note; the hardened RPC compares the complete payment payload on retries.
+- Both client forms retain the same generated key while an unsuccessful action is retried and clear it after success.
+- Event narrative and financial report actions call the corresponding database RPCs, rather than directly writing protected report fields.
+
+These are source inspections, not end-to-end runtime tests.
+
+## CI update
+
+- CI run #186 passed on commit `208d30af400438dd320f56d79ffb4321e0f159ce`.
+- The event migration-order fix and regression test were committed after that run. Their CI result must be checked on the new branch head before considering the code checks green.
+
+## Remaining review limits
+
+- The SQL chain has not been executed against a clean local or staging database.
+- The six role policies have not been exercised with real role-scoped test identities.
+- The migration history mismatch and missing `cleanup_empty_conflicting_tables` source remain unresolved.
+- No production SQL, migration repair, merge, or deployment has been performed.
