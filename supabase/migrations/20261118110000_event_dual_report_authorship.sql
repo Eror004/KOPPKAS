@@ -4,9 +4,29 @@ begin;
 alter table public.events
   add column final_report_by uuid references public.profiles(id) on delete restrict,
   add column final_report_submitted_at timestamptz,
-  add column financial_report text,
   add column financial_report_by uuid references public.profiles(id) on delete restrict,
   add column financial_report_submitted_at timestamptz;
+
+create table public.event_financial_reports (
+  event_id uuid primary key references public.events(id) on delete restrict,
+  report text not null check (char_length(trim(report)) between 10 and 10000),
+  submitted_by uuid not null references public.profiles(id) on delete restrict,
+  submitted_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+alter table public.event_financial_reports enable row level security;
+create policy "event_financial_reports_read_finance_roles" on public.event_financial_reports
+for select to authenticated
+using (
+  app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','bendahara']::public.app_role[])
+);
+grant select on public.event_financial_reports to authenticated;
+revoke insert, update, delete on public.event_financial_reports from authenticated;
+
+create trigger audit_event_financial_reports
+after insert on public.event_financial_reports
+for each row execute procedure app_private.write_activity_log();
 
 create or replace function app_private.guard_event_report_authorship()
 returns trigger
@@ -17,23 +37,35 @@ as $$
 declare
   role_now public.app_role;
   finance_author_role public.app_role;
+  finance_report_author uuid;
+  finance_report_submitted_at timestamptz;
 begin
   role_now := app_private.current_app_role();
 
-  if new.financial_report is distinct from old.financial_report
-     or new.financial_report_by is distinct from old.financial_report_by
+  if new.financial_report_by is distinct from old.financial_report_by
      or new.financial_report_submitted_at is distinct from old.financial_report_submitted_at then
     if old.financial_report_submitted_at is not null then
       raise exception 'Bendahara financial report has already been submitted'
         using errcode = '55000';
     end if;
-    if auth.uid() is null or role_now is distinct from 'bendahara'
+    if auth.uid() is null
+       or role_now is distinct from 'bendahara'
        or new.financial_report_by is distinct from auth.uid()
-       or new.financial_report_submitted_at is null
-       or char_length(trim(coalesce(new.financial_report, ''))) < 10
-       or char_length(trim(coalesce(new.financial_report, ''))) > 10000 then
-      raise exception 'Only Bendahara may submit a valid event financial report'
+       or new.financial_report_submitted_at is null then
+      raise exception 'Only Bendahara may submit the event financial report'
         using errcode = '42501';
+    end if;
+
+    select r.submitted_by, r.submitted_at
+      into finance_report_author, finance_report_submitted_at
+    from public.event_financial_reports r
+    where r.event_id = new.id;
+
+    if not found
+       or finance_report_author is distinct from new.financial_report_by
+       or finance_report_submitted_at is distinct from new.financial_report_submitted_at then
+      raise exception 'A matching Bendahara financial report record is required'
+        using errcode = '22023';
     end if;
   end if;
 
@@ -61,7 +93,7 @@ begin
        or new.financial_report_by is null
        or new.financial_report_submitted_at is null
        or new.financial_report_by = new.final_report_by
-       or nullif(trim(new.financial_report), '') is null then
+       or nullif(trim(new.final_report), '') is null then
       raise exception 'Narrative report by Ketua Panitia and financial report by Bendahara are both required'
         using errcode = '22023';
     end if;
@@ -75,6 +107,15 @@ begin
       raise exception 'Financial report author must be an active Bendahara'
         using errcode = '42501';
     end if;
+
+    select r.submitted_by into finance_report_author
+    from public.event_financial_reports r
+    where r.event_id = new.id;
+
+    if finance_report_author is distinct from new.financial_report_by then
+      raise exception 'Bendahara financial report record is missing or mismatched'
+        using errcode = '22023';
+    end if;
   end if;
 
   if old.status = 'menunggu_laporan' and new.status = 'selesai' then
@@ -83,8 +124,7 @@ begin
        or new.financial_report_by is null
        or new.financial_report_submitted_at is null
        or new.financial_report_by = new.final_report_by
-       or nullif(trim(new.final_report), '') is null
-       or nullif(trim(new.financial_report), '') is null then
+       or nullif(trim(new.final_report, '') is null then
       raise exception 'Both event reports must be complete before final approval'
         using errcode = '22023';
     end if;
@@ -122,13 +162,14 @@ declare
   role_now public.app_role;
   target_status public.event_status;
   report_already_submitted timestamptz;
+  report_timestamp timestamptz;
 begin
   if auth.uid() is null then
     raise exception 'Authentication required' using errcode = '28000';
   end if;
 
   role_now := app_private.current_app_role();
-  if role_now <> 'bendahara' then
+  if role_now is distinct from 'bendahara' then
     raise exception 'Only Bendahara may submit the event financial report' using errcode = '42501';
   end if;
 
@@ -152,10 +193,17 @@ begin
     raise exception 'Financial report has already been submitted' using errcode = '23505';
   end if;
 
+  report_timestamp := now();
+
+  insert into public.event_financial_reports (
+    event_id, report, submitted_by, submitted_at
+  ) values (
+    p_event_id, trim(p_report), auth.uid(), report_timestamp
+  );
+
   update public.events
-  set financial_report = trim(p_report),
-      financial_report_by = auth.uid(),
-      financial_report_submitted_at = now(),
+  set financial_report_by = auth.uid(),
+      financial_report_submitted_at = report_timestamp,
       updated_at = now()
   where id = p_event_id;
 
