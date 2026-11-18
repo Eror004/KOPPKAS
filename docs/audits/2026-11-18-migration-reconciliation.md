@@ -142,3 +142,27 @@ These are source inspections, not end-to-end runtime tests.
 - CI #188 initially failed because two pre-existing regression assertions still expected the new report-author columns to be checked by the earlier migration. The failure was in stale test expectations, not a TypeScript, lint, or build error.
 - The assertions were updated to verify that the early migration has no forward references and that the later migration adds the extended guard.
 - CI #192 passed on commit `08af7509e20e7a846eb78c93eecca3c3ac219b01`: npm install, schema invariant tests, TypeScript, ESLint, and production build all succeeded.
+
+## Local migration-chain CI follow-up — 2026-11-18
+
+### CI #195 failure and remediation
+
+The new isolated Supabase migration job started a clean local Supabase stack and applied migrations through `20261118100000_server_account_audit_grants.sql`. It then stopped at `20261118110000_event_dual_report_authorship.sql` with PostgreSQL syntax error `42601` at the dollar-quote delimiter of `app_private.guard_event_finalized_updates()`: the function body used an unmatched `as $` / `end $;` instead of a valid dollar-quoted body.
+
+Branch-only fix:
+- Corrected the function body delimiters to `as $$` and `end $$;`.
+- Added a schema invariant test for the function's dollar-quoted syntax.
+
+CI #195 quality job passed (schema invariant tests, TypeScript, ESLint, production build); the local migration job failed at the SQL parse error described above. The failure is a real migration defect, not a production database failure. No Supabase production SQL was executed.
+
+### Monthly-dues idempotency actor binding
+
+Static review of `20261118150000_monthly_dues_idempotency_payload_guard.sql` found that retries compared dues record, amount, and note, but did not compare the original recorder. The RPC now also requires `existing_payment.recorded_by` to match `auth.uid()` in both the initial lookup and concurrent-conflict recovery path. A regression assertion covers both comparisons.
+
+### Verification boundary after these fixes
+
+- Fix commits: `a8f0eb1` (SQL delimiter), `d57e0d9` (delimiter regression test), `ba3f01a` (actor binding), `6e61aa6` (actor regression test).
+- These latest commits have not yet received a confirmed CI run in the available workflow-run results.
+- The clean local migration chain has therefore **not yet passed**.
+- Migrations after `20261118110000` remain unverified by execution until the clean reset is rerun.
+- Remote Supabase migration history remains 13 records; no migration repair, apply, or production DDL/DML was performed.
