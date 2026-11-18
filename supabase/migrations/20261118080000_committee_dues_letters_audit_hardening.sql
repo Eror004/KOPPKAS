@@ -107,14 +107,14 @@ for each row execute procedure app_private.guard_submitted_letter_content();
 
 revoke all on function app_private.guard_submitted_letter_content() from public, anon, authenticated;
 
--- Extend activity logging to structure, committee, account-profile and media changes.
+-- Extend activity logging to structure, committee and media changes. Account-profile
+-- changes are logged explicitly by the Ketua-only server actions to preserve actor identity.
 do $$
 declare target_table text;
 begin
   foreach target_table in array array[
     'organization_positions',
     'event_committee',
-    'profiles',
     'media_assets'
   ] loop
     execute format('drop trigger if exists audit_%I on public.%I', target_table, target_table);
