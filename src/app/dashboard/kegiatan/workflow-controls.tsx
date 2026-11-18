@@ -27,7 +27,6 @@ type EventWorkflowItem = {
   location: string | null;
   starts_at: string | null;
   ends_at: string | null;
-  financial_report: string | null;
   financial_report_by: string | null;
   final_report: string | null;
   final_report_by: string | null;
@@ -53,11 +52,13 @@ export function EventWorkflowControls({
   actorId,
   role,
   members,
+  financialReport,
 }: {
   event: EventWorkflowItem;
   actorId: string;
   role: AppRole;
   members: { id: string; full_name: string }[];
+  financialReport: string | null;
 }) {
   const isLeader = role === "ketua_pemuda" || role === "wakil_ketua_pemuda";
   const isSecretary = role === "sekretaris";
@@ -141,7 +142,7 @@ export function EventWorkflowControls({
         {event.financial_report_by && <p className="event-report-state">Laporan Bendahara: sudah diserahkan</p>}
         {event.final_report_submitted_at && <p className="event-report-state">Laporan Ketua Panitia: sudah diserahkan</p>}
 
-        {(isLeader || role === "bendahara") && (event.final_report || event.financial_report) && <details className="event-report-review"><summary>Tinjau isi laporan</summary>{event.final_report && <section><strong>Laporan Ketua Panitia</strong><p>{event.final_report}</p></section>}{event.financial_report && <section><strong>Laporan Bendahara</strong><p>{event.financial_report}</p></section>}</details>}
+        {(isLeader || role === "bendahara") && (event.final_report || financialReport) && <details className="event-report-review"><summary>Tinjau isi laporan</summary>{event.final_report && <section><strong>Laporan Ketua Panitia</strong><p>{event.final_report}</p></section>}{financialReport && <section><strong>Laporan Bendahara</strong><p>{financialReport}</p></section>}</details>}
 
         {event.status === "menunggu_laporan" && (isLeader || role === "bendahara") && (
           <form action={approveEventFinalReport} className="module-form">
