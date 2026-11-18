@@ -3,13 +3,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [actions, page, controls, dualReport, finalization, approval] = await Promise.all([
+const [actions, page, controls, dualReport, finalization, approval, financeActions, financeForm, ledgerIdempotency] = await Promise.all([
   read("../src/app/dashboard/kegiatan/actions.ts"),
   read("../src/app/dashboard/kegiatan/page.tsx"),
   read("../src/app/dashboard/kegiatan/workflow-controls.tsx"),
   read("../supabase/migrations/20261118110000_event_dual_report_authorship.sql"),
   read("../supabase/migrations/20261118050000_event_finance_finalization_guards.sql"),
   read("../supabase/migrations/20261117000500_approval_guards.sql"),
+  read("../src/app/dashboard/keuangan-kegiatan/actions.ts"),
+  read("../src/app/dashboard/keuangan-kegiatan/entry-form.tsx"),
+  read("../supabase/migrations/20261118160000_event_ledger_idempotency.sql"),
 ]);
 
 test("event publication and cancellation require leadership approvals", () => {
@@ -64,4 +67,13 @@ test("event register exposes role-aware workflow controls", () => {
   assert.match(controls, /approveEventFinalReport/);
   assert.match(controls, /cancelEvent/);
   assert.match(controls, /Tinjau isi laporan/);
+});
+
+test("event finance entries use idempotency keys and verify duplicate payloads", () => {
+  assert.match(financeActions, /idempotency_key: idempotencyKey/);
+  assert.match(financeActions, /error\?\.code === "23505"/);
+  assert.match(financeActions, /existing\.created_by === user\.profile\.id/);
+  assert.match(financeForm, /useRef<string \| null>\(null\)/);
+  assert.match(financeForm, /crypto\.randomUUID\(\)/);
+  assert.match(ledgerIdempotency, /event_ledger_entries_idempotency_key_uidx/);
 });
