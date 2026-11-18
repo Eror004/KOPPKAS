@@ -76,4 +76,5 @@ test("event finance entries use idempotency keys and verify duplicate payloads",
   assert.match(financeForm, /useRef<string \| null>\(null\)/);
   assert.match(financeForm, /crypto\.randomUUID\(\)/);
   assert.match(ledgerIdempotency, /event_ledger_entries_idempotency_key_uidx/);
+  assert.match(ledgerIdempotency, /Event finance idempotency key is required/);
 });
