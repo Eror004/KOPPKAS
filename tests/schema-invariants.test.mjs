@@ -176,8 +176,8 @@ test("server-side account administration can write profiles and actor-attributed
 
 
 test("event finalization guard has no forward dependency on dual-report columns", () => {
-  assert.doesNotMatch(eventFinalization, /new\\.(committee_chair_profile_id|final_report_by|final_report_submitted_at|financial_report_by|financial_report_submitted_at)/);
+  assert.doesNotMatch(eventFinalization, /new\.(committee_chair_profile_id|final_report_by|final_report_submitted_at|financial_report_by|financial_report_submitted_at)/);
   assert.match(eventDualReports, /add column committee_chair_profile_id/);
-  assert.match(eventDualReports, /create or replace function app_private\\.guard_event_finalized_updates/);
-  assert.match(eventDualReports, /new\\.financial_report_submitted_at is distinct from old\\.financial_report_submitted_at/);
+  assert.match(eventDualReports, /create or replace function app_private\.guard_event_finalized_updates/);
+  assert.match(eventDualReports, /new\.financial_report_submitted_at is distinct from old\.financial_report_submitted_at/);
 });
