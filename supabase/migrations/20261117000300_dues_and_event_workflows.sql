@@ -98,9 +98,22 @@ begin
   returning id into payment_id;
 
   if payment_id is null then
-    select id into payment_id
+    -- A concurrent request may have won the unique-key race. Re-validate its
+    -- payload before returning the existing payment ID.
+    select * into existing_payment
     from public.monthly_dues_payments
     where idempotency_key = p_idempotency_key;
+
+    if not found then
+      raise exception 'Payment idempotency conflict could not be resolved' using errcode = '40001';
+    end if;
+
+    if existing_payment.monthly_dues_id <> p_monthly_dues_id
+       or existing_payment.amount <> p_amount then
+      raise exception 'Idempotency key was already used with different payment data' using errcode = '22023';
+    end if;
+
+    payment_id := existing_payment.id;
   end if;
 
   return payment_id;
