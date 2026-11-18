@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   Activity, BookOpenText, CalendarDays, ChevronRight, ContactRound, FileText,
   FolderKanban, HandCoins, House, Inbox, Landmark, Menu, Megaphone,
-  MoreHorizontal, UsersRound, Wallet, X
+  MoreHorizontal, ShieldCheck, UsersRound, Wallet, X
 } from "lucide-react";
 
 type Item = { href: string; label: string };
@@ -18,7 +18,7 @@ const iconFor: Record<string, typeof House> = {
   "/dashboard/surat-dokumen": FileText, "/dashboard/pengumuman": Megaphone,
   "/dashboard/dokumentasi": FolderKanban, "/dashboard/laporan": BookOpenText,
   "/dashboard/riwayat-aktivitas": Activity, "/dashboard/inbox": Inbox,
-  "/dashboard/notifikasi": Inbox,
+  "/dashboard/notifikasi": Inbox, "/dashboard/akun": ShieldCheck,
 };
 const mobilePrimary = ["/dashboard", "/dashboard/keanggotaan", "/dashboard/kegiatan", "/dashboard/uang-kas-bulanan"];
 
