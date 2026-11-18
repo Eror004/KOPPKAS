@@ -1,24 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { recordDuesPayment, type DuesActionState } from "./actions";
 
 const initialState: DuesActionState = {};
 const uuidPattern = /^[0-9a-f-]{36}$/i;
 
-async function submitWithIdempotency(
-  previous: DuesActionState,
-  formData: FormData,
-): Promise<DuesActionState> {
-  const existingKey = String(formData.get("idempotency_key") ?? "");
-  if (!uuidPattern.test(existingKey)) {
-    formData.set("idempotency_key", crypto.randomUUID());
-  }
-  return recordDuesPayment(previous, formData);
-}
-
 export function PaymentForm({ monthlyDuesId }: { monthlyDuesId: string }) {
-  const [state, action, pending] = useActionState(submitWithIdempotency, initialState);
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const [state, action, pending] = useActionState(async (previous: DuesActionState, formData: FormData) => {
+    const existingKey = String(formData.get("idempotency_key") ?? "");
+    const key = uuidPattern.test(existingKey) ? existingKey : idempotencyKeyRef.current ?? crypto.randomUUID();
+    idempotencyKeyRef.current = key;
+    formData.set("idempotency_key", key);
+    const result = await recordDuesPayment(previous, formData);
+    if (result.success) idempotencyKeyRef.current = null;
+    return result;
+  }, initialState);
 
   return (
     <form action={action} className="payment-form">
