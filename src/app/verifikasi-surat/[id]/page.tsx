@@ -12,7 +12,6 @@ export default async function VerifyLetterPage({ params }: { params: Promise<{ i
   let letter: {
     letter_number: string;
     subject: string;
-    body: string;
     category: string;
     status: string;
     approved_at: string | null;
@@ -21,10 +20,8 @@ export default async function VerifyLetterPage({ params }: { params: Promise<{ i
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.from("official_letters")
-      .select("letter_number, subject, body, category, status, approved_at, created_at")
-      .eq("id", id).eq("status", "terbit").maybeSingle();
-    if (!error && data) letter = data;
+    const { data, error } = await supabase.rpc("verify_public_letter", { target_letter_id: id });
+    if (!error && data?.length) letter = data[0];
   } catch {
     letter = null;
   }
@@ -39,9 +36,8 @@ export default async function VerifyLetterPage({ params }: { params: Promise<{ i
         <div className="verify-icon"><FileCheck2 size={24} /></div>
         <p className="eyebrow">OFFICIAL LETTER</p>
         <h1>{letter.subject}</h1>
-        <dl><div><dt>Nomor surat</dt><dd>{letter.letter_number}</dd></div><div><dt>Kategori</dt><dd>{letter.category === "keuangan" ? "Administrasi keuangan" : "Umum"}</dd></div><div><dt>Status</dt><dd>Terbit</dd></div><div><dt>Tanggal diterbitkan</dt><dd>{new Date(letter.approved_at ?? letter.created_at).toLocaleDateString("id-ID", { dateStyle: "long" })}</dd></div></dl>
-        <article>{letter.body}</article>
-        <p className="verify-disclaimer">Halaman ini memverifikasi bahwa nomor dan dokumen tercatat sebagai surat terbit pada sistem KOPPKAS. Tanda tangan digital pada sistem bukan sertifikat tanda tangan elektronik tersertifikasi.</p>
+        <dl><div><dt>Nomor surat</dt><dd>{letter.letter_number}</dd></div><div><dt>Kategori</dt><dd>Umum</dd></div><div><dt>Status</dt><dd>Terbit</dd></div><div><dt>Tanggal diterbitkan</dt><dd>{new Date(letter.approved_at ?? letter.created_at).toLocaleDateString("id-ID", { dateStyle: "long" })}</dd></div></dl>
+        <p className="verify-disclaimer">Nomor dan metadata surat umum ini tercatat sebagai surat terbit pada sistem KOPPKAS. Isi surat dan dokumen kategori keuangan tidak ditampilkan pada verifikasi publik. Tanda tangan digital pada sistem bukan sertifikat tanda tangan elektronik tersertifikasi.</p>
       </section>
     </main>
   );
