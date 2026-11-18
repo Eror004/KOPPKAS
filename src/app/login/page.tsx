@@ -27,7 +27,7 @@ export default function LoginPage() {
           <h2>Selamat datang.</h2>
           <p className="login-intro">Masuk menggunakan akun pengurus yang telah didaftarkan administrator.</p>
           <label>Email organisasi<input type="email" name="email" autoComplete="username" required placeholder="nama@organisasi.id" /></label>
-          <label>Password<input type="password" name="password" autoComplete="current-password" minLength={12} required placeholder="Minimal 12 karakter" /></label>
+          <label>Password<input type="password" name="password" autoComplete="current-password" minLength={5} required placeholder="Minimal 5 karakter" /></label>
           {state.error && <p className="login-error" role="alert">{state.error}</p>}
           <button type="submit" disabled={pending}>{pending ? "Memeriksa akses..." : "Masuk ke workspace"} <ArrowRight size={17} /></button>
           <p className="login-foot">Akses hanya untuk enam jabatan pengurus terdaftar.</p>
