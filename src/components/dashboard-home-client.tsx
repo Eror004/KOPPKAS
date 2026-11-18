@@ -31,17 +31,17 @@ const workspaceNav: NavItem[] = [
   { label: "Dokumentasi", icon: FolderKanban },
   { label: "Laporan", icon: BookOpenText },
 ];
-const utilityNav: NavItem[] = [
+const accountNav: NavItem[] = [\n  { label: "Manajemen Akun", icon: ShieldCheck },\n];\nconst utilityNav: NavItem[] = [
   { label: "Inbox", icon: Inbox },
   { label: "Notifikasi", icon: Bell },
   { label: "Riwayat Aktivitas", icon: Activity },
 ];
-const allModules = [...primaryNav, ...financeNav, ...workspaceNav, ...utilityNav];
+const allModules = [...primaryNav, ...financeNav, ...workspaceNav, ...utilityNav, ...accountNav];
 const moduleByLabel: Record<string, ModuleKey> = {
   "Beranda": "dashboard", "Keanggotaan": "members", "Struktur": "structure", "Kegiatan": "events",
   "Uang Keseluruhan": "general_finance", "Keuangan": "general_finance", "Uang Kas Bulanan": "monthly_dues",
   "Surat & Dokumen": "letters", "Pengumuman": "announcements", "Dokumentasi": "media", "Laporan": "reports",
-  "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity",
+  "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity", "Manajemen Akun": "accounts",
 };
 
 function NavGroup({ title, items, active, role, onSelect }: {
@@ -97,7 +97,7 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
       "Pengumuman": "/dashboard/pengumuman",
       "Dokumentasi": "/dashboard/dokumentasi",
       "Laporan": "/dashboard/laporan",
-      "Riwayat Aktivitas": "/dashboard/riwayat-aktivitas",
+      "Riwayat Aktivitas": "/dashboard/riwayat-aktivitas",\n      "Manajemen Akun": "/dashboard/akun",
     };
     if (routes[label]) router.push(routes[label]);
   };
@@ -119,7 +119,7 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
           <NavGroup title="MENU UTAMA" items={primaryNav} active={active} role={role} onSelect={chooseModule} />
           <NavGroup title="KEUANGAN" items={financeNav} active={active} role={role} onSelect={chooseModule} />
           <NavGroup title="ADMINISTRASI" items={workspaceNav} active={active} role={role} onSelect={chooseModule} />
-          <NavGroup title="PUSAT INFORMASI" items={utilityNav} active={active} role={role} onSelect={chooseModule} />
+          <NavGroup title="PUSAT INFORMASI" items={utilityNav} active={active} role={role} onSelect={chooseModule} />\n          <NavGroup title="ADMINISTRASI SISTEM" items={accountNav} active={active} role={role} onSelect={chooseModule} />
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><div className="help-icon"><CircleHelp size={17} /></div><div><strong>Butuh bantuan?</strong><span>Pusat panduan penggunaan</span></div><ChevronRight size={15} /></div>
