@@ -23,7 +23,6 @@ begin
     or new.final_report is distinct from old.final_report
     or new.final_report_by is distinct from old.final_report_by
     or new.final_report_submitted_at is distinct from old.final_report_submitted_at
-    or new.financial_report is distinct from old.financial_report
     or new.financial_report_by is distinct from old.financial_report_by
     or new.financial_report_submitted_at is distinct from old.financial_report_submitted_at
   ) then
