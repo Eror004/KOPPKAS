@@ -44,3 +44,13 @@ test("private files are displayed through short-lived signed URLs", () => {
   assert.match(page, /createSignedUrl\(item\.storage_path, 600\)/);
   assert.match(page, /\.eq\("visibility", "internal"\)/);
 });
+
+const storageRoleAlignment = await read("../supabase/migrations/20261118230000_private_storage_role_alignment.sql");
+
+test("private storage updates exclude Bendahara and deletion is Ketua-only", () => {
+  assert.match(storageRoleAlignment, /koppkas_docs_update_owner_or_admin/);
+  assert.match(storageRoleAlignment, /'ketua_pemuda','wakil_ketua_pemuda','sekretaris','ketua_rw_01','ketua_rt_01'/);
+  assert.doesNotMatch(storageRoleAlignment, /'bendahara'/);
+  assert.match(storageRoleAlignment, /create policy "koppkas_docs_delete_ketua"/);
+  assert.match(storageRoleAlignment, /has_any_role\(array\['ketua_pemuda'\]/);
+});
