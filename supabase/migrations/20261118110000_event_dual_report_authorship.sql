@@ -245,6 +245,140 @@ create trigger guard_event_report_authorship
 before update on public.events
 for each row execute procedure app_private.guard_event_report_authorship();
 
+create or replace function app_private.guard_event_transitions()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $event_transitions$
+declare role_now public.app_role;
+begin
+  role_now := app_private.current_app_role();
+
+  if new.status is distinct from old.status then
+    if new.status = 'dibatalkan' then
+      if role_now is null or role_now not in ('ketua_pemuda','wakil_ketua_pemuda') then
+        raise exception 'Only Ketua or Wakil Ketua may cancel an event' using errcode = '42501';
+      end if;
+    elsif old.status = 'draft' and new.status = 'menunggu_persetujuan' then
+      if role_now is null then
+        raise exception 'Active organization role required' using errcode = '42501';
+      end if;
+    elsif old.status = 'menunggu_persetujuan' and new.status = 'terbit' then
+      if role_now is null or role_now not in ('ketua_pemuda','wakil_ketua_pemuda') then
+        raise exception 'Only Ketua or Wakil Ketua may publish an event' using errcode = '42501';
+      end if;
+      if new.approved_by is null or new.approved_at is null then
+        raise exception 'Event publication approval metadata is required' using errcode = '22023';
+      end if;
+    elsif old.status = 'terbit' and new.status = 'berlangsung' then
+      if role_now is null then
+        raise exception 'Active organization role required' using errcode = '42501';
+      end if;
+    elsif old.status = 'berlangsung' and new.status = 'menunggu_laporan' then
+      if role_now is null or new.committee_chair_profile_id is distinct from auth.uid() then
+        raise exception 'Only the designated Ketua Panitia may submit a final report' using errcode = '42501';
+      end if;
+      if nullif(trim(new.final_report), '') is null
+         or new.final_report_by is distinct from auth.uid()
+         or new.final_report_submitted_at is null then
+        raise exception 'Final report content and author metadata are required' using errcode = '22023';
+      end if;
+    elsif old.status = 'menunggu_laporan' and new.status = 'selesai' then
+      if role_now is null or role_now not in ('ketua_pemuda','wakil_ketua_pemuda','bendahara') then
+        raise exception 'Only authorized approvers may finalize an event' using errcode = '42501';
+      end if;
+      if new.final_report_approved_at is null or new.final_report_approved_by is null then
+        raise exception 'Final report approval metadata is required' using errcode = '22023';
+      end if;
+    else
+      raise exception 'Invalid event status transition: % -> %', old.status, new.status using errcode = '22023';
+    end if;
+  end if;
+
+  if new.approved_by is distinct from old.approved_by
+     or new.approved_at is distinct from old.approved_at
+     or new.cancelled_by is distinct from old.cancelled_by
+     or new.cancelled_at is distinct from old.cancelled_at then
+    if role_now is null or role_now not in ('ketua_pemuda','wakil_ketua_pemuda') then
+      raise exception 'Only Ketua or Wakil Ketua may change publication or cancellation metadata' using errcode = '42501';
+    end if;
+  end if;
+
+  if new.final_report_approved_by is distinct from old.final_report_approved_by
+     or new.final_report_approved_at is distinct from old.final_report_approved_at then
+    if role_now is null or role_now not in ('ketua_pemuda','wakil_ketua_pemuda','bendahara') then
+      raise exception 'Not authorized to approve the event final report' using errcode = '42501';
+    end if;
+  end if;
+
+  if new.status = 'dibatalkan' and nullif(trim(new.cancellation_reason), '') is null then
+    raise exception 'Cancellation reason is required' using errcode = '22023';
+  end if;
+  if new.status = 'dibatalkan' and (new.cancelled_by is null or new.cancelled_at is null) then
+    raise exception 'Event cancellation metadata is required' using errcode = '22023';
+  end if;
+
+  return new;
+end
+$event_transitions$;
+
+create or replace function public.submit_event_narrative_report(
+  p_event_id uuid,
+  p_report text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $submit_narrative$
+declare
+  target_status public.event_status;
+  target_chair uuid;
+  finance_author uuid;
+  report_already_submitted timestamptz;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  select e.status, e.committee_chair_profile_id, e.financial_report_by, e.final_report_submitted_at
+    into target_status, target_chair, finance_author, report_already_submitted
+  from public.events e
+  where e.id = p_event_id
+  for update;
+
+  if not found then
+    raise exception 'Event not found' using errcode = 'P0002';
+  end if;
+  if target_status <> 'berlangsung' then
+    raise exception 'Narrative report can only be submitted while the event is berlangsung' using errcode = '22023';
+  end if;
+  if target_chair is distinct from auth.uid() then
+    raise exception 'Only the designated Ketua Panitia may submit the narrative report' using errcode = '42501';
+  end if;
+  if finance_author is null or finance_author = auth.uid() then
+    raise exception 'A separate Bendahara financial report is required first' using errcode = '22023';
+  end if;
+  if report_already_submitted is not null then
+    raise exception 'Narrative report has already been submitted' using errcode = '23505';
+  end if;
+  if p_report is null or char_length(trim(p_report)) < 10 or char_length(trim(p_report)) > 10000 then
+    raise exception 'Narrative report must contain 10–10000 characters' using errcode = '22023';
+  end if;
+
+  update public.events
+  set final_report = trim(p_report),
+      final_report_by = auth.uid(),
+      final_report_submitted_at = now(),
+      status = 'menunggu_laporan',
+      updated_at = now()
+  where id = p_event_id;
+
+  return p_event_id;
+end
+$submit_narrative$;
+
 create or replace function public.submit_event_financial_report(
   p_event_id uuid,
   p_report text
@@ -310,6 +444,8 @@ $$;
 revoke all on function app_private.set_event_chair_default() from public, anon, authenticated;
 revoke all on function app_private.guard_event_report_authorship() from public, anon, authenticated;
 revoke all on function public.submit_event_financial_report(uuid, text) from public, anon;
+revoke all on function public.submit_event_narrative_report(uuid, text) from public, anon;
 grant execute on function public.submit_event_financial_report(uuid, text) to authenticated;
+grant execute on function public.submit_event_narrative_report(uuid, text) to authenticated;
 
 commit;
