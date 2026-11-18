@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { Command } from "lucide-react";
 import { can, type ModuleKey } from "@/lib/auth/permissions";
 import { requireUser } from "@/lib/auth/require-user";
 import { ModuleNavigation } from "@/components/module-navigation";
