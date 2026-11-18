@@ -225,3 +225,15 @@ test("database serializes changes that could remove the last active Ketua accoun
   assert.match(lastActiveKetuaGuard, /active_ketua_count <= 1/);
   assert.match(lastActiveKetuaGuard, /before update of role, is_active on public\.profiles/);
 });
+
+
+const announcementMediaRoleRls = migration("20261118220000_announcement_media_role_rls.sql");
+
+test("announcement and media database policies match approved role boundaries", () => {
+  assert.match(announcementMediaRoleRls, /announcements_insert_authorized_roles/);
+  assert.match(announcementMediaRoleRls, /media_insert_authorized_roles/);
+  assert.match(announcementMediaRoleRls, /'ketua_rw_01','ketua_rt_01'/);
+  assert.match(announcementMediaRoleRls, /announcements_delete_ketua[\s\S]*?has_any_role\(array\['ketua_pemuda'\]/);
+  assert.match(announcementMediaRoleRls, /media_delete_ketua[\s\S]*?has_any_role\(array\['ketua_pemuda'\]/);
+  assert.doesNotMatch(announcementMediaRoleRls, /has_any_role\(array\['ketua_pemuda','wakil_ketua_pemuda','sekretaris','bendahara','ketua_rw_01','ketua_rt_01'\]/);
+});
