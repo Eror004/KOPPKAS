@@ -15,7 +15,7 @@ function finish(kind: "success" | "error", message: string): never {
 }
 
 export async function createAccount(formData: FormData) {
-  await requireModulePermission("accounts", "create");
+  const actor = await requireModulePermission("accounts", "create");
 
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -48,6 +48,19 @@ export async function createAccount(formData: FormData) {
     finish("error", "Profil akun gagal dibuat. Pembuatan akun dibatalkan.");
   }
 
+  const { error: auditError } = await admin.from("activity_logs").insert({
+    actor_id: actor.profile.id,
+    action: "create",
+    resource_type: "profile",
+    resource_id: created.user.id,
+    metadata: { changed_fields: ["full_name", "role", "is_active"] },
+  });
+  if (auditError) {
+    await admin.from("profiles").delete().eq("id", created.user.id);
+    await admin.auth.admin.deleteUser(created.user.id);
+    finish("error", "Akun dibatalkan karena catatan audit tidak dapat disimpan.");
+  }
+
   revalidatePath(accountPath);
   finish("success", "Akun baru berhasil dibuat.");
 }
@@ -68,7 +81,7 @@ export async function updateAccount(formData: FormData) {
 
   const admin = createAdminClient();
   const { data: target, error: targetError } = await admin.from("profiles")
-    .select("id,role,is_active")
+    .select("id,full_name,role,is_active")
     .eq("id", targetId)
     .maybeSingle();
 
@@ -89,12 +102,23 @@ export async function updateAccount(formData: FormData) {
     .eq("id", targetId);
 
   if (error) finish("error", "Perubahan akun gagal disimpan.");
+  const { error: auditError } = await admin.from("activity_logs").insert({
+    actor_id: actor.profile.id,
+    action: "update",
+    resource_type: "profile",
+    resource_id: targetId,
+    metadata: { changed_fields: ["full_name", "role", "is_active"] },
+  });
+  if (auditError) {
+    await admin.from("profiles").update({ full_name: target.full_name, role: target.role, is_active: target.is_active }).eq("id", targetId);
+    finish("error", "Perubahan dibatalkan karena catatan audit tidak dapat disimpan.");
+  }
   revalidatePath(accountPath);
   finish("success", "Data dan hak akses akun berhasil diperbarui.");
 }
 
 export async function resetAccountPassword(formData: FormData) {
-  await requireModulePermission("accounts", "manage");
+  const actor = await requireModulePermission("accounts", "manage");
   const targetId = String(formData.get("user_id") ?? "");
   const password = String(formData.get("password") ?? "");
 
@@ -106,19 +130,35 @@ export async function resetAccountPassword(formData: FormData) {
   if (error) finish("error", "Password akun gagal diperbarui.");
   const { error: unlockError } = await admin.from("login_protection_attempts").delete().eq("user_id", targetId);
   if (unlockError) finish("error", "Password berubah, tetapi status penguncian belum dapat direset. Periksa migrasi perlindungan login.");
+  const { error: auditError } = await admin.from("activity_logs").insert({
+    actor_id: actor.profile.id,
+    action: "password_reset",
+    resource_type: "auth_user",
+    resource_id: targetId,
+    metadata: {},
+  });
+  if (auditError) finish("error", "Password berhasil diubah, tetapi catatan audit gagal disimpan. Periksa log aktivitas.");
 
   revalidatePath(accountPath);
   finish("success", "Password akun berhasil diperbarui dan status penguncian direset. Sampaikan password sementara melalui kanal aman.");
 }
 
 export async function unlockAccount(formData: FormData) {
-  await requireModulePermission("accounts", "manage");
+  const actor = await requireModulePermission("accounts", "manage");
   const targetId = String(formData.get("user_id") ?? "");
   if (!uuidPattern.test(targetId)) finish("error", "Akun tujuan tidak valid.");
 
   const admin = createAdminClient();
   const { error } = await admin.from("login_protection_attempts").delete().eq("user_id", targetId);
   if (error) finish("error", "Status penguncian gagal direset. Pastikan migrasi perlindungan login sudah diterapkan.");
+  const { error: auditError } = await admin.from("activity_logs").insert({
+    actor_id: actor.profile.id,
+    action: "login_protection_reset",
+    resource_type: "auth_user",
+    resource_id: targetId,
+    metadata: {},
+  });
+  if (auditError) finish("error", "Status penguncian telah direset, tetapi catatan audit gagal disimpan.");
 
   revalidatePath(accountPath);
   finish("success", "Status penguncian login berhasil direset oleh Ketua Pemuda.");
