@@ -107,6 +107,7 @@ test("public event listings expose only approved statuses", () => {
 const eventFinalization = migration("20261118050000_event_finance_finalization_guards.sql");
 const letterPrivacy = migration("20261118060000_public_letter_verification_privacy.sql");
 const eventBalance = migration("20261118070000_event_ledger_balance_summary.sql");
+const eventDualReports = migration("20261118110000_event_dual_report_authorship.sql");
 
 test("public letter verification never exposes financial letters or full letter bodies", () => {
   assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
@@ -171,4 +172,12 @@ const accountAuditGrants = migration("20261118100000_server_account_audit_grants
 test("server-side account administration can write profiles and actor-attributed audit events", () => {
   assert.match(accountAuditGrants, /grant select, insert, update, delete on public\.profiles to service_role/);
   assert.match(accountAuditGrants, /grant insert on public\.activity_logs to service_role/);
+});
+
+
+test("event finalization guard has no forward dependency on dual-report columns", () => {
+  assert.doesNotMatch(eventFinalization, /new\\.(committee_chair_profile_id|final_report_by|final_report_submitted_at|financial_report_by|financial_report_submitted_at)/);
+  assert.match(eventDualReports, /add column committee_chair_profile_id/);
+  assert.match(eventDualReports, /create or replace function app_private\\.guard_event_finalized_updates/);
+  assert.match(eventDualReports, /new\\.financial_report_submitted_at is distinct from old\\.financial_report_submitted_at/);
 });
