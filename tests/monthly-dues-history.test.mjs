@@ -7,6 +7,7 @@ const page = await readFile(new URL("../src/app/dashboard/uang-kas-bulanan/page.
 test("monthly dues dashboard loads a rolling 12-period history", () => {
   assert.match(page, /historyStart/);
   assert.match(page, /\.gte\("dues_month", historyStart\)/);
+  assert.match(page, /\.lte\("dues_month", currentMonth\)/);
   assert.match(page, /for \(const row of allRows\)/);
   assert.match(page, /Riwayat 12 periode terakhir/);
 });
