@@ -30,5 +30,7 @@ test("current-month recording and payment controls remain available", () => {
 test("dues payment form generates an idempotency key at submit time", () => {
   assert.match(paymentForm, /crypto\.randomUUID\(\)/);
   assert.match(paymentForm, /formData\.set\("idempotency_key"/);
+  assert.match(paymentForm, /useRef<string \| null>\(null\)/);
+  assert.match(paymentForm, /if \(result\.success\) idempotencyKeyRef\.current = null/);
   assert.match(paymentForm, /value="" readOnly/);
 });
