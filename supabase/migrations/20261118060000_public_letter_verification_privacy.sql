@@ -3,7 +3,10 @@ begin;
 
 drop policy if exists "letters_public_verify_published" on public.official_letters;
 drop policy if exists "letters_public_verify_general_metadata" on public.official_letters;
-revoke select on public.official_letters from anon;
+revoke select on public.official_letters from anon, public;
+-- Table-level revokes do not clear existing column-level grants. Remove the
+-- legacy body grant explicitly, then grant only the public verification fields.
+revoke select (body, category, letter_number) on public.official_letters from anon, public;
 
 create policy "letters_public_verify_general_metadata" on public.official_letters
 for select to anon
