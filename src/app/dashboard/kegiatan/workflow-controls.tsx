@@ -73,6 +73,8 @@ export function EventWorkflowControls({
         {event.financial_report_by && <p className="event-report-state">Laporan Bendahara: sudah diserahkan</p>}
         {event.final_report_submitted_at && <p className="event-report-state">Laporan Ketua Panitia: sudah diserahkan</p>}
 
+        {(isLeader || role === "bendahara") && (event.final_report || event.financial_report) && <details className="event-report-review"><summary>Tinjau isi laporan</summary>{event.final_report && <section><strong>Laporan Ketua Panitia</strong><p>{event.final_report}</p></section>}{event.financial_report && <section><strong>Laporan Bendahara</strong><p>{event.financial_report}</p></section>}</details>}
+
         {event.status === "menunggu_laporan" && (isLeader || role === "bendahara") && (
           <form action={approveEventFinalReport} className="module-form">
             <input type="hidden" name="event_id" value={event.id} />
