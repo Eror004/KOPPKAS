@@ -10,17 +10,17 @@ export type PermissionAction = "read" | "create" | "update" | "delete" | "approv
 
 const permissions: Record<AppRole, Partial<Record<ModuleKey, PermissionAction[]>>> = {
   ketua_pemuda: {
-    dashboard: ["read"], members: ["read"], structure: ["read", "create", "update", "delete"],
-    events: ["read", "create", "update", "delete", "approve"], general_finance: ["read", "create", "update"],
-    monthly_dues: ["read", "create", "update"], event_finance: ["read", "create", "update", "approve"],
+    dashboard: ["read"], members: ["read"], structure: ["read"],
+    events: ["read", "create", "update", "approve"], general_finance: ["read", "create"],
+    monthly_dues: ["read", "create", "update"], event_finance: ["read", "create", "approve"],
     letters: ["read", "create", "update", "approve"], announcements: ["read", "create", "update", "delete"],
     media: ["read", "create", "update", "delete"], reports: ["read"], notifications: ["read", "update"],
     activity: ["read"], accounts: ["read", "create", "update", "delete", "manage"], inbox: ["read"],
   },
   wakil_ketua_pemuda: {
     dashboard: ["read"], members: ["read"], structure: ["read"], events: ["read", "create", "update", "approve"],
-    general_finance: ["read", "create", "update"], monthly_dues: ["read", "create", "update"],
-    event_finance: ["read", "create", "update", "approve"], letters: ["read", "create", "update", "approve"],
+    general_finance: ["read", "create"], monthly_dues: ["read", "create", "update"],
+    event_finance: ["read", "create", "approve"], letters: ["read", "create", "update", "approve"],
     announcements: ["read", "create", "update"], media: ["read", "create", "update"], reports: ["read"],
     notifications: ["read", "update"], activity: ["read"], inbox: ["read"],
   },
@@ -32,7 +32,7 @@ const permissions: Record<AppRole, Partial<Record<ModuleKey, PermissionAction[]>
   },
   bendahara: {
     dashboard: ["read"], members: ["read"], events: ["read", "create"], monthly_dues: ["read", "create", "update"],
-    general_finance: ["read", "create", "update"], event_finance: ["read", "create", "update", "approve"],
+    general_finance: ["read", "create"], event_finance: ["read", "create", "approve"],
     letters: ["read", "create", "update"], reports: ["read"], notifications: ["read", "update"], inbox: ["read"],
   },
   ketua_rw_01: {
