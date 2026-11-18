@@ -413,3 +413,6 @@ h1,h2,h3,p{margin-top:0}
 .event-committee-list li strong{display:block;color:#24445a;font-size:12px}
 .event-committee-list li small{display:block;color:#7a8f9e;font-size:10px;margin-top:3px}
 .event-committee-list .module-form{margin:0;padding:0;border:0;max-width:none}
+
+.event-chair-state{margin:0 0 12px;padding:9px 11px;border-radius:9px;background:#f3f8fb;color:#526d80;font-size:11px}
+.event-chair-state strong{color:#24445a}
