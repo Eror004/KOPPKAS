@@ -13,6 +13,43 @@ update public.events set committee_chair_profile_id = created_by where committee
 alter table public.events enable trigger guard_event_finalized_updates;
 alter table public.events alter column committee_chair_profile_id set not null;
 
+
+-- The later dual-authorship migration adds these report-author columns.
+-- Extend the event lock only after those columns exist, avoiding a forward
+-- dependency during the interval between migration 013 and migration 019.
+create or replace function app_private.guard_event_finalized_updates()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if old.status in ('selesai', 'dibatalkan') then
+    raise exception 'Finalized or cancelled events cannot be changed'
+      using errcode = '55000';
+  end if;
+
+  if old.status = 'menunggu_laporan' and (
+    new.title is distinct from old.title
+    or new.description is distinct from old.description
+    or new.location is distinct from old.location
+    or new.starts_at is distinct from old.starts_at
+    or new.ends_at is distinct from old.ends_at
+    or new.final_report is distinct from old.final_report
+    or new.committee_chair_profile_id is distinct from old.committee_chair_profile_id
+    or new.final_report_by is distinct from old.final_report_by
+    or new.final_report_submitted_at is distinct from old.final_report_submitted_at
+    or new.financial_report_by is distinct from old.financial_report_by
+    or new.financial_report_submitted_at is distinct from old.financial_report_submitted_at
+  ) then
+    raise exception 'Event details and final report are locked while awaiting approval'
+      using errcode = '55000';
+  end if;
+
+  return new;
+end
+$;
+
 drop policy if exists "profiles_read_active_org_accounts" on public.profiles;
 create policy "profiles_read_active_org_accounts" on public.profiles
 for select to authenticated
