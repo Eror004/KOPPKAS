@@ -1,25 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { Plus } from "lucide-react";
 import { recordManualLedgerEntry, type LedgerActionState } from "./actions";
 
 const initialState: LedgerActionState = {};
 const uuidPattern = /^[0-9a-f-]{36}$/i;
 
-async function submitWithIdempotency(
-  previous: LedgerActionState,
-  formData: FormData,
-): Promise<LedgerActionState> {
-  const existingKey = String(formData.get("idempotency_key") ?? "");
-  if (!uuidPattern.test(existingKey)) {
-    formData.set("idempotency_key", crypto.randomUUID());
-  }
-  return recordManualLedgerEntry(previous, formData);
-}
-
 export function ManualLedgerForm() {
-  const [state, action, pending] = useActionState(submitWithIdempotency, initialState);
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const [state, action, pending] = useActionState(async (previous: LedgerActionState, formData: FormData) => {
+    const existingKey = String(formData.get("idempotency_key") ?? "");
+    const key = uuidPattern.test(existingKey) ? existingKey : idempotencyKeyRef.current ?? crypto.randomUUID();
+    idempotencyKeyRef.current = key;
+    formData.set("idempotency_key", key);
+    const result = await recordManualLedgerEntry(previous, formData);
+    if (result.success) idempotencyKeyRef.current = null;
+    return result;
+  }, initialState);
 
   return (
     <form action={action} className="module-form">
