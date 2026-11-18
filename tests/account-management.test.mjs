@@ -34,6 +34,8 @@ test("account actions require Ketua permission and protect the last active Ketua
   assert.match(actions, /admin\.auth\.admin\.createUser/);
   assert.match(actions, /admin\.auth\.admin\.updateUserById/);
   assert.match(actions, /admin\.auth\.admin\.deleteUser/);
+  assert.match(actions, /from\("activity_logs"\)\.insert/);
+  assert.match(actions, /actor_id: actor\.profile\.id/);
 });
 
 test("account page is protected and provides create, role/status and password controls", () => {
