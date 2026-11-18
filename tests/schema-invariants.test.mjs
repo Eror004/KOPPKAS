@@ -5,15 +5,15 @@ import { join } from "node:path";
 
 const migration = (name) => readFileSync(join(process.cwd(), "supabase/migrations", name), "utf8");
 
-const core = migration("20261117000100_core_schema.sql");
-const numbering = migration("20261117000200_letter_numbering_and_inbox.sql");
-const dues = migration("20261117000300_dues_and_event_workflows.sql");
-const grants = migration("20261117000400_api_grants_and_audit.sql");
-const approvals = migration("20261117000500_approval_guards.sql");
-const inlineDues = migration("20261117000800_inline_dues_member_and_letter_submit.sql");
-const opening = migration("20261117000900_opening_balance_and_balance_view.sql");
-const hardening = migration("20261117001000_access_hardening.sql");
-const publicEvents = migration("20261117001100_public_events.sql");
+const core = migration("20261118033833_core_schema.sql");
+const numbering = migration("20261118033842_letter_numbering_and_inbox.sql");
+const dues = migration("20261118033844_dues_and_event_workflows.sql");
+const grants = migration("20261118033846_api_grants_and_audit.sql");
+const approvals = migration("20261118033848_approval_guards.sql");
+const inlineDues = migration("20261118033855_inline_dues_member_and_letter_submit.sql");
+const opening = migration("20261118033858_opening_balance_and_balance_view.sql");
+const hardening = migration("20261118033900_access_hardening.sql");
+const publicEvents = migration("20261118033906_public_events.sql");
 
 test("finance uses exact numeric precision and source-level idempotency", () => {
   assert.match(core, /amount numeric\(15,2\)/);
@@ -101,4 +101,139 @@ test("letter sequence and opening-balance tables are protected by RLS", () => {
 
 test("public event listings expose only approved statuses", () => {
   assert.match(publicEvents, /status in \('terbit','berlangsung','menunggu_laporan','selesai'\)/);
+});
+
+
+const eventFinalization = migration("20261118074546_event_finance_finalization_guards.sql");
+const letterPrivacy = migration("20261118074558_public_letter_verification_privacy.sql");
+const eventBalance = migration("20261118074601_event_ledger_balance_summary.sql");
+const eventDualReports = migration("20261118074613_event_dual_report_authorship.sql");
+const duesIdempotency = migration("20261118074623_monthly_dues_idempotency_payload_guard.sql");
+const eventLedgerIdempotency = migration("20261118074625_event_ledger_idempotency.sql");
+
+test("public letter verification never exposes financial letters or full letter bodies", () => {
+  assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
+  assert.ok(letterPrivacy.includes("revoke select on public.official_letters from anon, public;"));
+  assert.ok(letterPrivacy.includes("revoke select (body, category, letter_number) on public.official_letters from anon, public;"));
+  assert.match(letterPrivacy, /l\.category = 'umum'/);
+  assert.match(letterPrivacy, /create or replace view public\.public_letter_verifications/);
+  assert.match(letterPrivacy, /security_barrier = true, security_invoker = true/);
+  assert.match(letterPrivacy, /grant select \(id, letter_number, subject, category, status, approved_at, created_at\)/);
+  assert.match(letterPrivacy, /for select to anon[\s\S]*?status = 'terbit' and category = 'umum'/);
+  assert.match(letterPrivacy, /grant select on public\.public_letter_verifications to anon/);
+  assert.doesNotMatch(letterPrivacy, /l\.body/);
+});
+
+test("finalized event data and event ledger are protected by database triggers", () => {
+  assert.match(eventFinalization, /old\.status in \('selesai', 'dibatalkan'\)/);
+  assert.match(eventFinalization, /Event ledger is locked outside the active event period/);
+  assert.match(eventFinalization, /public\.event_surplus_transfers/);
+  assert.match(eventFinalization, /gle\.source_type = 'event_surplus_transfer'/);
+});
+
+test("event ledger insert trigger remains installed while its guard function is hardened", () => {
+  assert.match(eventFinalization, /create trigger guard_event_ledger_insert/);
+  assert.ok(eventLedgerIdempotency.includes("create or replace function app_private.guard_event_ledger_insert()"));
+  assert.match(eventLedgerIdempotency, /Event finance idempotency key is required/);
+});
+
+test("event finance dashboard aggregate is lifetime-scoped, not limited to latest 100 rows", () => {
+  assert.match(eventBalance, /create or replace view public\.event_ledger_balance_summary/);
+  assert.match(eventBalance, /sum\(case when direction = 'masuk' then amount else -amount end\)/);
+  assert.match(eventBalance, /count\(\*\)::bigint as transaction_count/);
+});
+
+
+const committeeHardening = migration("20261118074603_committee_dues_letters_audit_hardening.sql");
+
+test("event committee management is limited to creator and core leadership before closeout", () => {
+  assert.match(committeeHardening, /drop policy if exists "event_committee_manage_authenticated"/);
+  assert.match(committeeHardening, /event_committee_insert_event_managers/);
+  assert.match(committeeHardening, /event_committee_update_event_managers/);
+  assert.match(committeeHardening, /event_committee_delete_event_managers/);
+  assert.match(committeeHardening, /e\.status not in \('menunggu_laporan', 'selesai', 'dibatalkan'\)/);
+  assert.match(committeeHardening, /e\.created_by = \(select auth\.uid\(\)\)/);
+});
+
+test("monthly dues idempotent retries must match the original actor and payload", () => {
+  assert.equal(duesIdempotency.split("existing_payment.recorded_by is distinct from auth.uid()").length - 1, 2);
+  assert.ok(duesIdempotency.includes("existing_payment.monthly_dues_id <> p_monthly_dues_id"));
+  assert.ok(duesIdempotency.includes("existing_payment.amount <> p_amount"));
+  assert.ok(duesIdempotency.includes("coalesce(existing_payment.note, '') <> coalesce(normalized_note, '')"));
+});
+
+test("monthly dues register rows cannot be deleted", () => {
+  assert.match(committeeHardening, /revoke delete on public\.monthly_dues from authenticated/);
+  assert.match(committeeHardening, /monthly_dues_update_finance_roles/);
+});
+
+test("submitted official letter content is immutable", () => {
+  assert.match(committeeHardening, /old\.status <> 'draft'/);
+  assert.match(committeeHardening, /new\.subject is distinct from old\.subject/);
+  assert.match(committeeHardening, /new\.body is distinct from old\.body/);
+  assert.match(committeeHardening, /new\.category is distinct from old\.category/);
+});
+
+test("activity audit covers structure, event committee and media", () => {
+  for (const table of ["organization_positions", "event_committee", "media_assets"]) {
+    assert.match(committeeHardening, new RegExp(`'${table}'`));
+    assert.match(committeeHardening, /create trigger audit_%I/);
+  }
+});
+
+
+const accountAuditGrants = migration("20261118074611_server_account_audit_grants.sql");
+
+test("server-side account administration can write profiles and actor-attributed audit events", () => {
+  assert.match(accountAuditGrants, /grant select, insert, update, delete on public\.profiles to service_role/);
+  assert.match(accountAuditGrants, /grant insert on public\.activity_logs to service_role/);
+});
+
+
+test("dual-report migration uses valid dollar-quoted trigger function syntax", () => {
+  assert.ok(eventDualReports.includes("create or replace function app_private.guard_event_finalized_updates()"));
+  assert.match(eventDualReports, /as \$\$[\s\S]*?end\s+\$\$;/);
+});
+
+test("event finalization guard has no forward dependency on dual-report columns", () => {
+  assert.doesNotMatch(eventFinalization, /new\.(committee_chair_profile_id|final_report_by|final_report_submitted_at|financial_report_by|financial_report_submitted_at)/);
+  assert.match(eventDualReports, /add column committee_chair_profile_id/);
+  assert.match(eventDualReports, /create or replace function app_private\.guard_event_finalized_updates/);
+  assert.match(eventDualReports, /new\.financial_report_submitted_at is distinct from old\.financial_report_submitted_at/);
+});
+
+
+const eventApprovalActor = migration("20261118074637_event_approval_actor_attribution.sql");
+
+test("event approval and cancellation metadata are bound to the authenticated actor exactly once", () => {
+  assert.match(eventApprovalActor, /new\.approved_by is distinct from auth\.uid\(\)/);
+  assert.match(eventApprovalActor, /new\.cancelled_by is distinct from auth\.uid\(\)/);
+  assert.match(eventApprovalActor, /new\.final_report_approved_by is distinct from auth\.uid\(\)/);
+  assert.match(eventApprovalActor, /old\.approved_by is not null/);
+  assert.match(eventApprovalActor, /old\.cancelled_by is not null/);
+  assert.match(eventApprovalActor, /old\.final_report_approved_by is not null/);
+  assert.match(eventApprovalActor, /create trigger guard_event_approval_actor/);
+});
+
+
+const lastActiveKetuaGuard = migration("20261118074639_last_active_ketua_guard.sql");
+
+test("database serializes changes that could remove the last active Ketua account", () => {
+  assert.match(lastActiveKetuaGuard, /pg_advisory_xact_lock\(74102820261118::bigint\)/);
+  assert.match(lastActiveKetuaGuard, /old\.role = 'ketua_pemuda'/);
+  assert.match(lastActiveKetuaGuard, /old\.is_active = true/);
+  assert.match(lastActiveKetuaGuard, /active_ketua_count <= 1/);
+  assert.match(lastActiveKetuaGuard, /before update of role, is_active on public\.profiles/);
+});
+
+
+const announcementMediaRoleRls = migration("20261118074641_announcement_media_role_rls.sql");
+
+test("announcement and media database policies match approved role boundaries", () => {
+  assert.match(announcementMediaRoleRls, /announcements_insert_authorized_roles/);
+  assert.match(announcementMediaRoleRls, /media_insert_authorized_roles/);
+  assert.match(announcementMediaRoleRls, /'ketua_rw_01','ketua_rt_01'/);
+  assert.match(announcementMediaRoleRls, /announcements_delete_ketua[\s\S]*?has_any_role\(array\['ketua_pemuda'\]/);
+  assert.match(announcementMediaRoleRls, /media_delete_ketua[\s\S]*?has_any_role\(array\['ketua_pemuda'\]/);
+  assert.doesNotMatch(announcementMediaRoleRls, /has_any_role\(array\['ketua_pemuda','wakil_ketua_pemuda','sekretaris','bendahara','ketua_rw_01','ketua_rt_01'\]/);
 });

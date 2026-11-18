@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireModulePermission } from "@/lib/auth/require-role";
 
@@ -26,4 +27,96 @@ export async function createOfficialLetter(_previous: LetterActionState, formDat
   if (error) return { error: "Surat gagal disimpan. Pastikan migrasi penomoran surat sudah diterapkan." };
   revalidatePath("/dashboard/surat-dokumen");
   return { success: "Draft surat berhasil dibuat. Nomor surat dialokasikan otomatis oleh database." };
+}
+
+const letterPath = "/dashboard/surat-dokumen";
+const letterUuidPattern = /^[0-9a-f-]{36}$/i;
+
+function finishLetterAction(kind: "success" | "error", message: string): never {
+  redirect(`${letterPath}?${kind}=${encodeURIComponent(message)}`);
+}
+
+async function loadLetterForAction(id: string) {
+  if (!letterUuidPattern.test(id)) finishLetterAction("error", "Data surat tidak valid.");
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("official_letters")
+    .select("id,created_by,category,status")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) finishLetterAction("error", "Surat tidak ditemukan atau tidak dapat diakses.");
+  return { supabase, letter: data };
+}
+
+export async function submitLetterForApproval(formData: FormData) {
+  const actor = await requireModulePermission("letters", "create");
+  const { supabase, letter } = await loadLetterForAction(String(formData.get("letter_id") ?? ""));
+  if (letter.status !== "draft") finishLetterAction("error", "Hanya draft yang dapat diajukan.");
+  if (letter.created_by !== actor.profile.id && !(actor.role === "sekretaris" && letter.category === "umum")) {
+    finishLetterAction("error", "Hanya pembuat surat atau Sekretaris untuk surat umum yang dapat mengajukan.");
+  }
+  const { error } = await supabase.from("official_letters").update({
+    status: "menunggu_persetujuan",
+    updated_at: new Date().toISOString(),
+  }).eq("id", letter.id);
+  if (error) finishLetterAction("error", "Pengajuan surat gagal disimpan.");
+  revalidatePath(letterPath);
+  finishLetterAction("success", "Surat diajukan untuk persetujuan Ketua atau Wakil Ketua.");
+}
+
+export async function approveLetter(formData: FormData) {
+  const actor = await requireModulePermission("letters", "approve");
+  const { supabase, letter } = await loadLetterForAction(String(formData.get("letter_id") ?? ""));
+  if (letter.status !== "menunggu_persetujuan") finishLetterAction("error", "Surat tidak sedang menunggu persetujuan.");
+  const { error } = await supabase.from("official_letters").update({
+    status: "terbit",
+    approved_by: actor.profile.id,
+    approved_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq("id", letter.id);
+  if (error) finishLetterAction("error", "Persetujuan surat gagal disimpan.");
+  revalidatePath(letterPath);
+  finishLetterAction("success", "Surat disetujui dan diterbitkan.");
+}
+
+export async function cancelLetter(formData: FormData) {
+  const actor = await requireModulePermission("letters", "approve");
+  const { supabase, letter } = await loadLetterForAction(String(formData.get("letter_id") ?? ""));
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (letter.status === "dibatalkan") finishLetterAction("error", "Surat sudah dibatalkan.");
+  if (reason.length < 3 || reason.length > 500) finishLetterAction("error", "Alasan pembatalan harus berisi 3–500 karakter.");
+  const { error } = await supabase.from("official_letters").update({
+    status: "dibatalkan",
+    cancellation_reason: reason,
+    cancelled_by: actor.profile.id,
+    cancelled_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq("id", letter.id);
+  if (error) finishLetterAction("error", "Pembatalan surat gagal disimpan.");
+  revalidatePath(letterPath);
+  finishLetterAction("success", "Surat dibatalkan. Nomor surat tetap tercatat dan tidak digunakan ulang.");
+}
+
+
+export async function updateLetterDraft(formData: FormData) {
+  const actor = await requireModulePermission("letters", "update");
+  const { supabase, letter } = await loadLetterForAction(String(formData.get("letter_id") ?? ""));
+  const subject = String(formData.get("subject") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const isLeader = actor.role === "ketua_pemuda" || actor.role === "wakil_ketua_pemuda";
+
+  if (letter.status !== "draft") finishLetterAction("error", "Isi surat hanya dapat diubah saat masih draft.");
+  if (letter.created_by !== actor.profile.id && !isLeader && !(actor.role === "sekretaris" && letter.category === "umum")) {
+    finishLetterAction("error", "Lu tidak memiliki akses untuk mengubah draft surat ini.");
+  }
+  if (subject.length < 3 || subject.length > 180) finishLetterAction("error", "Perihal harus berisi 3–180 karakter.");
+  if (body.length < 10 || body.length > 20000) finishLetterAction("error", "Isi surat harus berisi 10–20.000 karakter.");
+
+  const { error } = await supabase.from("official_letters").update({
+    subject,
+    body,
+    updated_at: new Date().toISOString(),
+  }).eq("id", letter.id);
+  if (error) finishLetterAction("error", "Perubahan draft surat gagal disimpan.");
+  revalidatePath(letterPath);
+  finishLetterAction("success", "Draft surat berhasil diperbarui.");
 }

@@ -1,5 +1,9 @@
 "use server";
 
+import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
+import { headers } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type ContactState = { success?: boolean; error?: string };
@@ -20,6 +24,21 @@ export async function submitContact(_previous: ContactState, formData: FormData)
   if (message.length < 10 || message.length > 5000) return { error: "Pesan harus berisi 10–5.000 karakter." };
 
   try {
+    const headerStore = await headers();
+    const candidateIp = headerStore.get("x-real-ip") ??
+      (process.env.NODE_ENV !== "production" ? headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() : undefined);
+    if (!candidateIp || !isIP(candidateIp)) return { error: "Layanan kontak sementara tidak tersedia. Silakan gunakan WhatsApp resmi organisasi." };
+
+    const rateLimitSecret = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!rateLimitSecret) return { error: "Layanan kontak sementara tidak tersedia. Silakan gunakan WhatsApp resmi organisasi." };
+    const ipHash = createHmac("sha256", rateLimitSecret).update(candidateIp).digest("hex");
+    const admin = createAdminClient();
+    const { data: allowed, error: rateLimitError } = await admin.rpc("consume_public_contact_rate_limit", {
+      p_ip_hash: ipHash,
+    });
+    if (rateLimitError) return { error: "Layanan kontak sementara tidak tersedia. Silakan gunakan WhatsApp resmi organisasi." };
+    if (allowed !== true) return { error: "Terlalu banyak pesan dari jaringan ini. Coba lagi sekitar 10 menit." };
+
     const supabase = await createClient();
     const { error } = await supabase.from("public_messages").insert({
       sender_name: senderName,
