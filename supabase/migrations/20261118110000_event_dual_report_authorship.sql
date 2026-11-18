@@ -22,7 +22,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if old.status in ('selesai', 'dibatalkan') then
     raise exception 'Finalized or cancelled events cannot be changed'
@@ -48,7 +48,7 @@ begin
 
   return new;
 end
-$;
+$$;
 
 drop policy if exists "profiles_read_active_org_accounts" on public.profiles;
 create policy "profiles_read_active_org_accounts" on public.profiles
