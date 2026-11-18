@@ -102,3 +102,29 @@ test("letter sequence and opening-balance tables are protected by RLS", () => {
 test("public event listings expose only approved statuses", () => {
   assert.match(publicEvents, /status in \('terbit','berlangsung','menunggu_laporan','selesai'\)/);
 });
+
+
+const eventFinalization = migration("20261118050000_event_finance_finalization_guards.sql");
+const letterPrivacy = migration("20261118060000_public_letter_verification_privacy.sql");
+const eventBalance = migration("20261118070000_event_ledger_balance_summary.sql");
+
+test("public letter verification never exposes financial letters or full letter bodies", () => {
+  assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
+  assert.match(letterPrivacy, /revoke select on public\.official_letters from anon/);
+  assert.match(letterPrivacy, /l\.category = 'umum'/);
+  assert.doesNotMatch(letterPrivacy, /returns table[\s\S]*?body text/i);
+  assert.match(letterPrivacy, /grant execute on function public\.verify_public_letter\(uuid\) to anon, authenticated/);
+});
+
+test("finalized event data and event ledger are protected by database triggers", () => {
+  assert.match(eventFinalization, /old\.status in \('selesai', 'dibatalkan'\)/);
+  assert.match(eventFinalization, /Event ledger is locked outside the active event period/);
+  assert.match(eventFinalization, /public\.event_surplus_transfers/);
+  assert.match(eventFinalization, /gle\.source_type = 'event_surplus_transfer'/);
+});
+
+test("event finance dashboard aggregate is lifetime-scoped, not limited to latest 100 rows", () => {
+  assert.match(eventBalance, /create or replace view public\.event_ledger_balance_summary/);
+  assert.match(eventBalance, /sum\(case when direction = 'masuk' then amount else -amount end\)/);
+  assert.match(eventBalance, /count\(\*\)::bigint as transaction_count/);
+});
