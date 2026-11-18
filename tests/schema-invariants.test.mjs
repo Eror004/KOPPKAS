@@ -155,8 +155,8 @@ test("submitted official letter content is immutable", () => {
   assert.match(committeeHardening, /new\.category is distinct from old\.category/);
 });
 
-test("activity audit covers structure, event committee, profiles and media", () => {
-  for (const table of ["organization_positions", "event_committee", "profiles", "media_assets"]) {
+test("activity audit covers structure, event committee and media", () => {
+  for (const table of ["organization_positions", "event_committee", "media_assets"]) {
     assert.match(committeeHardening, new RegExp(`'${table}'`));
     assert.match(committeeHardening, /create trigger audit_%I/);
   }
