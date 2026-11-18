@@ -19,6 +19,7 @@ export default async function MonthlyDuesPage() {
     .from("monthly_dues_summary")
     .select("id, full_name, dues_month, reference_amount, paid_amount, remaining_amount, payment_status")
     .gte("dues_month", historyStart)
+    .lte("dues_month", currentMonth)
     .order("dues_month", { ascending: false })
     .order("full_name", { ascending: true });
 
