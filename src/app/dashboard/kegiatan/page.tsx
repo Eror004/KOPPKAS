@@ -26,7 +26,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     supabase.from("members").select("id,full_name").is("archived_at", null).order("full_name"),
     canReadEventFinance
       ? supabase.from("event_financial_reports").select("event_id,report")
-      : Promise.resolve({ data: [] as { event_id: string; report: string }[] }),
+      : Promise.resolve({ data: [] as { event_id: string; report: string }[], error: null }),
   ]);
   const financeReportByEvent = new Map((financeReports ?? []).map((report) => [report.event_id, report.report]));
 
