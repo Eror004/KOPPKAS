@@ -1,35 +1,103 @@
-import { approveEvent, approveEventFinalReport, cancelEvent, startEvent, submitEventFinancialReport, submitEventFinalReport, submitEventForApproval } from "./actions";
+import {
+  addEventCommitteeMember,
+  approveEvent,
+  approveEventFinalReport,
+  cancelEvent,
+  removeEventCommitteeMember,
+  startEvent,
+  submitEventFinancialReport,
+  submitEventFinalReport,
+  submitEventForApproval,
+  updateEventDetails,
+} from "./actions";
 import type { AppRole } from "@/lib/auth/roles";
+
+type CommitteeItem = {
+  member_id: string;
+  committee_role: string;
+  members: { full_name: string } | { full_name: string }[] | null;
+};
 
 type EventWorkflowItem = {
   id: string;
   created_by: string;
   status: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
   financial_report: string | null;
   financial_report_by: string | null;
   final_report: string | null;
   final_report_by: string | null;
   final_report_submitted_at: string | null;
+  event_committee: CommitteeItem[] | null;
 };
+
+function toJakartaDateTime(value: string | null) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value)).replace(" ", "T");
+}
 
 export function EventWorkflowControls({
   event,
   actorId,
   role,
+  members,
 }: {
   event: EventWorkflowItem;
   actorId: string;
   role: AppRole;
+  members: { id: string; full_name: string }[];
 }) {
   const isLeader = role === "ketua_pemuda" || role === "wakil_ketua_pemuda";
   const isSecretary = role === "sekretaris";
   const isCreator = event.created_by === actorId;
   const canCancel = isLeader && event.status !== "selesai" && event.status !== "dibatalkan";
+  const canEdit = (isCreator || isSecretary) && ["draft", "terbit", "berlangsung"].includes(event.status);
+  const canManageCommittee = (isCreator || isSecretary || isLeader) &&
+    ["draft", "menunggu_persetujuan", "terbit", "berlangsung"].includes(event.status);
+  const committee = event.event_committee ?? [];
 
   return (
     <details className="event-workflow-controls">
       <summary>Kelola alur kegiatan</summary>
       <div className="event-workflow-body">
+        {canEdit && (
+          <form action={updateEventDetails} className="module-form">
+            <input type="hidden" name="event_id" value={event.id} />
+            <label>Nama kegiatan<input name="title" defaultValue={event.title} minLength={3} maxLength={160} required /></label>
+            <label>Lokasi<input name="location" defaultValue={event.location ?? ""} maxLength={180} /></label>
+            <label>Mulai<input name="starts_at" type="datetime-local" defaultValue={toJakartaDateTime(event.starts_at)} /></label>
+            <label>Selesai<input name="ends_at" type="datetime-local" defaultValue={toJakartaDateTime(event.ends_at)} /></label>
+            <label>Deskripsi<textarea name="description" defaultValue={event.description ?? ""} maxLength={5000} rows={3} /></label>
+            <button type="submit">Simpan detail kegiatan</button>
+          </form>
+        )}
+
+        <section className="event-committee-panel">
+          <div className="module-form-heading"><div><p className="eyebrow">EVENT COMMITTEE</p><h3>Panitia kegiatan</h3></div><span>{committee.length} ANGGOTA</span></div>
+          {committee.length ? <ul className="event-committee-list">{committee.map((item) => {
+            const member = Array.isArray(item.members) ? item.members[0] : item.members;
+            return <li key={item.member_id}><div><strong>{member?.full_name ?? "Anggota"}</strong><small>{item.committee_role}</small></div>{canManageCommittee && <form action={removeEventCommitteeMember}><input type="hidden" name="event_id" value={event.id} /><input type="hidden" name="member_id" value={item.member_id} /><button type="submit" className="secondary-button">Hapus</button></form>}</li>;
+          })}</ul> : <p className="module-empty">Panitia belum ditentukan.</p>}
+          {canManageCommittee && <form action={addEventCommitteeMember} className="module-form">
+            <input type="hidden" name="event_id" value={event.id} />
+            <label>Anggota<select name="member_id" defaultValue="" required><option value="" disabled>Pilih anggota</option>{members.map((member) => <option key={member.id} value={member.id}>{member.full_name}</option>)}</select></label>
+            <label>Posisi panitia<input name="committee_role" minLength={2} maxLength={80} required placeholder="Contoh: Ketua Panitia" /></label>
+            <button type="submit">Tambah panitia</button>
+          </form>}
+        </section>
+
         {event.status === "draft" && (isCreator || isSecretary) && (
           <form action={submitEventForApproval} className="module-form">
             <input type="hidden" name="event_id" value={event.id} />
