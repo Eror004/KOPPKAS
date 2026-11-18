@@ -443,6 +443,7 @@ $$;
 
 revoke all on function app_private.set_event_chair_default() from public, anon, authenticated;
 revoke all on function app_private.guard_event_report_authorship() from public, anon, authenticated;
+revoke all on function app_private.guard_event_transitions() from public, anon, authenticated;
 revoke all on function public.submit_event_financial_report(uuid, text) from public, anon;
 revoke all on function public.submit_event_narrative_report(uuid, text) from public, anon;
 grant execute on function public.submit_event_financial_report(uuid, text) to authenticated;
