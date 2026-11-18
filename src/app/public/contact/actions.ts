@@ -25,7 +25,8 @@ export async function submitContact(_previous: ContactState, formData: FormData)
 
   try {
     const headerStore = await headers();
-    const candidateIp = headerStore.get("x-real-ip") ?? headerStore.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const candidateIp = headerStore.get("x-real-ip") ??
+      (process.env.NODE_ENV !== "production" ? headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() : undefined);
     if (!candidateIp || !isIP(candidateIp)) return { error: "Layanan kontak sementara tidak tersedia. Silakan gunakan WhatsApp resmi organisasi." };
 
     const ipHash = createHash("sha256").update(candidateIp).digest("hex");
