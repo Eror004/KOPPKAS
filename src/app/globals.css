@@ -382,3 +382,9 @@ h1,h2,h3,p{margin-top:0}
 .public-event-list small{display:flex;align-items:center;gap:5px;color:#8da0ad;font-size:9px}
 .public-events>footer{text-align:center;padding:20px;border-top:1px solid var(--line);color:#91a2ad;font:9px 'DM Mono',monospace}
 @media(max-width:700px){.public-header-nav{gap:12px}.public-header-nav>a:first-child{font-size:9px}.public-hero-actions{align-items:stretch;flex-direction:column;max-width:190px}.public-secondary,.public-primary{justify-content:center}.public-events-content{padding:48px 16px 65px}.public-event-list{padding:0 14px}.public-event-list article{gap:10px;flex-direction:column}.public-event-date{width:auto;flex-direction:row;align-items:center}}
+
+.account-status{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font:700 9px 'DM Mono',monospace;letter-spacing:.04em}
+.account-status.active{background:#eaf7ef;color:#26734a}
+.account-status.inactive{background:#f1f4f6;color:#718392}
+.module-form>button.secondary-button{background:#eef5f9;color:#31566f;border:1px solid #d7e5ed}
+.module-form>button.secondary-button:hover{background:#e1eef5}
