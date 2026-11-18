@@ -33,6 +33,8 @@ test("event creator submits narrative report and Bendahara submits separate fina
   assert.match(dualReport, /role is not null and app_private\.current_app_role\(\) is not null/);
   assert.match(dualReport, /public\.event_financial_reports/);
   assert.match(dualReport, /event_financial_reports_read_finance_roles/);
+  assert.match(dualReport, /revoke insert, update, delete on public\.event_financial_reports from authenticated/);
+  assert.match(dualReport, /audit_event_financial_reports/);
 });
 
 test("event final approval requires both reports and an active Bendahara author", () => {
@@ -54,6 +56,7 @@ test("event register exposes role-aware workflow controls", () => {
   assert.match(actions, /updateEventDetails/);
   assert.match(actions, /committee_chair_profile_id: user\.profile\.id/);
   assert.match(controls, /Ketua Panitia<select name="committee_chair_profile_id"/);
+  assert.match(page, /supabase\.from\("profiles"\)/);
   assert.match(actions, /addEventCommitteeMember/);
   assert.match(controls, /submitEventForApproval/);
   assert.match(controls, /approveEventFinalReport/);
