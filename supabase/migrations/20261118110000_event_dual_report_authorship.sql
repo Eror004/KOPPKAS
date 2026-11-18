@@ -8,7 +8,8 @@ alter table public.events
   add column financial_report_submitted_at timestamptz;
 
 create table public.event_financial_reports (
-  event_id uuid primary key references public.events(id) on delete restrict,
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null unique references public.events(id) on delete restrict,
   report text not null check (char_length(trim(report)) between 10 and 10000),
   submitted_by uuid not null references public.profiles(id) on delete restrict,
   submitted_at timestamptz not null default now(),
