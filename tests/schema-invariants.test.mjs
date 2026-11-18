@@ -128,3 +128,34 @@ test("event finance dashboard aggregate is lifetime-scoped, not limited to lates
   assert.match(eventBalance, /sum\(case when direction = 'masuk' then amount else -amount end\)/);
   assert.match(eventBalance, /count\(\*\)::bigint as transaction_count/);
 });
+
+
+const committeeHardening = migration("20261118080000_committee_dues_letters_audit_hardening.sql");
+
+test("event committee management is limited to creator and core leadership before closeout", () => {
+  assert.doesNotMatch(core, /event_committee_manage_authenticated/);
+  assert.match(committeeHardening, /event_committee_insert_event_managers/);
+  assert.match(committeeHardening, /event_committee_update_event_managers/);
+  assert.match(committeeHardening, /event_committee_delete_event_managers/);
+  assert.match(committeeHardening, /e\.status not in \('selesai', 'dibatalkan'\)/);
+  assert.match(committeeHardening, /e\.created_by = \(select auth\.uid\(\)\)/);
+});
+
+test("monthly dues register rows cannot be deleted", () => {
+  assert.match(committeeHardening, /revoke delete on public\.monthly_dues from authenticated/);
+  assert.match(committeeHardening, /monthly_dues_update_finance_roles/);
+});
+
+test("submitted official letter content is immutable", () => {
+  assert.match(committeeHardening, /old\.status <> 'draft'/);
+  assert.match(committeeHardening, /new\.subject is distinct from old\.subject/);
+  assert.match(committeeHardening, /new\.body is distinct from old\.body/);
+  assert.match(committeeHardening, /new\.category is distinct from old\.category/);
+});
+
+test("activity audit covers structure, event committee, profiles and media", () => {
+  for (const table of ["organization_positions", "event_committee", "profiles", "media_assets"]) {
+    assert.match(committeeHardening, new RegExp(`'${table}'`));
+    assert.match(committeeHardening, new RegExp(`create trigger audit_${table}`));
+  }
+});
