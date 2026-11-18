@@ -214,10 +214,11 @@ begin
         using errcode = '42501';
     end if;
 
-    select p.is_active into chair_is_active
+    select p.role into chair_role
     from public.profiles p
-    where p.id = new.committee_chair_profile_id;
-    if chair_is_active is distinct from true then
+    where p.id = new.committee_chair_profile_id
+      and p.is_active = true;
+    if chair_role is null then
       raise exception 'Ketua Panitia must remain active until final approval'
         using errcode = '42501';
     end if;
