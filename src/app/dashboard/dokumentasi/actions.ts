@@ -24,6 +24,9 @@ export async function createMediaAsset(formData: FormData): Promise<MediaActionS
   }
 
   const supabase = await createClient();
+  const { error: storageError } = await supabase.storage.from("koppkas-documents").createSignedUrl(storagePath, 60);
+  if (storageError) return { error: "File tidak ditemukan atau tidak dapat diverifikasi." };
+
   const { error } = await supabase.from("media_assets").insert({
     title,
     description: description || null,
