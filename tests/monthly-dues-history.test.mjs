@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const page = await readFile(new URL("../src/app/dashboard/uang-kas-bulanan/page.tsx", import.meta.url), "utf8");
+const [page, paymentForm] = await Promise.all([
+  readFile(new URL("../src/app/dashboard/uang-kas-bulanan/page.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", import.meta.url), "utf8"),
+]);
 
 test("monthly dues dashboard loads a rolling 12-period history", () => {
   assert.match(page, /historyStart/);
@@ -22,4 +25,10 @@ test("current-month recording and payment controls remain available", () => {
   assert.match(page, /RegisterForm/);
   assert.match(page, /PaymentForm monthlyDuesId/);
   assert.match(page, /InlineMemberForm/);
+});
+
+test("dues payment form generates an idempotency key at submit time", () => {
+  assert.match(paymentForm, /crypto\.randomUUID\(\)/);
+  assert.match(paymentForm, /formData\.set\("idempotency_key"/);
+  assert.match(paymentForm, /value="" readOnly/);
 });
