@@ -11,6 +11,8 @@ create table public.login_protection_attempts (
 );
 
 alter table public.login_protection_attempts enable row level security;
+create policy "login_protection_auth_admin_manage" on public.login_protection_attempts
+for all to supabase_auth_admin using (true) with check (true);
 revoke all on public.login_protection_attempts from public, anon, authenticated;
 grant usage on schema public to supabase_auth_admin;
 grant all on public.login_protection_attempts to supabase_auth_admin;
