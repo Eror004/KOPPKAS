@@ -27,7 +27,7 @@ select
   user_id,
   failed_attempts,
   locked_until,
-  requires_admin_unlock,
+  (requires_admin_unlock or (failed_attempts >= 10 and locked_until is not null and locked_until <= now())) as requires_admin_unlock,
   locked_until is not null and locked_until > now() as is_currently_locked
 from public.login_protection_attempts;
 
@@ -77,7 +77,20 @@ begin
   if found and attempt_row.locked_until is not null and attempt_row.locked_until > now() then
     return jsonb_build_object(
       'decision', 'reject',
-      'message', 'Terlalu banyak percobaan. Akun dikunci sementara selama 15 menit atau 1 jam sesuai tingkat pelanggaran.',
+      'message', 'Terlalu banyak percobaan. Akun masih dalam masa penguncian sementara.',
+      'should_logout_user', false
+    );
+  end if;
+
+  if found and attempt_row.failed_attempts >= 10
+    and attempt_row.locked_until is not null
+    and attempt_row.locked_until <= now() then
+    update public.login_protection_attempts
+    set requires_admin_unlock = true, updated_at = now()
+    where user_id = target_user_id;
+    return jsonb_build_object(
+      'decision', 'reject',
+      'message', 'Masa penguncian 1 jam selesai. Akun memerlukan verifikasi tambahan oleh Ketua Pemuda.',
       'should_logout_user', false
     );
   end if;
@@ -103,7 +116,7 @@ begin
           when next_attempt_count >= 5 then now() + interval '15 minutes'
           else null
         end,
-        requires_admin_unlock = next_attempt_count >= 10,
+        requires_admin_unlock = false,
         last_failed_at = now(),
         updated_at = now()
     where user_id = target_user_id;
@@ -112,7 +125,7 @@ begin
   if next_attempt_count >= 10 then
     return jsonb_build_object(
       'decision', 'reject',
-      'message', 'Akun dikunci 1 jam dan memerlukan verifikasi tambahan oleh Ketua Pemuda.',
+      'message', 'Akun dikunci selama 1 jam. Setelah itu, akses memerlukan verifikasi tambahan oleh Ketua Pemuda.',
       'should_logout_user', false
     );
   elsif next_attempt_count >= 5 then
