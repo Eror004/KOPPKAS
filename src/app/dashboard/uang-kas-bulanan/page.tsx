@@ -30,7 +30,7 @@ export default async function MonthlyDuesPage() {
   const historicalUnpaid = previousRows.filter((row) => row.payment_status !== "lunas").length;
 
   const history = new Map<string, { members: number; paid: number; unpaid: number; collected: number }>();
-  for (const row of previousRows) {
+  for (const row of allRows) {
     const item = history.get(row.dues_month) ?? { members: 0, paid: 0, unpaid: 0, collected: 0 };
     item.members += 1;
     item.paid += row.payment_status === "lunas" ? 1 : 0;
