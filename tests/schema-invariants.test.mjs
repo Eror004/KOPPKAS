@@ -112,8 +112,10 @@ test("public letter verification never exposes financial letters or full letter 
   assert.match(letterPrivacy, /drop policy if exists "letters_public_verify_published"/);
   assert.match(letterPrivacy, /revoke select on public\.official_letters from anon/);
   assert.match(letterPrivacy, /l\.category = 'umum'/);
-  assert.doesNotMatch(letterPrivacy, /returns table[\s\S]*?body text/i);
-  assert.match(letterPrivacy, /grant execute on function public\.verify_public_letter\(uuid\) to anon, authenticated/);
+  assert.match(letterPrivacy, /create or replace view public\.public_letter_verifications/);
+  assert.match(letterPrivacy, /security_barrier = true, security_invoker = false/);
+  assert.match(letterPrivacy, /grant select on public\.public_letter_verifications to anon/);
+  assert.doesNotMatch(letterPrivacy, /l\.body/);
 });
 
 test("finalized event data and event ledger are protected by database triggers", () => {
