@@ -214,3 +214,14 @@ test("event approval and cancellation metadata are bound to the authenticated ac
   assert.match(eventApprovalActor, /old\.final_report_approved_by is not null/);
   assert.match(eventApprovalActor, /create trigger guard_event_approval_actor/);
 });
+
+
+const lastActiveKetuaGuard = migration("20261118210000_last_active_ketua_guard.sql");
+
+test("database serializes changes that could remove the last active Ketua account", () => {
+  assert.match(lastActiveKetuaGuard, /pg_advisory_xact_lock\(74102820261118::bigint\)/);
+  assert.match(lastActiveKetuaGuard, /old\.role = 'ketua_pemuda'/);
+  assert.match(lastActiveKetuaGuard, /old\.is_active = true/);
+  assert.match(lastActiveKetuaGuard, /active_ketua_count <= 1/);
+  assert.match(lastActiveKetuaGuard, /before update of role, is_active on public\.profiles/);
+});
