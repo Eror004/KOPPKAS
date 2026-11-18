@@ -29,7 +29,7 @@ export async function signIn(_previous: LoginState, formData: FormData): Promise
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Masukkan alamat email yang valid." };
   }
   if (password.length < 5) {
