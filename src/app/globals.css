@@ -522,3 +522,84 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #63b2
  .module-more-menu .module-nav-link{min-height:48px;padding:8px;font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.module-nav-link{transition:none}}
+
+
+/* Consistent module typography, controls and semantic accents */
+.module-page{max-width:1320px;padding:clamp(22px,3vw,38px) clamp(16px,3vw,40px) 56px}
+.module-page-head{align-items:flex-start;margin-bottom:26px}
+.module-page-head h1{font-size:clamp(29px,3vw,38px)}
+.module-page-head>div:first-child>p:last-child{font-size:14px;line-height:1.7}
+.module-total{min-width:160px;padding:14px 16px}
+.module-alert{font-size:13px;line-height:1.6}
+.member-group.male .member-group-head{background:#176fa8}
+.member-group.female .member-group-head{background:#2d8bc4}
+.member-group.incomplete .member-group-head{background:#526f84}
+.member-group-head h2{font-size:14px}
+.member-group-head p{font-size:11px}
+.member-group-head>strong{font-size:20px}
+.member-row strong{font-size:13px}
+.member-row small{font-size:11px}
+.module-empty{font-size:12px}
+.module-form{max-width:560px;padding:22px}
+.module-form-heading h3{font-size:17px}
+.add-member-icon{background:#176fa8}
+.module-form label{font-size:12px;gap:7px}
+.module-form input,.module-form select{height:43px;font-size:13px}
+.module-form textarea{font-size:13px;line-height:1.5}
+.module-form>button{height:44px;background:#176fa8;font-size:13px}
+.module-form>button:hover,.register-form>button:hover,.payment-submit:hover{background:#105f96}
+.form-feedback{font-size:12px;line-height:1.5}
+.dues-stats>div{padding:15px}
+.dues-stats span{font:700 10px 'DM Sans',sans-serif;letter-spacing:.06em}
+.dues-stats strong{font-size:17px}
+.module-table-heading{padding:19px 20px}
+.module-table-heading h2{font-size:16px}
+.module-table-heading>span{font:11px 'DM Sans',sans-serif}
+.responsive-table table{min-width:640px}
+.responsive-table th{padding:14px 15px;font:700 10px 'DM Sans',sans-serif}
+.responsive-table td{padding:14px 15px;font-size:12px}
+.payment-badge{font:700 10px 'DM Sans',sans-serif}
+.event-row strong{font-size:13px}
+.event-row small{font-size:11px}
+.event-status{font-size:10px}
+.register-form>button,.payment-submit{background:#176fa8;font-size:12px}
+.payment-form{min-width:0;flex-wrap:wrap}
+.payment-form input{height:38px;width:min(100%,150px);font-size:12px}
+.payment-form input:nth-of-type(2){width:min(100%,170px)}
+.payment-submit{height:38px;padding:0 12px}
+.payment-feedback{font-size:11px}
+.notification-copy strong,.inbox-subject strong,.announcement-list strong{font-size:13px}
+.notification-copy p,.announcement-list p{font-size:12px;line-height:1.65}
+.notification-copy small,.announcement-list small{font-size:11px}
+.inbox-subject small{font-size:11px}
+.inbox-detail p{font-size:13px}
+@media(min-width:761px) and (max-width:1050px){
+ .module-shell-sidebar{width:220px}.module-shell-main{margin-left:220px}
+ .module-sidebar-heading small{font-size:8px}
+ .module-nav-link{font-size:12px}
+ .module-page{padding-left:24px;padding-right:24px}
+}
+@media(max-width:760px){
+ .module-page{padding:23px 16px 38px}
+ .module-page-head{flex-direction:column;gap:14px}
+ .module-page-head h1{font-size:29px}
+ .module-page-head>div:first-child>p:last-child{font-size:13px}
+ .module-total{width:100%;min-width:0;grid-template-columns:22px 1fr}
+ .module-total strong{font-size:18px}
+ .module-total span{font-size:10px}
+ .module-form{max-width:none;padding:17px}
+ .module-form label{font-size:12px}
+ .module-form input,.module-form select{height:44px;font-size:14px}
+ .module-form>button{height:46px}
+ .dues-stats{gap:8px}
+ .dues-stats>div{padding:12px}
+ .dues-stats span{font-size:9px}
+ .dues-stats strong{font-size:15px}
+ .module-table-heading{padding:15px}
+ .responsive-table{overscroll-behavior-x:contain}
+ .responsive-table th{padding:12px;font-size:10px}
+ .responsive-table td{padding:12px;font-size:12px}
+ .payment-form{width:100%;gap:7px}
+ .payment-form input,.payment-form input:nth-of-type(2){width:100%;flex:1 1 120px}
+ .payment-submit{flex:1 1 100%}
+}
