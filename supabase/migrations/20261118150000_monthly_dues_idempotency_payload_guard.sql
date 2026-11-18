@@ -41,7 +41,8 @@ begin
   where idempotency_key = p_idempotency_key;
 
   if found then
-    if existing_payment.monthly_dues_id <> p_monthly_dues_id
+    if existing_payment.recorded_by is distinct from auth.uid()
+       or existing_payment.monthly_dues_id <> p_monthly_dues_id
        or existing_payment.amount <> p_amount
        or coalesce(existing_payment.note, '') <> coalesce(normalized_note, '') then
       raise exception 'Idempotency key was already used with different payment data' using errcode = '22023';
@@ -66,7 +67,8 @@ begin
       raise exception 'Payment idempotency conflict could not be resolved' using errcode = '40001';
     end if;
 
-    if existing_payment.monthly_dues_id <> p_monthly_dues_id
+    if existing_payment.recorded_by is distinct from auth.uid()
+       or existing_payment.monthly_dues_id <> p_monthly_dues_id
        or existing_payment.amount <> p_amount
        or coalesce(existing_payment.note, '') <> coalesce(normalized_note, '') then
       raise exception 'Idempotency key was already used with different payment data' using errcode = '22023';
