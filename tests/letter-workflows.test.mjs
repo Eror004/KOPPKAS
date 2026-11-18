@@ -21,6 +21,8 @@ test("letter owners can edit their own drafts while Secretary manages general le
 
 test("Bendahara manages own financial letters and financial letters remain private to finance roles", () => {
   assert.match(permissions, /bendahara:[\s\S]*?letters: \["read", "create", "update"\]/);
+  assert.match(permissions, /ketua_rw_01:[\s\S]*?letters: \["read", "create", "update"\]/);
+  assert.match(permissions, /ketua_rt_01:[\s\S]*?letters: \["read", "create", "update"\]/);
   assert.match(migration, /letters_read_general_or_finance/);
   assert.match(migration, /ketua_pemuda','wakil_ketua_pemuda','bendahara'/);
   assert.match(privacy, /category = 'umum'/);
