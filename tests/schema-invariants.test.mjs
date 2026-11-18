@@ -175,6 +175,10 @@ test("server-side account administration can write profiles and actor-attributed
 });
 
 
+test("dual-report migration uses valid dollar-quoted trigger function syntax", () => {
+  assert.match(eventDualReports, /create or replace function app_private\\.guard_event_finalized_updates\\([\\s\\S]*?as \\$\\$[\\s\\S]*?end\\s+\\$\\$;/);
+});
+
 test("event finalization guard has no forward dependency on dual-report columns", () => {
   assert.doesNotMatch(eventFinalization, /new\.(committee_chair_profile_id|final_report_by|final_report_submitted_at|financial_report_by|financial_report_submitted_at)/);
   assert.match(eventDualReports, /add column committee_chair_profile_id/);
