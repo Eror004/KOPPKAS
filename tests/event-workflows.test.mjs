@@ -50,8 +50,8 @@ test("event final approval requires both reports and an active Bendahara author"
 
 test("event reports and details are immutable during approval and after closeout", () => {
   assert.match(finalization, /old\.status in \('selesai', 'dibatalkan'\)/);
-  assert.match(finalization, /new\.financial_report_by is distinct from old\.financial_report_by/);
-  assert.match(finalization, /new\.final_report_submitted_at is distinct from old\.final_report_submitted_at/);
+  assert.match(dualReport, /new\.financial_report_by is distinct from old\.financial_report_by/);
+  assert.match(dualReport, /new\.final_report_submitted_at is distinct from old\.final_report_submitted_at/);
 });
 
 test("event register exposes role-aware workflow controls", () => {
