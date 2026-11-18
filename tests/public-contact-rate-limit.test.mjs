@@ -11,7 +11,8 @@ const [action, migration] = await Promise.all([
 test("public contact validates and hashes the trusted client IP before message insertion", () => {
   assert.match(action, /headerStore\.get\("x-real-ip"\)/);
   assert.match(action, /isIP\(candidateIp\)/);
-  assert.match(action, /createHash\("sha256"\)/);
+  assert.match(action, /createHmac\("sha256", rateLimitSecret\)/);
+  assert.match(action, /if \(!rateLimitSecret\)/);
   assert.ok(action.indexOf("consume_public_contact_rate_limit") < action.indexOf('from("public_messages").insert'));
 });
 
