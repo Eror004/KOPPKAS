@@ -10,9 +10,8 @@ export async function createAuthClient() {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
   const cookieStore = await cookies();
   const headerStore = await headers();
-  const candidateIp =
-    headerStore.get("x-real-ip") ??
-    headerStore.get("x-forwarded-for")?.split(",").at(-1)?.trim();
+  const candidateIp = headerStore.get("x-real-ip") ??
+    (process.env.NODE_ENV !== "production" ? headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() : undefined);
   const forwardedIp = candidateIp && isIP(candidateIp) ? candidateIp : undefined;
 
   return createServerClient(url, secretKey ?? key, {
