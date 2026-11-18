@@ -57,7 +57,7 @@ export async function updateAccount(formData: FormData) {
   const targetId = String(formData.get("user_id") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
   const role = String(formData.get("role") ?? "");
-  const isActive = formData.get("is_active") === "on";
+  const isActive = ["on", "true"].includes(String(formData.get("is_active") ?? ""));
 
   if (!uuidPattern.test(targetId)) finish("error", "Akun tujuan tidak valid.");
   if (fullName.length < 2 || fullName.length > 120) finish("error", "Nama harus berisi 2–120 karakter.");
