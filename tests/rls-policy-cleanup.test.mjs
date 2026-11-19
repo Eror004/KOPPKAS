@@ -33,3 +33,7 @@ test("policy cleanup is transactional and does not disable RLS", () => {
   assert.doesNotMatch(migration, /disable row level security/i);
   assert.doesNotMatch(migration, /drop table|truncate|delete from/i);
 });
+test("cleanup targets only the six superseded policies and preserves the tables", () => {
+  assert.equal((migration.match(/drop policy if exists/gi) ?? []).length, 6);
+  assert.doesNotMatch(migration, /drop table|alter table|truncate|delete from/i);
+});
