@@ -50,7 +50,7 @@ export default async function AccountsPage({ searchParams }: AccountPageProps) {
 
         <section className="module-table-panel" style={{ marginTop: 22 }}>
           <div className="module-table-heading"><div><p className="eyebrow">ACCOUNT DIRECTORY</p><h2>Daftar akun pengurus</h2></div><span>{accounts.length} AKUN</span></div>
-          {accounts.length ? <div className="account-list">{accounts.map((account) => (
+          {directoryError ? null : accounts.length ? <div className="account-list">{accounts.map((account) => (
             <article className="member-group" key={account.id} style={{ padding: 16, margin: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                 <div><strong style={{ color: "#24445a", fontSize: 13 }}>{account.full_name}</strong><p style={{ color: "#7a8f9e", fontSize: 11, margin: "4px 0" }}>{account.email}</p></div>
