@@ -49,7 +49,7 @@ npm run build
 
 Migration files berada di `supabase/migrations/` dan harus diterapkan sesuai urutan timestamp pada dedicated KOPPKAS database. Jangan menerapkannya ke project lama `pemuda-kampung-sawah-kaum`; project tersebut milik sistem sebelumnya.
 
-**Status 18 November 2026:** 32/32 versi migrasi repository sudah selaras dengan riwayat Supabase KOPPKAS dan seluruh migrasi sudah diterapkan. Rangkaian yang sama berhasil dibangun ulang dari database lokal kosong pada GitHub Actions.
+**Verified 19 November 2026:** 38 migration versions through `20261119044717` are present in the dedicated KOPPKAS Supabase migration history. The new device-session migration `20261119080000_app_device_sessions.sql` is currently branch-only and must pass CI/review before it is applied.
 
 Saldo pembukaan November 2026 sebesar Rp205.000 tetap tercatat sebagai snapshot per 1 November 2026, bukan pemasukan baru.
 
@@ -79,12 +79,12 @@ The migrations include:
 
 - Public contact submission and published-letter verification routes are implemented in source.
 - INBOX read access is available to all six roles. Reply, assignment, status changes, and archive mutations remain disabled until the organization confirms their role permissions.
-- Public Auth signup is disabled. Production currently has no Auth users or profiles; the first Ketua account still needs a one-time, controlled bootstrap before dashboard operations can begin.
-- Privileged server actions require `SUPABASE_SECRET_KEY` (preferred) or `SUPABASE_SERVICE_ROLE_KEY`. The public Supabase URL and publishable key are configured in the Vercel project, but the server-only key has not yet been added.
-- Progressive login protection is installed in the database; live login verification remains pending the first account. Max-three-device enforcement and session revocation still need a dedicated privileged workflow.
+- Public Auth signup is disabled. The dedicated KOPPKAS Supabase project already has an Auth user with an active `ketua_pemuda` profile; the account was created on 18 November 2026 and a successful sign-in was recorded at 09:12 UTC. Do not run a first-account bootstrap.
+- Privileged server actions require `SUPABASE_SECRET_KEY` (preferred) or `SUPABASE_SERVICE_ROLE_KEY`. Vercel has a `SUPABASE_SECRET_KEY` variable entry for Production, Preview, and Development, but the value is currently empty in all three targets. Account creation and other service-role actions remain unavailable until the real secret is configured server-side.
+- Progressive login protection migration is applied; the Password Verification Hook's Dashboard activation still needs verification. The new three-device/24-hour session enforcement and session-management UI are in `feat/session-security-controls-v2` and are not active until its migration is reviewed, applied, and deployed.
 - Contact form has server validation, a honeypot, and persistent per-source rate-limit storage. CAPTCHA is not configured.
 - The private `koppkas-documents` Storage bucket and role-scoped policies are configured; upload UX and runtime access still require smoke testing.
-- Vercel project `koppkas` is linked to this repository. No deployment has been created yet; production deployment is waiting for the server-only key and first Ketua bootstrap.
+- Vercel project `koppkas` is linked to this repository and has a READY Production deployment from `main` (commit `ce875fde`). PR #2's login-header fix has been merged to `main`; its production deployment must be checked before declaring the login fix live.
 - GitHub Actions run #224 passed schema tests, TypeScript, ESLint, production build, and a full local migration-chain reset.
 
-Do not use the application for real finance or organization operations until the first Ketua account is provisioned, the server-only key is configured, and the deployed application passes runtime smoke tests.
+Do not treat this repository's source checks as proof of live operational readiness. Before real finance operations, verify the deployed login flow, configure the server-only key for Ketua account management, activate and test the Password Verification Hook, apply the reviewed session migration, and complete role-by-role runtime smoke tests.
