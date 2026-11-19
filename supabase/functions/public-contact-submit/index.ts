@@ -32,6 +32,8 @@ function hmacSha256(secret: string, value: string) {
 const handler = withSupabase({ auth: "none" }, async (request, context) => {
   if (request.method === "OPTIONS") return new Response("ok", { status: 204, headers: corsHeaders });
   if (request.method !== "POST") return response({ error: "Method not allowed." }, 405);
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > 16_384) return response({ error: "Ukuran pesan terlalu besar." }, 413);
 
   let body: Record<string, unknown>;
   try {
@@ -60,9 +62,12 @@ const handler = withSupabase({ auth: "none" }, async (request, context) => {
   if (message.length < 10 || message.length > 5000) return response({ error: "Pesan harus berisi 10–5.000 karakter." }, 400);
 
   // The Edge gateway supplies the caller IP. Do not accept an IP field from the form body.
-  const candidateIp = request.headers.get("cf-connecting-ip") ??
+  const candidateIp = (
+    request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-real-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    request.headers.get("x-forwarded-for")?.split(",")[0] ??
+    ""
+  ).trim();
   if (!candidateIp || !isIP(candidateIp)) {
     return response({ error: "Layanan kontak sementara tidak tersedia. Silakan gunakan WhatsApp resmi organisasi." }, 503);
   }
