@@ -266,17 +266,62 @@ begin
 end;
 $$;
 
+create or replace function public.revoke_user_app_sessions_admin(
+  p_actor_id uuid,
+  p_user_id uuid
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_actor_role text;
+  v_actor_active boolean;
+  v_deleted integer := 0;
+begin
+  if p_actor_id is null or p_user_id is null or p_actor_id = p_user_id then
+    raise exception 'Invalid session revocation target';
+  end if;
+
+  select p.role, p.is_active
+    into v_actor_role, v_actor_active
+  from public.profiles as p
+  where p.id = p_actor_id;
+
+  if v_actor_role is distinct from 'ketua_pemuda' or v_actor_active is distinct from true then
+    raise exception 'Only an active Ketua Pemuda can revoke another account sessions';
+  end if;
+
+  delete from auth.sessions where user_id = p_user_id;
+  get diagnostics v_deleted = row_count;
+
+  if v_deleted > 0 then
+    insert into public.activity_logs (
+      actor_id, action, resource_type, resource_id, metadata
+    ) values (
+      p_actor_id, 'sessions_revoked', 'auth_user', p_user_id,
+      jsonb_build_object('scope', 'account_security_admin', 'revoked_count', v_deleted)
+    );
+  end if;
+
+  return v_deleted;
+end;
+$;
+
 revoke all on function public.register_current_app_session(text, text) from public, anon;
 revoke all on function public.get_my_app_sessions() from public, anon;
 revoke all on function public.revoke_my_app_session(uuid) from public, anon;
 revoke all on function public.revoke_other_app_sessions() from public, anon;
 revoke all on function public.revoke_user_app_sessions(uuid) from public, anon;
+revoke all on function public.revoke_user_app_sessions_admin(uuid, uuid) from public, anon, authenticated;
 
 grant execute on function public.register_current_app_session(text, text) to authenticated;
 grant execute on function public.get_my_app_sessions() to authenticated;
 grant execute on function public.revoke_my_app_session(uuid) to authenticated;
 grant execute on function public.revoke_other_app_sessions() to authenticated;
 grant execute on function public.revoke_user_app_sessions(uuid) to authenticated;
+grant execute on function public.revoke_user_app_sessions_admin(uuid, uuid) to service_role;
 
 comment on table public.app_device_sessions is
   'Private device metadata for authenticated app sessions. Raw IP addresses and geolocation are intentionally not stored.';
