@@ -46,3 +46,10 @@ test("authenticated users receive only profile read/update grants from the appli
 test("service-role profile administration remains server-side", () => {
   assert.match(adminGrant, /grant select, insert, update, delete on public\.profiles to service_role;/i);
 });
+test("profile management remains protected by explicit role checks and self-update restrictions", () => {
+  const management = schema.match(/create policy "profiles_manage_ketua"[\s\S]*?;/i)?.[0] ?? "";
+  const selfUpdate = schema.match(/create policy "profiles_update_self_non_privileged"[\s\S]*?;/i)?.[0] ?? "";
+  assert.match(management, /app_private\.has_any_role/);
+  assert.match(selfUpdate, /role is not distinct from app_private\.current_app_role\(\)/i);
+  assert.match(selfUpdate, /is_active = true/i);
+});
