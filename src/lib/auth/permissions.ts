@@ -16,6 +16,7 @@ const permissions: Record<AppRole, Partial<Record<ModuleKey, PermissionAction[]>
     letters: ["read", "create", "update", "approve"], announcements: ["read", "create", "update", "delete"],
     media: ["read", "create", "update", "delete"], reports: ["read"], notifications: ["read", "update"],
     activity: ["read"], accounts: ["read", "create", "update", "delete", "manage"], inbox: ["read"],
+    security: ["read", "update"],
   },
   wakil_ketua_pemuda: {
     dashboard: ["read"], members: ["read"], structure: ["read"], events: ["read", "create", "update", "approve"],
@@ -23,27 +24,32 @@ const permissions: Record<AppRole, Partial<Record<ModuleKey, PermissionAction[]>
     event_finance: ["read", "create", "approve"], letters: ["read", "create", "update", "approve"],
     announcements: ["read", "create", "update"], media: ["read", "create", "update"], reports: ["read"],
     notifications: ["read", "update"], activity: ["read"], inbox: ["read"],
+    security: ["read", "update"],
   },
   sekretaris: {
     dashboard: ["read"], members: ["read", "create", "update"], structure: ["read", "create", "update", "delete"],
     events: ["read", "create", "update"], monthly_dues: ["read", "create"], letters: ["read", "create", "update"],
     announcements: ["read", "create", "update"], media: ["read", "create", "update"], reports: ["read"],
     notifications: ["read", "update"], inbox: ["read"],
+    security: ["read", "update"],
   },
   bendahara: {
     dashboard: ["read"], members: ["read"], events: ["read", "create"], monthly_dues: ["read", "create", "update"],
     general_finance: ["read", "create"], event_finance: ["read", "create", "approve"],
     letters: ["read", "create", "update"], reports: ["read"], notifications: ["read", "update"], inbox: ["read"],
+    security: ["read", "update"],
   },
   ketua_rw_01: {
     dashboard: ["read"], members: ["read"], structure: ["read"], events: ["read", "create"],
     letters: ["read", "create", "update"], announcements: ["read", "create", "update"], media: ["read", "create", "update"],
     notifications: ["read", "update"], inbox: ["read"],
+    security: ["read", "update"],
   },
   ketua_rt_01: {
     dashboard: ["read"], members: ["read"], structure: ["read"], events: ["read", "create"],
     letters: ["read", "create", "update"], announcements: ["read", "create", "update"], media: ["read", "create", "update"],
     notifications: ["read", "update"], inbox: ["read"],
+    security: ["read", "update"],
   },
 };
 
