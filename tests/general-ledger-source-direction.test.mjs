@@ -33,3 +33,8 @@ test("application action continues to accept only ordinary manual directions", (
 test("source allowlist from the previous hardening migration remains intact", () => {
   assert.match(hardening, /source_type in \('manual', 'monthly_dues_payment', 'event_surplus_transfer'\)/);
 });
+test("source-direction constraint is installed transactionally", () => {
+  assert.match(migration, /^--[\s\S]*?begin;/);
+  assert.match(migration, /add constraint general_ledger_source_direction_allowed\s+check/i);
+  assert.match(migration, /commit;\s*$/);
+});
