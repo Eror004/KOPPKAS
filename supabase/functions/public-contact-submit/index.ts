@@ -1,3 +1,4 @@
+/// <reference lib="deno.ns" />
 import { isIP } from "node:net";
 import { withSupabase } from "npm:@supabase/server@1";
 
