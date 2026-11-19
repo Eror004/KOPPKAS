@@ -77,7 +77,7 @@ test("account security revokes existing sessions before role, status or password
   const updateStart = edgeFunction.indexOf('if (action === "update")');
   const updateEnd = edgeFunction.indexOf('if (action === "reset_password")');
   const updateBlock = edgeFunction.slice(updateStart, updateEnd);
-  assert.ok(updateBlock.indexOf("revoke_user_app_sessions_admin") < updateBlock.indexOf('from("profiles")'));
+  assert.ok(updateBlock.indexOf("revoke_user_app_sessions_admin") < updateBlock.indexOf('.update({ full_name: fullName, role, is_active: isActive'));
   const resetStart = edgeFunction.indexOf('if (action === "reset_password")');
   const resetEnd = edgeFunction.indexOf('if (action === "unlock")');
   const resetBlock = edgeFunction.slice(resetStart, resetEnd);
