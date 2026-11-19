@@ -49,12 +49,12 @@ npm run build
 
 Migration files berada di `supabase/migrations/` dan harus diterapkan sesuai urutan timestamp pada dedicated KOPPKAS database. Jangan menerapkannya ke project lama `pemuda-kampung-sawah-kaum`; project tersebut milik sistem sebelumnya.
 
-**Status 18 November 2026:** 32/32 versi migrasi repository sudah selaras dengan riwayat Supabase KOPPKAS dan seluruh migrasi sudah diterapkan. Rangkaian yang sama berhasil dibangun ulang dari database lokal kosong pada GitHub Actions.
+**Verified 19 November 2026:** 38 migration versions through `20261119044717` are present in the dedicated KOPPKAS Supabase migration history. The new device-session migration `20261119080000_app_device_sessions.sql` is currently branch-only and must pass CI/review before it is applied.
 
 Saldo pembukaan November 2026 sebesar Rp205.000 tetap tercatat sebagai snapshot per 1 November 2026, bukan pemasukan baru.
 
 The migrations include:
-- Six organization roles and profile bootstrap.
+- Six organization roles and profile bootstrap; account creation is capped at six total profiles by a database trigger (inactive profiles count toward the limit).
 - Member directory, positions, events, finance ledgers, correspondence, announcements, media metadata, INBOX, notifications, and audit trail.
 - RLS policies and explicit Data API grants.
 - Idempotent monthly dues payments that post once into the overall ledger.
@@ -65,7 +65,7 @@ The migrations include:
 
 ## Implemented application areas
 
-- Public homepage, published event listing, public contact form, and published-letter verification.
+- Public homepage, published event listing, WhatsApp-only Public Contact Center, and published-letter verification.
 - Role-filtered dashboard navigation and server-side module permission checks.
 - Member directory split by gender, incomplete-member list, and separate direct/inline member creation paths.
 - Monthly dues register, partial/multiple payment recording, idempotent posting to the overall ledger, and canonical balance view.
@@ -77,14 +77,14 @@ The migrations include:
 
 ## Current implementation boundaries
 
-- Public contact submission and published-letter verification routes are implemented in source.
+- WhatsApp-only Public Contact Center and published-letter verification routes are implemented in source.
 - INBOX read access is available to all six roles. Reply, assignment, status changes, and archive mutations remain disabled until the organization confirms their role permissions.
-- Public Auth signup is disabled. Production currently has no Auth users or profiles; the first Ketua account still needs a one-time, controlled bootstrap before dashboard operations can begin.
-- Privileged server actions require `SUPABASE_SECRET_KEY` (preferred) or `SUPABASE_SERVICE_ROLE_KEY`. The public Supabase URL and publishable key are configured in the Vercel project, but the server-only key has not yet been added.
-- Progressive login protection is installed in the database; live login verification remains pending the first account. Max-three-device enforcement and session revocation still need a dedicated privileged workflow.
-- Contact form has server validation, a honeypot, and persistent per-source rate-limit storage. CAPTCHA is not configured.
+- Public Auth signup is disabled. The dedicated KOPPKAS Supabase project already has an Auth user with an active `ketua_pemuda` profile. Do not run a first-account bootstrap.
+- Ketua-only account administration is being moved to the authenticated Supabase Edge Function `account-admin`, which uses Supabase-managed server secrets and does not depend on a Vercel service-role key. The Vercel `SUPABASE_SECRET_KEY` variable entry is currently empty in Production, Preview, and Development. Account administration no longer depends on it; it is only needed for optional Auth IP forwarding. Supabase documents the Password Verification Attempt Hook as Teams/Enterprise-only, so the progressive 5/10-attempt lockout is not active on the current Free plan.
+- Progressive login protection SQL exists, but Supabase documents Password Verification Attempt Hooks as Teams/Enterprise-only; the 5/10-attempt lockout is not active on the current Free plan. Built-in Supabase Auth per-IP limits remain active. The three-device session enforcement, six-account cap, and session-management UI are in `feat/session-security-controls-v2` and are not active until their migrations are reviewed, applied, and deployed.
+- Public Contact Center exposes WhatsApp as the only initial contact channel. The official WhatsApp number has not yet been configured, so the button remains disabled and no personal number or placeholder link is displayed.
 - The private `koppkas-documents` Storage bucket and role-scoped policies are configured; upload UX and runtime access still require smoke testing.
-- Vercel project `koppkas` is linked to this repository. No deployment has been created yet; production deployment is waiting for the server-only key and first Ketua bootstrap.
+- Vercel project `koppkas` is linked to this repository and has a READY Production deployment from `main` (commit `ce875fde`). PR #2's login-header fix has been merged to `main`; its production deployment must be checked before declaring the login fix live.
 - GitHub Actions run #224 passed schema tests, TypeScript, ESLint, production build, and a full local migration-chain reset.
 
-Do not use the application for real finance or organization operations until the first Ketua account is provisioned, the server-only key is configured, and the deployed application passes runtime smoke tests.
+Do not treat this repository's source checks as proof of live operational readiness. Before real finance operations, verify the deployed login flow, configure the server-only key for Ketua account management, activate and test the Password Verification Hook, apply the reviewed session migration, and complete role-by-role runtime smoke tests.

@@ -3,27 +3,26 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [action, migration] = await Promise.all([
-  read("../src/app/public/contact/actions.ts"),
+const [page, migration, config] = await Promise.all([
+  read("../src/app/public/contact/page.tsx"),
   read("../supabase/migrations/20261118074617_public_contact_rate_limit.sql"),
+  read("../supabase/config.toml"),
 ]);
 
-test("public contact validates and hashes the trusted client IP before message insertion", () => {
-  assert.match(action, /headerStore\.get\("x-real-ip"\)/);
-  assert.match(action, /isIP\(candidateIp\)/);
-  assert.match(action, /createHmac\("sha256", rateLimitSecret\)/);
-  assert.match(action, /if \(!rateLimitSecret\)/);
-  assert.ok(action.indexOf("consume_public_contact_rate_limit") < action.indexOf('from("public_messages").insert'));
+test("Public Contact Center exposes WhatsApp as the only contact channel", () => {
+  assert.match(page, /WhatsApp resmi organisasi/);
+  assert.doesNotMatch(page, /<form|<textarea|<select|sender_name|sender_contact|email|Instagram|alamat sekretariat|jam layanan/i);
+  assert.doesNotMatch(page, /functions\/v1\/public-contact-submit/);
 });
 
-test("public contact rate limit allows five submissions per ten-minute window", () => {
-  assert.match(migration, /request_count \+ 1 >= 6/);
-  assert.match(migration, /interval '10 minutes'/);
-  assert.match(migration, /return current_count <= 5/);
+test("WhatsApp contact remains inactive until an official organization number is configured", () => {
+  assert.match(page, /Nomor WhatsApp resmi organisasi belum dikonfigurasi/);
+  assert.doesNotMatch(page, /wa\.me\/\d+|api\.whatsapp\.com\/send\?phone=/);
 });
 
-test("rate-limit records contain only a hash and are inaccessible to anonymous clients", () => {
+test("legacy contact rate-limit storage remains private and never stores raw IP addresses", () => {
   assert.match(migration, /ip_hash text primary key/);
   assert.match(migration, /revoke all on public\.public_contact_rate_limits from public, anon, authenticated/);
   assert.doesNotMatch(migration, /client_ip inet/);
+  assert.doesNotMatch(config, /\[functions\.public-contact-submit\]/);
 });

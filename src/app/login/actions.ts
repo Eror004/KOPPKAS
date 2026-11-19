@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getDeviceLabel } from "@/lib/auth/device-label";
 import { createAuthClient } from "@/lib/supabase/auth";
 
 export type LoginState = { error?: string };
@@ -52,6 +54,33 @@ export async function signIn(_previous: LoginState, formData: FormData): Promise
         status: error.status,
       });
       return { error: getLoginErrorMessage(error) };
+    }
+
+    const requestHeaders = await headers();
+    const userAgent = (requestHeaders.get("user-agent") ?? "").slice(0, 512);
+    const { data: sessionPolicy, error: sessionPolicyError } = await supabase.rpc(
+      "register_current_app_session",
+      {
+        p_device_label: getDeviceLabel(userAgent),
+        p_user_agent: userAgent,
+      },
+    );
+    const policy = sessionPolicy as { allowed?: boolean; reason?: string } | null;
+
+    if (sessionPolicyError || !policy?.allowed) {
+      // Fail closed: a successful password check is not enough until the
+      // server has registered and admitted this session under the device policy.
+      await supabase.auth.signOut({ scope: "local" });
+      if (policy?.reason === "device_limit") {
+        return { error: "Maksimal 3 perangkat aktif. Keluar dari salah satu perangkat lama lalu coba login kembali." };
+      }
+      if (policy?.reason === "session_expired") {
+        return { error: "Sesi sudah kedaluwarsa. Silakan login kembali." };
+      }
+      console.error("[auth] session policy unavailable", {
+        code: sessionPolicyError?.code,
+      });
+      return { error: "Perlindungan sesi belum siap. Hubungi administrator sebelum mencoba login kembali." };
     }
   } catch (error) {
     console.error("[auth] sign-in handler failed", {

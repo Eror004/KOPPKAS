@@ -6,13 +6,28 @@ import { can, type ModuleKey } from "@/lib/auth/permissions";
 import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
 import {
   Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpenText, CalendarDays,
-  ChevronDown, ChevronRight, CircleHelp, Command, ContactRound, FileCheck2,
+  ChevronDown, ChevronRight, CircleHelp, Command, ContactRound,
   FileText, FolderKanban, HandCoins, House, Inbox, Landmark, LayoutGrid,
   Menu, MessageSquareText, MoreHorizontal, Search, ShieldCheck,
   UsersRound, Wallet, X
 } from "lucide-react";
 
 type NavItem = { label: string; icon: typeof House; section?: string };
+
+type DashboardStats = {
+  members: number | null;
+  events: number | null;
+  monthlyCollected: number | null;
+  newMessages: number | null;
+};
+
+function formatRupiah(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 const primaryNav: NavItem[] = [
   { label: "Beranda", icon: House },
@@ -38,13 +53,14 @@ const utilityNav: NavItem[] = [
   { label: "Inbox", icon: Inbox },
   { label: "Notifikasi", icon: Bell },
   { label: "Riwayat Aktivitas", icon: Activity },
+  { label: "Keamanan Akun", icon: ShieldCheck },
 ];
 const allModules = [...primaryNav, ...financeNav, ...workspaceNav, ...utilityNav, ...accountNav];
 const moduleByLabel: Record<string, ModuleKey> = {
   "Beranda": "dashboard", "Keanggotaan": "members", "Struktur": "structure", "Kegiatan": "events",
   "Uang Keseluruhan": "general_finance", "Keuangan": "general_finance", "Uang Kas Bulanan": "monthly_dues",
   "Surat & Dokumen": "letters", "Pengumuman": "announcements", "Dokumentasi": "media", "Laporan": "reports",
-  "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity", "Manajemen Akun": "accounts",
+  "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity", "Manajemen Akun": "accounts", "Keamanan Akun": "security",
 };
 
 function NavGroup({ title, items, active, role, onSelect }: {
@@ -57,7 +73,7 @@ function NavGroup({ title, items, active, role, onSelect }: {
         <button key={label} className={`nav-link ${active === label ? "active" : ""}`} onClick={() => onSelect(label)}>
           <Icon size={18} strokeWidth={1.8} />
           <span>{label}</span>
-          {label === "Inbox" && <span className="nav-dot" aria-label="Pesan baru" />}
+
         </button>
       ))}
     </div>
@@ -75,13 +91,25 @@ function EmptyModule({ name }: { name: string }) {
   );
 }
 
-export function DashboardHomeClient({ role }: { role: AppRole }) {
+export function DashboardHomeClient({ role, stats }: { role: AppRole; stats: DashboardStats }) {
   const router = useRouter();
   const [active, setActive] = useState("Beranda");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const searchResults = search.trim() ? allModules.filter((item) => can(role, moduleByLabel[item.label]) && item.label.toLowerCase().includes(search.trim().toLowerCase())) : [];
+  const todayLabel = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta",
+  }).format(new Date());
+  const monthLabel = new Intl.DateTimeFormat("id-ID", {
+    month: "long", year: "numeric", timeZone: "Asia/Jakarta",
+  }).format(new Date());
+  const quickAccessCount = [
+    can(role, "members", "read"),
+    can(role, "events", "read"),
+    can(role, "monthly_dues", "read"),
+    can(role, "inbox", "read"),
+  ].filter(Boolean).length;
 
   const chooseModule = (label: string) => {
     setActive(label);
@@ -102,6 +130,7 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
       "Laporan": "/dashboard/laporan",
       "Riwayat Aktivitas": "/dashboard/riwayat-aktivitas",
       "Manajemen Akun": "/dashboard/akun",
+      "Keamanan Akun": "/dashboard/keamanan-akun",
     };
     if (routes[label]) router.push(routes[label]);
   };
@@ -146,7 +175,7 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
           </div>
           <div className="topbar-actions">
             <div className="search-wrap"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari menu..." aria-label="Cari menu" /><kbd>⌘ K</kbd></label>{search.trim() && <div className="search-results">{searchResults.length ? searchResults.map((item) => <button key={item.label} onClick={() => { chooseModule(item.label); setSearch(""); }}>{item.label}<ChevronRight size={14} /></button>) : <p>Menu tidak ditemukan</p>}</div>}</div>
-            <button className="icon-button notification-button" aria-label="Notifikasi"><Bell size={19} /><i /></button>
+            <button className="icon-button notification-button" aria-label="Notifikasi" onClick={() => chooseModule("Notifikasi")}><Bell size={19} />{stats.newMessages !== null && stats.newMessages > 0 && <i />}</button>
             <div className="top-avatar">KP</div>
           </div>
         </header>
@@ -155,17 +184,17 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
           {active === "Beranda" ? (
             <>
               <div className="welcome-row">
-                <div><p className="eyebrow">SELASA, 17 NOVEMBER 2026</p><h1>Ruang kendali<br /><span>organisasi.</span></h1><p className="welcome-subtitle">Satu ruang untuk mengelola kegiatan, administrasi, dan keuangan Pemuda Kampung Sawah Kaum.</p></div>
+                <div><p className="eyebrow">{todayLabel}</p><h1>Ruang kendali<br /><span>organisasi.</span></h1><p className="welcome-subtitle">Satu ruang untuk mengelola kegiatan, administrasi, dan keuangan Pemuda Kampung Sawah Kaum.</p></div>
                 <div className="welcome-stamp"><ShieldCheck size={18} /><span>ORGANIZATION<br />WORKSPACE</span></div>
               </div>
 
-              <div className="section-heading"><div><p className="eyebrow">OVERVIEW</p><h2>Ringkasan organisasi</h2></div><button className="period-button">November 2026 <ChevronDown size={15} /></button></div>
+              <div className="section-heading"><div><p className="eyebrow">OVERVIEW</p><h2>Ringkasan organisasi</h2></div><span className="period-button">{monthLabel}</span></div>
 
               <div className="metric-grid">
-                <article className="metric-card members-card"><div className="metric-top"><span>KEANGGOTAAN</span><UsersRound size={18} /></div><div className="metric-value">—</div><div className="metric-foot"><span>Data anggota belum dimuat</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line blue-line" /></article>
-                <article className="metric-card activity-card"><div className="metric-top"><span>KEGIATAN</span><CalendarDays size={18} /></div><div className="metric-value">—</div><div className="metric-foot"><span>Belum ada data kegiatan</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line cyan-line" /></article>
-                <article className="metric-card cash-card"><div className="metric-top"><span>KAS BULANAN</span><HandCoins size={18} /></div><div className="metric-value">—</div><div className="metric-foot"><span>Menunggu koneksi data</span><span className="metric-arrow"><ArrowDownRight size={16} /></span></div><div className="metric-line pink-line" /></article>
-                <article className="metric-card inbox-card"><div className="metric-top"><span>PESAN MASUK</span><Inbox size={18} /></div><div className="metric-value">—</div><div className="metric-foot"><span>Inbox belum terhubung</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line orange-line" /></article>
+                <article className="metric-card members-card"><div className="metric-top"><span>KEANGGOTAAN</span><UsersRound size={18} /></div><div className="metric-value">{stats.members ?? "—"}</div><div className="metric-foot"><span>{stats.members === null ? "Data anggota belum tersedia" : "Anggota aktif"}</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line blue-line" /></article>
+                <article className="metric-card activity-card"><div className="metric-top"><span>KEGIATAN</span><CalendarDays size={18} /></div><div className="metric-value">{stats.events ?? "—"}</div><div className="metric-foot"><span>{stats.events === null ? "Data kegiatan belum tersedia" : "Kegiatan tercatat"}</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line cyan-line" /></article>
+                <article className="metric-card cash-card"><div className="metric-top"><span>KAS BULANAN</span><HandCoins size={18} /></div><div className="metric-value">{stats.monthlyCollected === null ? "—" : formatRupiah(stats.monthlyCollected)}</div><div className="metric-foot"><span>{!can(role, "monthly_dues", "read") ? "Akses terbatas" : stats.monthlyCollected === null ? "Data kas belum tersedia" : "Tercatat bulan ini"}</span><span className="metric-arrow"><ArrowDownRight size={16} /></span></div><div className="metric-line pink-line" /></article>
+                <article className="metric-card inbox-card"><div className="metric-top"><span>PESAN MASUK</span><Inbox size={18} /></div><div className="metric-value">{stats.newMessages ?? "—"}</div><div className="metric-foot"><span>{stats.newMessages === null ? "Data inbox belum tersedia" : "Pesan baru"}</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line orange-line" /></article>
               </div>
 
               <div className="dashboard-grid">
@@ -174,7 +203,7 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
                   <div className="empty-state"><div className="empty-art"><Activity size={25} /></div><strong>Belum ada aktivitas</strong><span>Aktivitas organisasi akan muncul di sini setelah sistem digunakan.</span></div>
                 </section>
                 <section className="panel-card quick-panel">
-                  <div className="panel-heading"><div><p className="eyebrow">AKSES CEPAT</p><h3>Mulai dari sini</h3></div><span className="panel-count">04</span></div>
+                  <div className="panel-heading"><div><p className="eyebrow">AKSES CEPAT</p><h3>Mulai dari sini</h3></div><span className="panel-count">{String(quickAccessCount).padStart(2, "0")}</span></div>
                   <div className="quick-list">
                     {can(role, "members", "read") && <button onClick={() => chooseModule("Keanggotaan")}><span className="quick-icon q-blue"><UsersRound size={18} /></span><span><strong>Kelola anggota</strong><small>Data dan kelengkapan anggota</small></span><ChevronRight size={16} /></button>}
                     {can(role, "events", "read") && <button onClick={() => chooseModule("Kegiatan")}><span className="quick-icon q-cyan"><CalendarDays size={18} /></span><span><strong>Ruang kegiatan</strong><small>Program dan kepanitiaan</small></span><ChevronRight size={16} /></button>}
@@ -184,7 +213,7 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
                 </section>
               </div>
 
-              <section className="notice-strip"><div className="notice-symbol"><FileCheck2 size={19} /></div><div><strong>Fondasi sistem sedang disiapkan</strong><span>Data, autentikasi, dan kontrol akses akan diaktifkan setelah konfigurasi backend diselesaikan.</span></div><span className="notice-status">BUILD IN PROGRESS</span></section>
+
             </>
           ) : (
             <div className="module-view">

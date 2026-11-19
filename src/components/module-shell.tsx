@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowLeft, BookOpenText, CalendarDays, Command, ContactRound, FileText, FolderKanban, HandCoins, House, Inbox, Landmark, Megaphone, UsersRound, Wallet } from "lucide-react";
+import { Activity, ArrowLeft, BookOpenText, CalendarDays, Command, ContactRound, FileText, FolderKanban, HandCoins, House, Inbox, Landmark, Megaphone, ShieldCheck, UsersRound, Wallet } from "lucide-react";
 import { can, type ModuleKey } from "@/lib/auth/permissions";
 import { requireUser } from "@/lib/auth/require-user";
 
@@ -19,6 +19,7 @@ const navigation: Array<{ href: string; label: string; icon: typeof House; modul
   { href: "/dashboard/riwayat-aktivitas", label: "Aktivitas", icon: Activity, module: "activity" },
   { href: "/dashboard/inbox", label: "INBOX", icon: Inbox, module: "inbox" },
   { href: "/dashboard/notifikasi", label: "Notifikasi", icon: Inbox, module: "notifications" },
+  { href: "/dashboard/keamanan-akun", label: "Keamanan Akun", icon: ShieldCheck, module: "security" },
 ];
 
 export async function ModuleShell({ title, children }: { title: string; children: React.ReactNode }) {

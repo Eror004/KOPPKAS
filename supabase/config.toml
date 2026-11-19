@@ -20,3 +20,6 @@ enable_signup = false
 enable_signup = false
 double_confirm_changes = true
 enable_confirmations = true
+
+[functions.account-admin]
+verify_jwt = true

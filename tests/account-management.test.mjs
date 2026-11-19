@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [permissions, actions, admin, page, dashboard] = await Promise.all([
+const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema, accountLimit] = await Promise.all([
   read("../src/lib/auth/permissions.ts"),
   read("../src/app/dashboard/akun/actions.ts"),
   read("../src/lib/supabase/admin.ts"),
   read("../src/app/dashboard/akun/page.tsx"),
   read("../src/components/dashboard-home-client.tsx"),
+  read("../supabase/functions/account-admin/index.ts"),
+  read("../supabase/migrations/20261118033833_core_schema.sql"),
+  read("../supabase/migrations/20261119090000_koppkas_account_limit.sql"),
 ]);
 
 test("account management is granted only to Ketua Pemuda", () => {
@@ -21,40 +24,73 @@ test("account management is granted only to Ketua Pemuda", () => {
   }
 });
 
-test("admin client is server-only and reads only the server secret", () => {
+test("admin client remains server-only and never exposes service credentials publicly", () => {
   assert.match(admin, /import "server-only"/);
   assert.match(admin, /process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(admin, /NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY/);
 });
 
-test("account actions require Ketua permission and protect the last active Ketua", () => {
+test("account server actions require Ketua permissions and invoke the protected Edge Function", () => {
   assert.match(actions, /requireModulePermission\("accounts", "create"\)/);
   assert.match(actions, /requireModulePermission\("accounts", "manage"\)/);
-  assert.match(actions, /Minimal harus ada satu akun Ketua Pemuda yang aktif/);
-  assert.match(actions, /admin\.auth\.admin\.createUser/);
-  assert.match(actions, /admin\.auth\.admin\.updateUserById/);
-  assert.match(actions, /admin\.auth\.admin\.deleteUser/);
-  assert.match(actions, /from\("activity_logs"\)\.insert/);
-  assert.match(actions, /actor_id: actor\.profile\.id/);
+  assert.match(actions, /functions\.invoke\("account-admin"/);
+  assert.match(actions, /action: "create"/);
+  assert.match(actions, /action: "update"/);
+  assert.match(actions, /action: "reset_password"/);
+  assert.match(actions, /action: "unlock"/);
+  assert.doesNotMatch(actions, /createAdminClient|SUPABASE_SERVICE_ROLE_KEY/);
 });
 
 test("account page is protected and provides create, role/status and password controls", () => {
   assert.match(page, /requireModulePermission\("accounts", "manage"\)/);
+  assert.match(page, /functions\.invoke\("account-admin"/);
   assert.match(page, /action=\{createAccount\}/);
   assert.match(page, /action=\{updateAccount\}/);
   assert.match(page, /action=\{resetAccountPassword\}/);
-  assert.match(page, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.doesNotMatch(page, /SUPABASE_SERVICE_ROLE_KEY|createAdminClient/);
 });
 
-test("account management navigation is role-filtered", () => {
+test("Edge Function independently verifies active Ketua role and protects the last active Ketua", () => {
+  assert.match(edgeFunction, /withSupabase\(\{ auth: "user" \}/);
+  assert.match(edgeFunction, /context\.supabase\.auth\.getUser\(accessToken\)/);
+  assert.match(edgeFunction, /actor\?\.role !== "ketua_pemuda"/);
+  assert.match(edgeFunction, /actor\.is_active !== true/);
+  assert.match(edgeFunction, /Minimal harus ada satu akun Ketua Pemuda yang aktif/);
+  assert.match(edgeFunction, /admin\.auth\.admin\.createUser/);
+  assert.match(edgeFunction, /admin\.auth\.admin\.updateUserById/);
+  assert.match(edgeFunction, /admin\.auth\.admin\.deleteUser/);
+  assert.match(edgeFunction, /revoke_user_app_sessions_admin/);
+});
+
+test("new Auth users update the profile row created by the database trigger", () => {
+  assert.match(coreSchema, /on_auth_user_created/);
+  assert.match(edgeFunction, /from\("profiles"\)\s*\.update\(\{ full_name: fullName, role, is_active: true \}\)/);
+  assert.match(edgeFunction, /\.eq\("id", created\.user\.id\)\s*\.select\("id"\)\s*\.maybeSingle\(\)/);
+  assert.doesNotMatch(edgeFunction, /from\("profiles"\)\.insert\(\{\s*id: created\.user\.id/);
+});
+
+test("account management navigation remains role-filtered", () => {
   assert.match(dashboard, /"Manajemen Akun": "accounts"/);
   assert.match(dashboard, /"Manajemen Akun": "\/dashboard\/akun"/);
 });
 
+test("account security revokes existing sessions before role, status or password changes", () => {
+  const updateStart = edgeFunction.indexOf('if (action === "update")');
+  const updateEnd = edgeFunction.indexOf('if (action === "reset_password")');
+  const updateBlock = edgeFunction.slice(updateStart, updateEnd);
+  assert.ok(updateBlock.indexOf("revoke_user_app_sessions_admin") < updateBlock.indexOf('.update({ full_name: fullName, role, is_active: isActive'));
+  const resetStart = edgeFunction.indexOf('if (action === "reset_password")');
+  const resetEnd = edgeFunction.indexOf('if (action === "unlock")');
+  const resetBlock = edgeFunction.slice(resetStart, resetEnd);
+  assert.ok(resetBlock.indexOf("revoke_user_app_sessions_admin") < resetBlock.indexOf("updateUserById"));
+  assert.ok(resetBlock.indexOf("revoke_other_app_sessions") < resetBlock.indexOf("updateUserById"));
+});
 
-test("new Auth users update the profile row created by the database trigger", () => {
-  assert.match(actions, /on_auth_user_created/);
-  assert.match(actions, /from\("profiles"\)\s*\.update\(\{ full_name: fullName, role, is_active: true \}\)/);
-  assert.match(actions, /\.eq\("id", created\.user\.id\)\s*\.select\("id"\)\s*\.maybeSingle\(\)/);
-  assert.doesNotMatch(actions, /from\("profiles"\)\.insert\(\{\s*id: created\.user\.id/);
+test("organization account provisioning is capped at six, including inactive profiles", () => {
+  assert.match(edgeFunction, /from\("profiles"\)\s*\.select\("id", \{ count: "exact", head: true \}\)/);
+  assert.match(edgeFunction, /accountCount \?\? 0\) >= 6/);
+  assert.match(accountLimit, /pg_advisory_xact_lock/);
+  assert.match(accountLimit, /select count\(\*\)::integer/);
+  assert.match(accountLimit, /v_account_count >= 6/);
+  assert.match(accountLimit, /before insert on public\.profiles/);
 });
