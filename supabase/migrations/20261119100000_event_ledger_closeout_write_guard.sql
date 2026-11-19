@@ -5,8 +5,26 @@ begin;
 drop policy if exists event_ledger_insert_finance_roles
   on public.event_ledger_entries;
 
-revoke insert on table public.event_ledger_entries
+-- Replace broad default table grants with the minimum client privileges.
+-- RLS still decides which rows each role may access.
+revoke all on table public.events,
+  public.event_financial_reports,
+  public.event_ledger_entries,
+  public.event_surplus_transfers
   from anon, authenticated;
+
+-- Public visitors may only read events allowed by the events SELECT policy.
+grant select on table public.events to anon;
+
+-- Signed-in users read events; RLS controls event creation and updates.
+grant select, insert, update on table public.events to authenticated;
+
+-- Reports and ledgers are read-only through the Data API.
+-- Their write paths are the guarded SECURITY DEFINER workflows.
+grant select on table public.event_financial_reports,
+  public.event_ledger_entries,
+  public.event_surplus_transfers
+  to authenticated;
 
 create or replace function public.record_event_finance_entry(
   p_event_id uuid,
