@@ -57,7 +57,7 @@ export default async function AccountSecurityPage({ searchParams }: SecurityPage
         {error && <div className="module-alert" role="alert">Daftar sesi belum dapat dimuat. Pastikan migration keamanan perangkat sudah diterapkan.</div>}
 
         <section className="session-policy-panel">
-          <div className="session-policy-icon"><Clock3 size={20} /></div>
+          <div className="session-policy-icon"><ShieldCheck size={20} /></div>
           <div>
             <strong>Batas keamanan aktif</strong>
             <p>Maksimal 3 perangkat secara bersamaan. Jika sudah ada 3 perangkat aktif, login dari perangkat keempat ditolak dan sesi yang lama tetap dipertahankan.</p>
@@ -95,8 +95,6 @@ export default async function AccountSecurityPage({ searchParams }: SecurityPage
               </article>
             ))}
           </div>
-
-
         </section>
 
         <p className="module-footnote">Informasi yang disimpan hanya jenis perangkat, browser, dan waktu sesi. Alamat IP dan lokasi tidak disimpan pada daftar ini. Website publik tetap dapat diakses tanpa login.</p>

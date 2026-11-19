@@ -65,7 +65,7 @@ The migrations include:
 
 ## Implemented application areas
 
-- Public homepage, published event listing, public contact form, and published-letter verification.
+- Public homepage, published event listing, WhatsApp-only Public Contact Center, and published-letter verification.
 - Role-filtered dashboard navigation and server-side module permission checks.
 - Member directory split by gender, incomplete-member list, and separate direct/inline member creation paths.
 - Monthly dues register, partial/multiple payment recording, idempotent posting to the overall ledger, and canonical balance view.
@@ -79,10 +79,10 @@ The migrations include:
 
 - WhatsApp-only Public Contact Center and published-letter verification routes are implemented in source.
 - INBOX read access is available to all six roles. Reply, assignment, status changes, and archive mutations remain disabled until the organization confirms their role permissions.
-- Public Auth signup is disabled. The dedicated KOPPKAS Supabase project already has an Auth user with an active `ketua_pemuda` profile; the account was created on 18 November 2026 and a successful sign-in was recorded at 09:12 UTC. Do not run a first-account bootstrap.
-- Ketua-only account administration is being moved to the authenticated Supabase Edge Function `account-admin`, which uses Supabase-managed server secrets and does not depend on a Vercel service-role key. The Vercel `SUPABASE_SECRET_KEY` variable entry is currently empty in Production, Preview, and Development; the public contact form's server-side HMAC rate limiter therefore remains fail-closed until that key is configured or the form is moved to an Edge Function.
-- Progressive login protection migration is applied; the Password Verification Hook's Dashboard activation still needs verification. The new three-device/24-hour session enforcement and session-management UI are in `feat/session-security-controls-v2` and are not active until its migration is reviewed, applied, and deployed.
-- Public contact form validates inputs in a Supabase Edge Function, uses a honeypot and HMAC-SHA256 IP fingerprint, and applies a persistent limit of five submissions per ten-minute window. It stores no raw IP address. CAPTCHA is not configured.
+- Public Auth signup is disabled. The dedicated KOPPKAS Supabase project already has an Auth user with an active `ketua_pemuda` profile. Do not run a first-account bootstrap.
+- Ketua-only account administration is being moved to the authenticated Supabase Edge Function `account-admin`, which uses Supabase-managed server secrets and does not depend on a Vercel service-role key. The Vercel `SUPABASE_SECRET_KEY` variable entry is currently empty in Production, Preview, and Development.
+- Progressive login protection migration is applied; the Password Verification Hook's Dashboard activation still needs verification. The new three-device session enforcement and session-management UI are in `feat/session-security-controls-v2` and are not active until its migration is reviewed, applied, and deployed.
+- Public Contact Center exposes WhatsApp as the only initial contact channel. The official WhatsApp number has not yet been configured, so the button remains disabled and no personal number or placeholder link is displayed.
 - The private `koppkas-documents` Storage bucket and role-scoped policies are configured; upload UX and runtime access still require smoke testing.
 - Vercel project `koppkas` is linked to this repository and has a READY Production deployment from `main` (commit `ce875fde`). PR #2's login-header fix has been merged to `main`; its production deployment must be checked before declaring the login fix live.
 - GitHub Actions run #224 passed schema tests, TypeScript, ESLint, production build, and a full local migration-chain reset.

@@ -26,10 +26,9 @@ test("device sessions are private and callable only through authenticated securi
   assert.match(migration, /grant execute on function public\.revoke_other_app_sessions\(\) to authenticated/);
 });
 
-test("session lifetime is fixed at 24 hours and cannot be extended by refresh", () => {
-  assert.match(migration, /created_at \+ interval '24 hours'/);
+test("session expiry remains governed by Supabase Auth without an invented fixed 24-hour policy", () => {
+  assert.doesNotMatch(migration, /interval '24 hours'|set not_after =/);
   assert.match(migration, /s\.not_after is null or s\.not_after > pg_catalog\.now\(\)/);
-  assert.match(migration, /v_created_at \+ interval '24 hours'/);
   assert.match(requireUser, /register_current_app_session/);
 });
 
@@ -81,12 +80,12 @@ test("only an active Ketua Pemuda can revoke another account's sessions", () => 
   assert.match(adminFunction, /revoke_user_app_sessions_admin/);
 });
 
-test("security UI shows current devices, individual revocation and logout-all-other-devices", () => {
+test("security UI shows current devices and individual device revocation only", () => {
   assert.match(securityPage, /get_my_app_sessions/);
   assert.match(securityPage, /PERANGKAT AKTIF/);
   assert.match(securityPage, /revokeDeviceSession/);
-  assert.match(securityPage, /revokeOtherDeviceSessions/);
-  assert.match(securityPage, /24 jam/);
+  assert.doesNotMatch(securityPage, /revokeOtherDeviceSessions|24 jam|Keluar dari semua perangkat lain/);
+  assert.doesNotMatch(securityActions, /revokeOtherDeviceSessions/);
   assert.match(securityPage, /Alamat IP dan lokasi tidak disimpan/);
 });
 
