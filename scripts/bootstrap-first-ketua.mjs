@@ -66,7 +66,7 @@ async function main() {
   const input = {
     fullName: required("KOPPKAS_BOOTSTRAP_FULL_NAME"),
     email: required("KOPPKAS_BOOTSTRAP_EMAIL"),
-    password: required("KOPPKAS_BOOTSTRAP_PASSWORD"),
+    password: process.env.KOPPKAS_BOOTSTRAP_PASSWORD ?? (() => { throw new Error("Environment variable KOPPKAS_BOOTSTRAP_PASSWORD belum diisi."); })(),
     confirmation: required("KOPPKAS_BOOTSTRAP_CONFIRM"),
   };
   const admin = createClient(url, secret, { auth: { autoRefreshToken: false, persistSession: false } });
