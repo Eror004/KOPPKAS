@@ -78,10 +78,11 @@ The migrations include:
 ## Current implementation boundaries
 
 - Public contact submission and published-letter verification routes are implemented in source.
+- A guarded one-time first Ketua bootstrap script and singleton database guard are available in source; they have not been applied or executed against the active project.
 - INBOX read access is available to all six roles. Reply, assignment, status changes, and archive mutations remain disabled until the organization confirms their role permissions.
 - Public Auth signup is disabled. Production currently has no Auth users or profiles; the first Ketua account still needs a one-time, controlled bootstrap before dashboard operations can begin.
 - Privileged server actions require `SUPABASE_SECRET_KEY` (preferred) or `SUPABASE_SERVICE_ROLE_KEY`. The public Supabase URL and publishable key are configured in the Vercel project, but the server-only key has not yet been added.
-- Progressive login protection is installed in the database; live login verification remains pending the first account. Max-three-device enforcement and session revocation still need a dedicated privileged workflow.
+- Progressive login protection is installed in the database; live login verification remains pending the first account and Auth hook setup. Max-three-device enforcement and session revocation still need a dedicated privileged workflow.
 - Contact form has server validation, a honeypot, and persistent per-source rate-limit storage. CAPTCHA is not configured.
 - The private `koppkas-documents` Storage bucket and role-scoped policies are configured; upload UX and runtime access still require smoke testing.
 - Vercel project `koppkas` is linked to this repository. No deployment has been created yet; production deployment is waiting for the server-only key and first Ketua bootstrap.
