@@ -63,12 +63,12 @@ export async function bootstrapFirstKetua(admin, input) {
 async function main() {
   const url = required("NEXT_PUBLIC_SUPABASE_URL");
   const secret = process.env.SUPABASE_SECRET_KEY?.trim() || required("SUPABASE_SERVICE_ROLE_KEY");
-  const input = validateBootstrapInput({
+  const input = {
     fullName: required("KOPPKAS_BOOTSTRAP_FULL_NAME"),
     email: required("KOPPKAS_BOOTSTRAP_EMAIL"),
     password: required("KOPPKAS_BOOTSTRAP_PASSWORD"),
     confirmation: required("KOPPKAS_BOOTSTRAP_CONFIRM"),
-  });
+  };
   const admin = createClient(url, secret, { auth: { autoRefreshToken: false, persistSession: false } });
   const result = await bootstrapFirstKetua(admin, input);
   console.log(`Ketua Pemuda pertama dibuat: ${result.email}`);
