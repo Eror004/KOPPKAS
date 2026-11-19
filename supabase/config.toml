@@ -23,6 +23,3 @@ enable_confirmations = true
 
 [functions.account-admin]
 verify_jwt = true
-
-[functions.public-contact-submit]
-verify_jwt = false

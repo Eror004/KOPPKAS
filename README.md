@@ -77,7 +77,7 @@ The migrations include:
 
 ## Current implementation boundaries
 
-- Public contact submission and published-letter verification routes are implemented in source.
+- WhatsApp-only Public Contact Center and published-letter verification routes are implemented in source.
 - INBOX read access is available to all six roles. Reply, assignment, status changes, and archive mutations remain disabled until the organization confirms their role permissions.
 - Public Auth signup is disabled. The dedicated KOPPKAS Supabase project already has an Auth user with an active `ketua_pemuda` profile; the account was created on 18 November 2026 and a successful sign-in was recorded at 09:12 UTC. Do not run a first-account bootstrap.
 - Ketua-only account administration is being moved to the authenticated Supabase Edge Function `account-admin`, which uses Supabase-managed server secrets and does not depend on a Vercel service-role key. The Vercel `SUPABASE_SECRET_KEY` variable entry is currently empty in Production, Preview, and Development; the public contact form's server-side HMAC rate limiter therefore remains fail-closed until that key is configured or the form is moved to an Edge Function.

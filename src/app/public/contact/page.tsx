@@ -69,7 +69,7 @@ export default function PublicContactPage() {
         <h1>Ada yang ingin<br /><span>disampaikan?</span></h1>
         <p className="contact-lead">Kirim pertanyaan, saran, atau laporan kepada pengurus Pemuda Kampung Sawah Kaum. Pesan akan diteruskan ke INBOX pengurus.</p>
         {state.success ? (
-          <div className="contact-success"><CheckCircle2 size={26} /><h2>Pesan berhasil dikirim.</h2><p>Terima kasih sudah menghubungi kami. Pengurus akan meninjau pesan yang masuk.</p><button onClick={() => setState({})}>Kirim pesan lain</button></div>
+          <div className="contact-form contact-whatsapp"><CheckCircle2 size={26} /><h2>Pesan berhasil dikirim.</h2><p>Terima kasih sudah menghubungi kami. Pengurus akan meninjau pesan yang masuk.</p><button onClick={() => setState({})}>Kirim pesan lain</button></div>
         ) : (
           <form onSubmit={submitContact} className="contact-form">
             <div className="contact-form-grid">

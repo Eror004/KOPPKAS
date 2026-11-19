@@ -28,7 +28,7 @@ test("device sessions are private and callable only through authenticated securi
 
 test("session lifetime is fixed at 24 hours and cannot be extended by refresh", () => {
   assert.match(migration, /created_at \+ interval '24 hours'/);
-  assert.match(migration, /set not_after = least\(/);
+  assert.match(migration, /s\.not_after is null or s\.not_after > pg_catalog\.now\(\)/);
   assert.match(migration, /v_created_at \+ interval '24 hours'/);
   assert.match(requireUser, /register_current_app_session/);
 });

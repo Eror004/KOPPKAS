@@ -1,8 +1,8 @@
-import { Clock3, Laptop, LogOut, ShieldCheck, Smartphone, Tablet } from "lucide-react";
+import { Laptop, LogOut, ShieldCheck, Smartphone, Tablet } from "lucide-react";
 import { ModuleShell } from "@/components/module-shell";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { revokeDeviceSession, revokeOtherDeviceSessions } from "./actions";
+import { revokeDeviceSession } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,7 @@ export default async function AccountSecurityPage({ searchParams }: SecurityPage
           <div className="session-policy-icon"><Clock3 size={20} /></div>
           <div>
             <strong>Batas keamanan aktif</strong>
-            <p>Maksimal 3 perangkat secara bersamaan. Setiap sesi berakhir setelah 24 jam sejak login. Jika sudah ada 3 perangkat aktif, login dari perangkat keempat ditolak dan sesi yang lama tetap dipertahankan.</p>
+            <p>Maksimal 3 perangkat secara bersamaan. Jika sudah ada 3 perangkat aktif, login dari perangkat keempat ditolak dan sesi yang lama tetap dipertahankan.</p>
           </div>
         </section>
 
@@ -96,11 +96,7 @@ export default async function AccountSecurityPage({ searchParams }: SecurityPage
             ))}
           </div>
 
-          {sessions.some((session) => !session.is_current) && (
-            <form action={revokeOtherDeviceSessions} className="session-revoke-all">
-              <button type="submit" className="secondary-button"><LogOut size={15} /> Keluar dari semua perangkat lain</button>
-            </form>
-          )}
+
         </section>
 
         <p className="module-footnote">Informasi yang disimpan hanya jenis perangkat, browser, dan waktu sesi. Alamat IP dan lokasi tidak disimpan pada daftar ini. Website publik tetap dapat diakses tanpa login.</p>

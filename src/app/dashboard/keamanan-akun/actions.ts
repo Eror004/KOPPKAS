@@ -28,16 +28,3 @@ export async function revokeDeviceSession(formData: FormData) {
   redirect(`${securityPath}?success=${encodeURIComponent("Perangkat berhasil dikeluarkan dari akun.")}`);
 }
 
-export async function revokeOtherDeviceSessions() {
-  await requireModulePermission("security", "update");
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("revoke_other_app_sessions");
-
-  if (error) {
-    redirect(`${securityPath}?error=${encodeURIComponent("Sesi perangkat lain gagal dicabut.")}`);
-  }
-
-  revalidatePath(securityPath);
-  const count = Number(data ?? 0);
-  redirect(`${securityPath}?success=${encodeURIComponent(count ? `${count} perangkat lain berhasil dikeluarkan.` : "Tidak ada sesi perangkat lain yang aktif.")}`);
-}

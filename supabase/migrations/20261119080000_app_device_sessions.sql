@@ -1,4 +1,4 @@
--- KOPPKAS: server-enforced 24-hour sessions and a maximum of three concurrent devices.
+-- KOPPKAS: server-enforced maximum of three concurrent device sessions.
 -- Session rows are revoked using the same auth.sessions deletion primitive used by Supabase Auth logout.
 begin;
 
@@ -56,28 +56,16 @@ begin
 
   v_created_at := coalesce(v_created_at, pg_catalog.now());
 
-  if v_created_at + interval '24 hours' <= pg_catalog.now()
-    or (v_not_after is not null and v_not_after <= pg_catalog.now()) then
+  if v_not_after is not null and v_not_after <= pg_catalog.now() then
     delete from auth.sessions where id = v_session_id and user_id = v_user_id;
     return jsonb_build_object('allowed', false, 'reason', 'session_expired');
   end if;
-
-  -- Persist the 24-hour ceiling in Supabase Auth itself; refreshing a token
-  -- must never extend the session lifetime.
-  update auth.sessions
-  set not_after = least(
-    coalesce(not_after, v_created_at + interval '24 hours'),
-    v_created_at + interval '24 hours'
-  )
-  where id = v_session_id
-    and user_id = v_user_id;
 
   select count(*)::integer
     into v_other_active
   from auth.sessions as s
   where s.user_id = v_user_id
     and s.id <> v_session_id
-    and coalesce(s.created_at, pg_catalog.now()) + interval '24 hours' > pg_catalog.now()
     and (s.not_after is null or s.not_after > pg_catalog.now());
 
   if v_other_active >= 3 then
@@ -104,8 +92,7 @@ begin
   return jsonb_build_object(
     'allowed', true,
     'max_devices', 3,
-    'active_devices', v_other_active + 1,
-    'expires_at', v_created_at + interval '24 hours'
+    'active_devices', v_other_active + 1
   );
 end;
 $$;
@@ -134,8 +121,7 @@ begin
   delete from auth.sessions as s
   where s.user_id = v_user_id
     and (
-      coalesce(s.created_at, pg_catalog.now()) + interval '24 hours' <= pg_catalog.now()
-      or (s.not_after is not null and s.not_after <= pg_catalog.now())
+      (s.not_after is not null and s.not_after <= pg_catalog.now())
     );
 
   return query
@@ -150,7 +136,6 @@ begin
     on d.session_id = s.id
    and d.user_id = v_user_id
   where s.user_id = v_user_id
-    and coalesce(s.created_at, pg_catalog.now()) + interval '24 hours' > pg_catalog.now()
     and (s.not_after is null or s.not_after > pg_catalog.now())
   order by s.created_at desc;
 end;
@@ -274,7 +259,7 @@ returns integer
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_actor_role text;
   v_actor_active boolean;
@@ -307,7 +292,7 @@ begin
 
   return v_deleted;
 end;
-$;
+$$;
 
 revoke all on function public.register_current_app_session(text, text) from public, anon;
 revoke all on function public.get_my_app_sessions() from public, anon;
@@ -326,7 +311,7 @@ grant execute on function public.revoke_user_app_sessions_admin(uuid, uuid) to s
 comment on table public.app_device_sessions is
   'Private device metadata for authenticated app sessions. Raw IP addresses and geolocation are intentionally not stored.';
 comment on function public.register_current_app_session(text, text) is
-  'Enforces a 24-hour session lifetime and a maximum of three concurrent sessions per user. A fourth/new login is rejected without removing the existing three.';
+  'Enforces a maximum of three concurrent sessions per user. A fourth/new login is rejected without removing the existing three. Session expiry remains governed by Supabase Auth.';
 comment on function public.get_my_app_sessions() is
   'Returns only the current user active devices and removes expired session rows.';
 comment on function public.revoke_my_app_session(uuid) is

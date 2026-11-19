@@ -31,20 +31,19 @@ This protection uses the Supabase Auth **Password Verification Hook**. The hook 
 
 ## Server-side admin key
 
-The Ketua-only account manager and public contact form now use Supabase Edge Functions and Supabase-managed Edge Function secrets; neither needs a Vercel service-role key. The Vercel `SUPABASE_SECRET_KEY` entry is empty in all targets, so the Next.js Auth client cannot attach `Sb-Forwarded-For` for end-user IP forwarding. Supabase Auth's default per-IP rate limits remain active. If IP forwarding is enabled in Supabase Auth settings, add the real `sb_secret_...` key to Vercel server-only environment variables; never use a `NEXT_PUBLIC_` prefix or paste the secret into chat/source control.
+The Ketua-only account manager uses the authenticated Supabase Edge Function `account-admin` and Supabase-managed Edge Function secrets; it does not need a Vercel service-role key. Public Contact Center uses WhatsApp only and has no web message form. The Vercel `SUPABASE_SECRET_KEY` entry is empty in all targets, so the Next.js Auth client cannot attach `Sb-Forwarded-For` for end-user IP forwarding. Supabase Auth's default per-IP rate limits remain active. If IP forwarding is enabled in Supabase Auth settings, add the real `sb_secret_...` key to Vercel server-only environment variables; never use a `NEXT_PUBLIC_` prefix or paste the secret into chat/source control.
 
-The public contact form allows five messages per client IP in a rolling ten-minute window. It stores only a HMAC-SHA256 fingerprint of the IP, keyed with the server secret and fails closed if the trusted client IP or server-side key is unavailable.
+The WhatsApp channel remains inactive until the official organization number is configured. Do not display personal officers' numbers or invent a `wa.me` destination.
 
 
 ## Session and device protection
 
-The approved application policy is a maximum of **three concurrent device sessions per account** and a **24-hour maximum lifetime per session**. The website's public routes remain accessible without login. OTP/MFA is not enabled.
+The approved application policy is a maximum of **three concurrent device sessions per account**. Session expiry remains governed by Supabase Auth; no fixed 24-hour lifetime has been approved. The website's public routes remain accessible without login. OTP/MFA is not enabled.
 
 The implementation in `20261119080000_app_device_sessions.sql` is branch-only until reviewed and applied:
 
 - The fourth/new login is rejected. The three existing sessions are preserved; the user must first revoke one from **Dashboard → Keamanan Akun**.
-- A session receives a fixed `auth.sessions.not_after` ceiling of 24 hours from its original creation time. Refreshing the token does not extend the ceiling.
-- Each role can list and revoke only its own sessions. The current device is identified in the list; other devices can be revoked individually or together.
+- Each role can list and revoke only its own sessions. The current device is identified in the list; other devices can be revoked individually.
 - An active Ketua Pemuda can revoke all sessions belonging to another account when changing its role/status or resetting its password.
 - The session registry stores device/browser labels and timestamps only. It does not store raw IP addresses or geolocation.
 - Revocation deletes the corresponding `auth.sessions` row, matching the session invalidation primitive used by Supabase Auth's logout flow.

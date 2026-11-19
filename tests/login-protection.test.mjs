@@ -22,7 +22,6 @@ test("progressive login protection applies 15-minute and 1-hour lockouts", () =>
 test("accounts at the 10-attempt threshold require Ketua admin unlock", () => {
   assert.match(migration, /requires_admin_unlock/);
   assert.match(migration, /Akun memerlukan verifikasi tambahan/);
-  assert.match(accountActions, /export async function unlockAccount/);
   assert.match(accountAdmin, /action === "unlock"/);
   assert.match(accountAdmin, /from\("login_protection_attempts"\)\.delete\(\)/);
 });
