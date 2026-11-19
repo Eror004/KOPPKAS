@@ -418,3 +418,32 @@ h1,h2,h3,p{margin-top:0}
 .event-chair-state strong{color:#24445a}
 
 .module-footnote{margin:12px 0 0;color:#7a8f9e;font-size:11px;line-height:1.6}
+
+
+.session-policy-panel{display:flex;align-items:flex-start;gap:14px;margin:18px 0;padding:16px 18px;border:1px solid #cfe1ee;border-left:4px solid #3988bd;border-radius:12px;background:#f4f9fc}
+.session-policy-icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:10px;background:#e2f0f8;color:#2877a8}
+.session-policy-panel strong{display:block;color:#24445a;font-size:13px}
+.session-policy-panel p{margin:5px 0 0;color:#61798a;font-size:12px;line-height:1.65}
+.session-panel{margin-top:18px}
+.session-list{display:grid;gap:0}
+.session-item{display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid #edf2f5}
+.session-item:last-child{border-bottom:0}
+.session-device-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:#edf5fa;color:#397da7}
+.session-device-copy{min-width:0;flex:1}
+.session-device-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.session-device-title strong{color:#24445a;font-size:13px}
+.session-current-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:6px;background:#eaf6ee;color:#39734f;font-size:9px;font-weight:800;letter-spacing:.04em}
+.session-device-copy p{margin:4px 0 0;color:#7a8f9e;font-size:11px;line-height:1.5}
+.session-revoke-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 11px;border:1px solid #f0d6d6;border-radius:8px;background:#fff;color:#a34b4b;font-size:11px;font-weight:700;cursor:pointer}
+.session-revoke-button:hover{background:#fff7f7;border-color:#e7bebe}
+.session-revoke-all{display:flex;justify-content:flex-end;padding:14px 16px;border-top:1px solid #edf2f5}
+.session-revoke-all button{display:inline-flex;align-items:center;gap:8px}
+@media(max-width:640px){
+  .session-item{align-items:flex-start;flex-wrap:wrap;padding:14px 12px}
+  .session-device-copy{flex-basis:calc(100% - 60px)}
+  .session-item form{margin-left:56px}
+  .session-revoke-button{min-height:40px}
+  .session-policy-panel{padding:14px}
+  .session-revoke-all{justify-content:stretch}
+  .session-revoke-all button{width:100%;justify-content:center}
+}
