@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [permissions, actions, admin, page, dashboard, edgeFunction] = await Promise.all([
+const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema] = await Promise.all([
   read("../src/lib/auth/permissions.ts"),
   read("../src/app/dashboard/akun/actions.ts"),
   read("../src/lib/supabase/admin.ts"),
   read("../src/app/dashboard/akun/page.tsx"),
   read("../src/components/dashboard-home-client.tsx"),
   read("../supabase/functions/account-admin/index.ts"),
+  read("../supabase/migrations/20261118033833_core_schema.sql"),
 ]);
 
 test("account management is granted only to Ketua Pemuda", () => {
@@ -61,7 +62,7 @@ test("Edge Function independently verifies active Ketua role and protects the la
 });
 
 test("new Auth users update the profile row created by the database trigger", () => {
-  assert.match(edgeFunction, /on_auth_user_created/);
+  assert.match(coreSchema, /on_auth_user_created/);
   assert.match(edgeFunction, /from\("profiles"\)\s*\.update\(\{ full_name: fullName, role, is_active: true \}\)/);
   assert.match(edgeFunction, /\.eq\("id", created\.user\.id\)\s*\.select\("id"\)\s*\.maybeSingle\(\)/);
   assert.doesNotMatch(edgeFunction, /from\("profiles"\)\.insert\(\{\s*id: created\.user\.id/);
