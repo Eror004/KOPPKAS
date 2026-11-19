@@ -1,15 +1,14 @@
 # KOPPKAS progressive login protection
 
-This protection uses the Supabase Auth **Password Verification Hook**. The hook is not active until the Postgres function migration is applied and the hook is enabled in the Supabase Dashboard.
+This protection is designed around the Supabase Auth **Password Verification Hook**. As verified against Supabase documentation on 19 November 2026, Password Verification Attempt Hooks are available only on Teams and Enterprise plans, not the current Free plan. The SQL function exists in KOPPKAS, but the progressive 5/10-attempt lockout is NOT active on the current Free project and cannot be enabled there without a plan change. Do not claim this protection is live.
 
 ## Required setup
 
-1. Apply `20261118074605_progressive_login_protection.sql` to the KOPPKAS Supabase project in a reviewed staging-first workflow.
-2. In Supabase Dashboard, open **Authentication → Hooks**.
-3. Enable **Password Verification Hook** and select the Postgres function `public.hook_password_verification_attempt`.
-4. Open **Authentication → Rate Limits** and enable **IP Address Forwarding**.
-5. Set `SUPABASE_SECRET_KEY` as a server-only environment variable in the deployment and local environment. Use the Supabase secret API key (the `sb_secret_` key), never a `NEXT_PUBLIC_` variable.
-6. Keep Supabase Auth's per-IP sign-in rate limit enabled. The application forwards the Vercel request IP through `Sb-Forwarded-For` when the server secret key is configured.
+1. Keep migration `20261118074605_progressive_login_protection.sql` versioned and tested in the repository.
+2. Do not attempt to enable the Password Verification Attempt Hook on the current Free project; Supabase documents this hook as Teams/Enterprise only.
+3. Keep Supabase Auth's built-in per-IP sign-in rate limit enabled.
+4. The optional `SUPABASE_SECRET_KEY` server-only variable allows the Next.js Auth client to forward the Vercel request IP using `Sb-Forwarded-For`. It is currently empty in Vercel and must not be fabricated or exposed publicly.
+5. If the organization later explicitly authorizes a paid Supabase plan, re-check current plan eligibility and activate/test the hook in a staging project before production.
 
 ## Lockout behavior
 
@@ -25,8 +24,9 @@ This protection uses the Supabase Auth **Password Verification Hook**. The hook 
 
 - The hook receives an unauthenticated event, so test it carefully before enabling it for real accounts.
 - The login-protection table has RLS enabled and is inaccessible to `anon` and `authenticated`; only Supabase Auth Admin and the server-side service role can manage it.
-- The hook is a Supabase Auth feature that must be explicitly enabled. A migration alone does not activate it.
-- Verify the hook in a staging project before applying it to production. Do not test lockout behavior against real member accounts.
+- The hook is a Supabase Auth feature that must be explicitly enabled; a migration alone does not activate it.
+- The current Free plan cannot enable this hook. Progressive lockout remains a documented release gap while the Rp0 constraint is in force.
+- Do not test lockout behavior against real member accounts.
 
 
 ## Server-side admin key
