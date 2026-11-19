@@ -49,7 +49,7 @@ npm run build
 
 Migration files berada di `supabase/migrations/` dan harus diterapkan sesuai urutan timestamp pada dedicated KOPPKAS database. Jangan menerapkannya ke project lama `pemuda-kampung-sawah-kaum`; project tersebut milik sistem sebelumnya.
 
-**Status 18 November 2026:** 32/32 versi migrasi repository sudah selaras dengan riwayat Supabase KOPPKAS dan seluruh migrasi sudah diterapkan. Rangkaian yang sama berhasil dibangun ulang dari database lokal kosong pada GitHub Actions.
+**Baseline 18 November 2026:** 32/32 versi migrasi saat itu sudah selaras dengan riwayat Supabase KOPPKAS dan seluruhnya telah diterapkan. Rangkaian baseline tersebut berhasil dibangun ulang dari database lokal kosong pada GitHub Actions. Migration bootstrap Ketua yang ditambahkan setelah baseline berada di branch fitur dan belum diterapkan ke project aktif.
 
 Saldo pembukaan November 2026 sebesar Rp205.000 tetap tercatat sebagai snapshot per 1 November 2026, bukan pemasukan baru.
 
