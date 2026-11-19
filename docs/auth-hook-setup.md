@@ -4,7 +4,7 @@ This protection uses the Supabase Auth **Password Verification Hook**. The hook 
 
 ## Required setup
 
-1. Apply `20261118090000_progressive_login_protection.sql` to the KOPPKAS Supabase project in a reviewed staging-first workflow.
+1. Apply `20261118074605_progressive_login_protection.sql` to the KOPPKAS Supabase project in a reviewed staging-first workflow.
 2. In Supabase Dashboard, open **Authentication → Hooks**.
 3. Enable **Password Verification Hook** and select the Postgres function `public.hook_password_verification_attempt`.
 4. Open **Authentication → Rate Limits** and enable **IP Address Forwarding**.
@@ -34,3 +34,19 @@ This protection uses the Supabase Auth **Password Verification Hook**. The hook 
 `SUPABASE_SECRET_KEY` is also required by the Ketua-only account manager and the public contact form's hashed-IP rate limiter. Keep it server-only in Vercel and local environment variables; never use a `NEXT_PUBLIC_` prefix and never paste the secret into chat or source control.
 
 The public contact form allows five messages per client IP in a rolling ten-minute window. It stores only a HMAC-SHA256 fingerprint of the IP, keyed with the server secret and fails closed if the trusted client IP or server-side key is unavailable.
+
+
+## Session and device protection
+
+The approved application policy is a maximum of **three concurrent device sessions per account** and a **24-hour maximum lifetime per session**. The website's public routes remain accessible without login. OTP/MFA is not enabled.
+
+The implementation in `20261119080000_app_device_sessions.sql` is branch-only until reviewed and applied:
+
+- The fourth/new login is rejected. The three existing sessions are preserved; the user must first revoke one from **Dashboard → Keamanan Akun**.
+- A session receives a fixed `auth.sessions.not_after` ceiling of 24 hours from its original creation time. Refreshing the token does not extend the ceiling.
+- Each role can list and revoke only its own sessions. The current device is identified in the list; other devices can be revoked individually or together.
+- An active Ketua Pemuda can revoke all sessions belonging to another account when changing its role/status or resetting its password.
+- The session registry stores device/browser labels and timestamps only. It does not store raw IP addresses or geolocation.
+- Revocation deletes the corresponding `auth.sessions` row, matching the session invalidation primitive used by Supabase Auth's logout flow.
+
+Apply the migration only after CI rebuilds the complete migration chain from an empty local database. Do not manually modify `auth.sessions` in the live project as a substitute for the reviewed migration.
