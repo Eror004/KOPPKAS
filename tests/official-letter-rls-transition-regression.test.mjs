@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [policyMigration, contentGuardMigration, actions] = await Promise.all([
+const [policyMigration, transitionMigration, contentGuardMigration, actions] = await Promise.all([
   read("../supabase/migrations/20261118074615_letter_draft_owner_permissions.sql"),
+  read("../supabase/migrations/20261118033848_approval_guards.sql"),
   read("../supabase/migrations/20261118074603_committee_dues_letters_audit_hardening.sql"),
   read("../src/app/dashboard/surat-dokumen/actions.ts"),
 ]);
@@ -19,13 +20,12 @@ test("letter update RLS is paired with immutable creator and draft-only content 
 });
 
 test("database enforces leadership-only publication and cancellation metadata", () => {
-  assert.match(policyMigration, /guard_letter_owner_and_category/);
-  const transitions = policyMigration + contentGuardMigration;
-  assert.match(transitions, /Only Ketua or Wakil Ketua may cancel an official letter/);
-  assert.match(transitions, /Only Ketua or Wakil Ketua may publish an official letter/);
-  assert.match(transitions, /Official letter approval metadata is required/);
-  assert.match(transitions, /Letter cancellation metadata is required/);
-  assert.match(transitions, /Invalid official letter status transition/);
+  assert.match(transitionMigration, /create or replace function app_private\.guard_letter_transitions/);
+  assert.match(transitionMigration, /Only Ketua or Wakil Ketua may cancel an official letter/);
+  assert.match(transitionMigration, /Only Ketua or Wakil Ketua may publish an official letter/);
+  assert.match(transitionMigration, /Official letter approval metadata is required/);
+  assert.match(transitionMigration, /Letter cancellation metadata is required/);
+  assert.match(transitionMigration, /Invalid official letter status transition/);
 });
 
 test("server actions validate draft fields and require module permissions", () => {
