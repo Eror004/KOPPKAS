@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [migration, login, requireUser, permissions, securityPage, securityActions, accountActions, proxy] = await Promise.all([
+const [migration, login, requireUser, permissions, securityPage, securityActions, accountActions, proxy, adminFunction, accountPage] = await Promise.all([
   read("../supabase/migrations/20261119080000_app_device_sessions.sql"),
   read("../src/app/login/actions.ts"),
   read("../src/lib/auth/require-user.ts"),
@@ -12,6 +12,8 @@ const [migration, login, requireUser, permissions, securityPage, securityActions
   read("../src/app/dashboard/keamanan-akun/actions.ts"),
   read("../src/app/dashboard/akun/actions.ts"),
   read("../proxy.ts"),
+  read("../supabase/functions/account-admin/index.ts"),
+  read("../src/app/dashboard/akun/page.tsx"),
 ]);
 
 test("device sessions are private and callable only through authenticated security-definer functions", () => {
@@ -93,4 +95,25 @@ test("public routes remain outside the authenticated dashboard session guard", (
   assert.match(proxy, /startsWith\("\/public"\)/);
   assert.match(proxy, /startsWith\("\/login"\)/);
   assert.doesNotMatch(proxy, /keamanan-akun/);
+});
+
+
+test("account administration runs in an authenticated Edge Function with server-managed secrets", () => {
+  assert.match(adminFunction, /withSupabase\(\{ auth: "user" \}/);
+  assert.match(adminFunction, /context\.supabaseAdmin/);
+  assert.match(adminFunction, /context\.supabase\.auth\.getUser\(accessToken\)/);
+  assert.match(adminFunction, /actor\?\.role !== "ketua_pemuda"/);
+  assert.match(adminFunction, /actor\.is_active !== true/);
+  for (const action of ["list", "create", "update", "reset_password", "unlock"]) {
+    assert.match(adminFunction, new RegExp(`action === "${action}"`));
+  }
+  assert.match(adminFunction, /revoke_user_app_sessions_admin/);
+});
+
+test("account manager no longer depends on an empty Vercel service-role environment variable", () => {
+  assert.match(accountPage, /functions\.invoke\("account-admin"/);
+  assert.doesNotMatch(accountPage, /hasSupabaseAdminConfig|createAdminClient/);
+  assert.match(accountActions, /functions\.invoke\("account-admin"/);
+  assert.doesNotMatch(accountActions, /createAdminClient/);
+  assert.match(migration, /grant execute on function public\.revoke_user_app_sessions_admin\(uuid, uuid\) to service_role/);
 });
