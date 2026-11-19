@@ -72,3 +72,15 @@ test("account management navigation remains role-filtered", () => {
   assert.match(dashboard, /"Manajemen Akun": "accounts"/);
   assert.match(dashboard, /"Manajemen Akun": "\/dashboard\/akun"/);
 });
+
+test("account security revokes existing sessions before role, status or password changes", () => {
+  const updateStart = edgeFunction.indexOf('if (action === "update")');
+  const updateEnd = edgeFunction.indexOf('if (action === "reset_password")');
+  const updateBlock = edgeFunction.slice(updateStart, updateEnd);
+  assert.ok(updateBlock.indexOf("revoke_user_app_sessions_admin") < updateBlock.indexOf('from("profiles")'));
+  const resetStart = edgeFunction.indexOf('if (action === "reset_password")');
+  const resetEnd = edgeFunction.indexOf('if (action === "unlock")');
+  const resetBlock = edgeFunction.slice(resetStart, resetEnd);
+  assert.ok(resetBlock.indexOf("revoke_user_app_sessions_admin") < resetBlock.indexOf("updateUserById"));
+  assert.ok(resetBlock.indexOf("revoke_other_app_sessions") < resetBlock.indexOf("updateUserById"));
+});
