@@ -25,3 +25,7 @@ test("the validated RPC remains the authenticated write path with payload checks
   assert.match(rpcMigration, /char_length\(coalesce\(normalized_note, ''\)\) > 500/);
   assert.match(rpcMigration, /existing_payment\.recorded_by is distinct from auth\.uid\(\)/);
 });
+test("payment write boundary does not revoke the trusted server-side RPC", () => {
+  assert.match(migration, /revoke insert on table public\.monthly_dues_payments\s+from anon, authenticated/i);
+  assert.doesNotMatch(migration, /revoke execute on function public\.record_monthly_dues_payment/i);
+});
