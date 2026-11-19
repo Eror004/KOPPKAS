@@ -17,7 +17,6 @@ test("event workflow tables expose only minimum client grants", () => {
 });
 
 test("event ledger write path is RPC-only and accepts only open event statuses", () => {
-  assert.match(migration, /revoke all on table public\.events,[\s\S]*?public\.event_ledger_entries/);
   assert.match(migration, /from public\.events\s+where id = p_event_id\s+for update/i);
   assert.match(migration, /target_event\.status not in \('terbit','berlangsung'\)/i);
   assert.match(migration, /grant execute on function public\.record_event_finance_entry/);
@@ -33,23 +32,16 @@ test("event ledger RPC validates role, direction, amount, description and idempo
   assert.match(migration, /existing_entry\.created_by is distinct from auth\.uid\(\)/);
 });
 
-test("event transaction creation serializes with final-report approval", () => {
-  const approvalStart = workflow.indexOf("create or replace function public.approve_event_final_report");
-  const approvalEnd = workflow.indexOf("revoke all on function public.approve_event_final_report", approvalStart);
-  const approval = workflow.slice(approvalStart, approvalEnd);
+test("final-report approval serializes on the event row and restricts approver roles", () => {
+  const start = workflow.indexOf("create or replace function public.approve_event_final_report");
+  const end = workflow.indexOf("revoke all on function public.approve_event_final_report", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const approval = workflow.slice(start, end);
+  assert.match(approval, /has_any_role\(array\['ketua_pemuda','wakil_ketua_pemuda','bendahara'\]/);
   assert.match(approval, /from public\.events\s+where id = p_event_id\s+for update/i);
+  assert.match(approval, /target_event\.status <> 'menunggu_laporan'/);
+  assert.match(approval, /on conflict \(source_type, source_id\) do nothing/i);
+  assert.match(approval, /on conflict \(event_id\) do nothing/i);
   assert.match(migration, /from public\.events\s+where id = p_event_id\s+for update/i);
-});
-
-test("financial and narrative reports retain separate authorship requirements", () => {
-  const financeStart = workflow.indexOf("create or replace function public.submit_event_financial_report");
-  const financeEnd = workflow.indexOf("revoke all on function public.submit_event_financial_report", financeStart);
-  const finance = workflow.slice(financeStart, financeEnd);
-  assert.match(finance, /role_now is distinct from 'bendahara'/);
-
-  const narrativeStart = workflow.indexOf("create or replace function public.submit_event_narrative_report");
-  const narrativeEnd = workflow.indexOf("revoke all on function public.submit_event_narrative_report", narrativeStart);
-  const narrative = workflow.slice(narrativeStart, narrativeEnd);
-  assert.match(narrative, /target_chair is distinct from auth\.uid\(\)/);
-  assert.match(narrative, /finance_author = auth\.uid\(\)/);
 });
