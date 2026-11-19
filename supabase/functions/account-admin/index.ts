@@ -157,25 +157,22 @@ const handler = withSupabase({ auth: "user" }, async (request, context) => {
       }
     }
 
-    const { error: updateError } = await admin.from("profiles")
-      .update({ full_name: fullName, role, is_active: isActive, updated_at: new Date().toISOString() })
-      .eq("id", targetId);
-    if (updateError) return response({ error: "Perubahan akun gagal disimpan." }, 500);
-
+    // Revoke old sessions before changing role/status. If revocation fails,
+    // keep the account profile untouched so stale sessions cannot retain access.
     if (!isActive || role !== target.role) {
       const { error: sessionError } = await admin.rpc("revoke_user_app_sessions_admin", {
         p_actor_id: actorId,
         p_user_id: targetId,
       });
       if (sessionError) {
-        await admin.from("profiles").update({
-          full_name: target.full_name,
-          role: target.role,
-          is_active: target.is_active,
-        }).eq("id", targetId);
         return response({ error: "Perubahan dibatalkan karena sesi lama akun belum berhasil dicabut." }, 500);
       }
     }
+
+    const { error: updateError } = await admin.from("profiles")
+      .update({ full_name: fullName, role, is_active: isActive, updated_at: new Date().toISOString() })
+      .eq("id", targetId);
+    if (updateError) return response({ error: "Perubahan akun gagal disimpan. Sesi lama mungkin sudah dikeluarkan; periksa kembali akun tujuan." }, 500);
 
     const { error: auditError } = await admin.from("activity_logs").insert({
       actor_id: actorId,
@@ -195,13 +192,15 @@ const handler = withSupabase({ auth: "user" }, async (request, context) => {
     if (!uuidPattern.test(targetId)) return response({ error: "Akun tujuan tidak valid." }, 400);
     if (password.length < 5 || password.length > 128) return response({ error: "Password baru harus berisi 5–128 karakter." }, 400);
 
-    const { error: passwordError } = await admin.auth.admin.updateUserById(targetId, { password });
-    if (passwordError) return response({ error: "Password akun gagal diperbarui." }, 400);
-
+    // Revoke sessions before changing the password. A failed password update
+    // may sign the target out, but can never leave old sessions active after reset.
     const { error: sessionError } = targetId === actorId
       ? await context.supabase.rpc("revoke_other_app_sessions")
       : await admin.rpc("revoke_user_app_sessions_admin", { p_actor_id: actorId, p_user_id: targetId });
-    if (sessionError) return response({ error: "Password berubah, tetapi sesi perangkat lama belum berhasil dicabut." }, 500);
+    if (sessionError) return response({ error: "Password tidak diubah karena sesi perangkat lama belum berhasil dicabut." }, 500);
+
+    const { error: passwordError } = await admin.auth.admin.updateUserById(targetId, { password });
+    if (passwordError) return response({ error: "Password gagal diperbarui. Sesi lama sudah dikeluarkan; coba login kembali." }, 400);
 
     const { error: unlockError } = await admin.from("login_protection_attempts").delete().eq("user_id", targetId);
     if (unlockError) return response({ error: "Password berubah, tetapi status penguncian belum dapat direset." }, 500);
