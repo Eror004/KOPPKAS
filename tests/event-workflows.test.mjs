@@ -7,7 +7,7 @@ const migrationFiles = await readdir(new URL("../supabase/migrations/", import.m
 const narrativeActiveActorFile = migrationFiles.find((name) => name.endsWith("_event_narrative_active_actor_guard.sql"));
 assert.ok(narrativeActiveActorFile, "active actor guard migration must exist");
 const narrativeActiveActor = await read(`../supabase/migrations/${narrativeActiveActorFile}`);
-const [actions, page, controls, dualReport, finalization, approval, financeActions, financeForm, ledgerIdempotency] = await Promise.all([
+const [actions, page, controls, dualReport, finalization, approval, financeActions, financeForm, ledgerIdempotency, eventLedgerGuard] = await Promise.all([
   read("../src/app/dashboard/kegiatan/actions.ts"),
   read("../src/app/dashboard/kegiatan/page.tsx"),
   read("../src/app/dashboard/kegiatan/workflow-controls.tsx"),
@@ -17,6 +17,7 @@ const [actions, page, controls, dualReport, finalization, approval, financeActio
   read("../src/app/dashboard/keuangan-kegiatan/actions.ts"),
   read("../src/app/dashboard/keuangan-kegiatan/entry-form.tsx"),
   read("../supabase/migrations/20261118074625_event_ledger_idempotency.sql"),
+  read("../supabase/migrations/20261119100000_event_ledger_closeout_write_guard.sql"),
 ]);
 
 test("event publication and cancellation require leadership approvals", () => {
@@ -76,7 +77,10 @@ test("event register exposes role-aware workflow controls", () => {
 test("event finance entries use idempotency keys and verify duplicate payloads", () => {
   assert.match(financeActions, /idempotency_key: idempotencyKey/);
   assert.match(financeActions, /error\?\.code === "23505"/);
-  assert.match(financeActions, /existing\.created_by === user\.profile\.id/);
+  assert.match(financeActions, /supabase\.rpc\("record_event_finance_entry"/);
+  assert.match(eventLedgerGuard, /existing_entry\.created_by is distinct from auth\.uid\(\)/);
+  assert.match(eventLedgerGuard, /existing_entry\.event_id <> p_event_id/);
+  assert.match(eventLedgerGuard, /existing_entry\.amount <> p_amount/);
   assert.match(financeForm, /useRef<string \| null>\(null\)/);
   assert.match(financeForm, /crypto\.randomUUID\(\)/);
   assert.match(ledgerIdempotency, /event_ledger_entries_idempotency_key_uidx/);
