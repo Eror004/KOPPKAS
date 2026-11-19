@@ -31,7 +31,7 @@ This protection uses the Supabase Auth **Password Verification Hook**. The hook 
 
 ## Server-side admin key
 
-The Ketua-only account manager is served by the authenticated Supabase Edge Function `account-admin` and uses Supabase-managed Edge Function secrets; it does not require a Vercel service-role key. The public contact form's current server action still requires `SUPABASE_SECRET_KEY` (or the legacy `SUPABASE_SERVICE_ROLE_KEY`) for its HMAC-SHA256 IP fingerprint. The Vercel variable entry is currently empty in all targets, so public form submissions fail closed and should direct visitors to the official WhatsApp channel until the key is configured or the form is migrated to an Edge Function. Never use a `NEXT_PUBLIC_` prefix and never paste the secret into chat or source control.
+The Ketua-only account manager and public contact form now use Supabase Edge Functions and Supabase-managed Edge Function secrets; neither needs a Vercel service-role key. The Vercel `SUPABASE_SECRET_KEY` entry is empty in all targets, so the Next.js Auth client cannot attach `Sb-Forwarded-For` for end-user IP forwarding. Supabase Auth's default per-IP rate limits remain active. If IP forwarding is enabled in Supabase Auth settings, add the real `sb_secret_...` key to Vercel server-only environment variables; never use a `NEXT_PUBLIC_` prefix or paste the secret into chat/source control.
 
 The public contact form allows five messages per client IP in a rolling ten-minute window. It stores only a HMAC-SHA256 fingerprint of the IP, keyed with the server secret and fails closed if the trusted client IP or server-side key is unavailable.
 
