@@ -8,6 +8,16 @@ import { createClient } from "@/lib/supabase/server";
 
 export type ContactState = { success?: boolean; error?: string };
 
+function isValidWhatsAppNumber(value: string) {
+  const normalized = value.trim();
+  const digits = normalized.replace(/\D/g, "");
+  return (
+    digits.length >= 8 &&
+    digits.length <= 15 &&
+    /^\+?[0-9][0-9\s().-]*$/.test(normalized)
+  );
+}
+
 export async function submitContact(_previous: ContactState, formData: FormData): Promise<ContactState> {
   const senderName = String(formData.get("sender_name") ?? "").trim();
   const senderContact = String(formData.get("sender_contact") ?? "").trim();
@@ -18,7 +28,7 @@ export async function submitContact(_previous: ContactState, formData: FormData)
 
   if (website) return { success: true };
   if (senderName.length < 2 || senderName.length > 120) return { error: "Nama harus berisi 2–120 karakter." };
-  if (senderContact.length < 5 || senderContact.length > 160) return { error: "Kontak harus berisi 5–160 karakter." };
+  if (!isValidWhatsAppNumber(senderContact)) return { error: "Masukkan nomor WhatsApp aktif dengan 8–15 digit angka." };
   if (category.length < 2 || category.length > 80) return { error: "Pilih kategori pesan." };
   if (subject.length < 3 || subject.length > 160) return { error: "Subjek harus berisi 3–160 karakter." };
   if (message.length < 10 || message.length > 5000) return { error: "Pesan harus berisi 10–5.000 karakter." };
