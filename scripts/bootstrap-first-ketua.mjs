@@ -63,10 +63,12 @@ export async function bootstrapFirstKetua(admin, input) {
 async function main() {
   const url = required("NEXT_PUBLIC_SUPABASE_URL");
   const secret = process.env.SUPABASE_SECRET_KEY?.trim() || required("SUPABASE_SERVICE_ROLE_KEY");
+  const password = process.env.KOPPKAS_BOOTSTRAP_PASSWORD;
+  if (!password) throw new Error("Environment variable KOPPKAS_BOOTSTRAP_PASSWORD belum diisi.");
   const input = {
     fullName: required("KOPPKAS_BOOTSTRAP_FULL_NAME"),
     email: required("KOPPKAS_BOOTSTRAP_EMAIL"),
-    password: process.env.KOPPKAS_BOOTSTRAP_PASSWORD ?? (() => { throw new Error("Environment variable KOPPKAS_BOOTSTRAP_PASSWORD belum diisi."); })(),
+    password,
     confirmation: required("KOPPKAS_BOOTSTRAP_CONFIRM"),
   };
   const admin = createClient(url, secret, { auth: { autoRefreshToken: false, persistSession: false } });
