@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { isAppRole } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 const accountPath = "/dashboard/akun";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -129,6 +130,11 @@ export async function resetAccountPassword(formData: FormData) {
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(targetId, { password });
   if (error) finish("error", "Password akun gagal diperbarui.");
+  const sessionClient = await createClient();
+  const { error: sessionError } = targetId === actor.profile.id
+    ? await sessionClient.rpc("revoke_other_app_sessions")
+    : await sessionClient.rpc("revoke_user_app_sessions", { p_user_id: targetId });
+  if (sessionError) finish("error", "Password berubah, tetapi sesi perangkat lama belum berhasil dicabut. Periksa keamanan akun.");
   const { error: unlockError } = await admin.from("login_protection_attempts").delete().eq("user_id", targetId);
   if (unlockError) finish("error", "Password berubah, tetapi status penguncian belum dapat direset. Periksa migrasi perlindungan login.");
   const { error: auditError } = await admin.from("activity_logs").insert({
