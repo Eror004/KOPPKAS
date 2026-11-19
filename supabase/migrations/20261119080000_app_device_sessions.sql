@@ -54,7 +54,9 @@ begin
     return jsonb_build_object('allowed', false, 'reason', 'session_missing');
   end if;
 
-  if coalesce(v_created_at, pg_catalog.now()) + interval '24 hours' <= pg_catalog.now()
+  v_created_at := coalesce(v_created_at, pg_catalog.now());
+
+  if v_created_at + interval '24 hours' <= pg_catalog.now()
     or (v_not_after is not null and v_not_after <= pg_catalog.now()) then
     delete from auth.sessions where id = v_session_id and user_id = v_user_id;
     return jsonb_build_object('allowed', false, 'reason', 'session_expired');
