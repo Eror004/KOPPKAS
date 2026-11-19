@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [migration, login, loginPage, authClient, accountActions] = await Promise.all([
+const [migration, login, loginPage, authClient, accountAdmin] = await Promise.all([
   read("../supabase/migrations/20261118074605_progressive_login_protection.sql"),
   read("../src/app/login/actions.ts"),
   read("../src/app/login/page.tsx"),
   read("../src/lib/supabase/auth.ts"),
-  read("../src/app/dashboard/akun/actions.ts"),
+  read("../supabase/functions/account-admin/index.ts"),
 ]);
 
 test("progressive login protection applies 15-minute and 1-hour lockouts", () => {
@@ -23,7 +23,8 @@ test("accounts at the 10-attempt threshold require Ketua admin unlock", () => {
   assert.match(migration, /requires_admin_unlock/);
   assert.match(migration, /Akun memerlukan verifikasi tambahan/);
   assert.match(accountActions, /export async function unlockAccount/);
-  assert.match(accountActions, /from\("login_protection_attempts"\)\.delete\(\)/);
+  assert.match(accountAdmin, /action === "unlock"/);
+  assert.match(accountAdmin, /from\("login_protection_attempts"\)\.delete\(\)/);
 });
 
 test("login protection state is inaccessible to public and ordinary authenticated users", () => {
