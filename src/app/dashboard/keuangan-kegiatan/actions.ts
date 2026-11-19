@@ -7,7 +7,7 @@ import { requireModulePermission } from "@/lib/auth/require-role";
 export type EventFinanceState = { success?: string; error?: string };
 
 export async function createEventFinanceEntry(_previous: EventFinanceState, formData: FormData): Promise<EventFinanceState> {
-  const user = await requireModulePermission("event_finance", "create");
+  await requireModulePermission("event_finance", "create");
   const eventId = String(formData.get("event_id") ?? "");
   const direction = String(formData.get("direction") ?? "");
   const amount = Number(formData.get("amount"));
@@ -21,31 +21,23 @@ export async function createEventFinanceEntry(_previous: EventFinanceState, form
   if (description.length < 2 || description.length > 240) return { error: "Keterangan harus berisi 2–240 karakter." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("event_ledger_entries").insert({
-    event_id: eventId, direction, amount, description, created_by: user.profile.id,
-    idempotency_key: idempotencyKey,
+  const { error } = await supabase.rpc("record_event_finance_entry", {
+    p_event_id: eventId,
+    p_direction: direction,
+    p_amount: amount,
+    p_description: description,
+    p_idempotency_key: idempotencyKey,
   });
 
   if (error?.code === "23505") {
-    const { data: existing } = await supabase.from("event_ledger_entries")
-      .select("event_id,direction,amount,description,created_by")
-      .eq("idempotency_key", idempotencyKey)
-      .maybeSingle();
-    if (
-      existing &&
-      existing.event_id === eventId &&
-      existing.direction === direction &&
-      Number(existing.amount) === amount &&
-      existing.description === description &&
-      existing.created_by === user.profile.id
-    ) {
-      revalidatePath("/dashboard/keuangan-kegiatan");
-      return { success: "Transaksi ini sudah tercatat sebelumnya." };
-    }
     return { error: "Kunci transaksi sudah digunakan untuk data yang berbeda." };
   }
+  if (error) {
+    if (error.code === "22023") return { error: "Kegiatan sudah ditutup atau data transaksi tidak valid." };
+    return { error: "Transaksi kegiatan gagal disimpan. Periksa status kegiatan dan hak akses." };
+  }
 
-  if (error) return { error: "Transaksi kegiatan gagal disimpan." };
   revalidatePath("/dashboard/keuangan-kegiatan");
+  revalidatePath("/dashboard/uang-keseluruhan");
   return { success: "Transaksi berhasil dicatat pada buku kegiatan." };
 }
