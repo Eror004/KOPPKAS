@@ -95,6 +95,14 @@ const handler = withSupabase({ auth: "user" }, async (request, context) => {
     if (password.length < 5 || password.length > 128) return response({ error: "Password harus berisi 5–128 karakter." }, 400);
     if (!allowedRoles.has(role)) return response({ error: "Jabatan akun tidak valid." }, 400);
 
+    const { count: accountCount, error: countError } = await admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true });
+    if (countError) return response({ error: "Jumlah akun organisasi belum dapat diverifikasi." }, 500);
+    if ((accountCount ?? 0) >= 6) {
+      return response({ error: "Batas enam akun organisasi sudah tercapai. Hubungi administrator untuk meninjau akun yang ada." }, 409);
+    }
+
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email,
       password,
