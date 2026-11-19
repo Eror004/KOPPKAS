@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema] = await Promise.all([
+const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema, accountLimit] = await Promise.all([
   read("../src/lib/auth/permissions.ts"),
   read("../src/app/dashboard/akun/actions.ts"),
   read("../src/lib/supabase/admin.ts"),
@@ -11,6 +11,7 @@ const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema] =
   read("../src/components/dashboard-home-client.tsx"),
   read("../supabase/functions/account-admin/index.ts"),
   read("../supabase/migrations/20261118033833_core_schema.sql"),
+  read("../supabase/migrations/20261119090000_koppkas_account_limit.sql"),
 ]);
 
 test("account management is granted only to Ketua Pemuda", () => {
@@ -83,4 +84,13 @@ test("account security revokes existing sessions before role, status or password
   const resetBlock = edgeFunction.slice(resetStart, resetEnd);
   assert.ok(resetBlock.indexOf("revoke_user_app_sessions_admin") < resetBlock.indexOf("updateUserById"));
   assert.ok(resetBlock.indexOf("revoke_other_app_sessions") < resetBlock.indexOf("updateUserById"));
+});
+
+test("organization account provisioning is capped at six, including inactive profiles", () => {
+  assert.match(edgeFunction, /from\("profiles"\)\s*\.select\("id", \{ count: "exact", head: true \}\)/);
+  assert.match(edgeFunction, /accountCount \?\? 0\) >= 6/);
+  assert.match(accountLimit, /pg_advisory_xact_lock/);
+  assert.match(accountLimit, /select count\(\*\)::integer/);
+  assert.match(accountLimit, /v_account_count >= 6/);
+  assert.match(accountLimit, /before insert on public\.profiles/);
 });
