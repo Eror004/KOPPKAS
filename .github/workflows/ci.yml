@@ -2,9 +2,9 @@ name: KOPPKAS CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, redesign/unified-dashboard-responsive]
   pull_request:
-    branches: [main]
+    branches: [main, redesign/unified-dashboard-responsive]
   workflow_dispatch:
 
 permissions:
