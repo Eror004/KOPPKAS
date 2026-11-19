@@ -27,7 +27,7 @@ test("first Ketua bootstrap rejects weak credentials and missing confirmation", 
   };
   assert.throws(() => validateBootstrapInput(valid), /12–128 karakter/);
   assert.throws(() => validateBootstrapInput({ ...valid, password: "long-enough-password", email: "not-an-email" }), /Email tidak valid/);
-  assert.throws(() => validateBootstrapInput({ ...valid, password: "long-enough-password", confirmation: "" }), /konfirmasi bootstrap/);
+  assert.throws(() => validateBootstrapInput({ ...valid, password: "long-enough-password", confirmation: "" }), /konfirmasi bootstrap/i);
 });
 
 test("bootstrap claims a singleton guard before checking and creating the first Auth user", async () => {
