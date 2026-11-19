@@ -1,3 +1,4 @@
+/// <reference lib="deno.ns" />
 import { withSupabase } from "npm:@supabase/server@1";
 
 const allowedRoles = new Set([
