@@ -6,7 +6,7 @@ import { can, type ModuleKey } from "@/lib/auth/permissions";
 import { ROLE_LABELS, type AppRole } from "@/lib/auth/roles";
 import {
   Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpenText, CalendarDays,
-  ChevronDown, ChevronRight, CircleHelp, Command, ContactRound, FileCheck2,
+  ChevronDown, ChevronRight, CircleHelp, Command, ContactRound,
   FileText, FolderKanban, HandCoins, House, Inbox, Landmark, LayoutGrid,
   Menu, MessageSquareText, MoreHorizontal, Search, ShieldCheck,
   UsersRound, Wallet, X
