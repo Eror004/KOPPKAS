@@ -45,3 +45,8 @@ test("final-report approval serializes on the event row and restricts approver r
   assert.match(approval, /on conflict \(event_id\) do nothing/i);
   assert.match(migration, /from public\.events\s+where id = p_event_id\s+for update/i);
 });
+test("event finance RPC uses a fixed search path and is not executable by public roles", () => {
+  assert.match(migration, /security definer\s+set search_path = ''/i);
+  assert.match(migration, /revoke all on function public\.record_event_finance_entry\([\s\S]*?from public, anon/i);
+  assert.match(migration, /grant execute on function public\.record_event_finance_entry\([\s\S]*?to authenticated/i);
+});
