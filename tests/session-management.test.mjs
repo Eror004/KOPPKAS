@@ -70,7 +70,7 @@ test("session revocation is scoped to the authenticated user and protects the cu
   assert.match(migration, /where id = p_session_id\s+and user_id = v_user_id/);
   assert.match(migration, /delete from auth\.sessions\s+where user_id = v_user_id\s+and id <> v_current_session_id/);
   assert.match(securityActions, /revoke_my_app_session/);
-  assert.match(securityActions, /revoke_other_app_sessions/);
+  assert.doesNotMatch(securityActions, /revoke_other_app_sessions/);
 });
 
 test("only an active Ketua Pemuda can revoke another account's sessions", () => {
