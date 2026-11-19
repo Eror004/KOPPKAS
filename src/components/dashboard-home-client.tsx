@@ -38,13 +38,14 @@ const utilityNav: NavItem[] = [
   { label: "Inbox", icon: Inbox },
   { label: "Notifikasi", icon: Bell },
   { label: "Riwayat Aktivitas", icon: Activity },
+  { label: "Keamanan Akun", icon: ShieldCheck },
 ];
 const allModules = [...primaryNav, ...financeNav, ...workspaceNav, ...utilityNav, ...accountNav];
 const moduleByLabel: Record<string, ModuleKey> = {
   "Beranda": "dashboard", "Keanggotaan": "members", "Struktur": "structure", "Kegiatan": "events",
   "Uang Keseluruhan": "general_finance", "Keuangan": "general_finance", "Uang Kas Bulanan": "monthly_dues",
   "Surat & Dokumen": "letters", "Pengumuman": "announcements", "Dokumentasi": "media", "Laporan": "reports",
-  "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity", "Manajemen Akun": "accounts",
+  "Inbox": "inbox", "Notifikasi": "notifications", "Riwayat Aktivitas": "activity", "Manajemen Akun": "accounts", "Keamanan Akun": "security",
 };
 
 function NavGroup({ title, items, active, role, onSelect }: {
@@ -102,6 +103,7 @@ export function DashboardHomeClient({ role }: { role: AppRole }) {
       "Laporan": "/dashboard/laporan",
       "Riwayat Aktivitas": "/dashboard/riwayat-aktivitas",
       "Manajemen Akun": "/dashboard/akun",
+      "Keamanan Akun": "/dashboard/keamanan-akun",
     };
     if (routes[label]) router.push(routes[label]);
   };
