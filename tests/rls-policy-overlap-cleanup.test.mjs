@@ -10,7 +10,7 @@ const migration = await readFile(
 test("Secretary retains organization-position write permissions without duplicate SELECT policy", () => {
   assert.match(migration, /drop policy if exists "positions_manage_secretary"/);
   for (const command of ["insert", "update", "delete"]) {
-    assert.match(migration, new RegExp(`create policy "positions_${command}_secretary"[\\s\\S]*?for ${command}`, "i"));
+    assert.match(migration, new RegExp('create policy "positions_' + command + '_secretary"[\\s\\S]*?for ' + command, "i"));
   }
   assert.doesNotMatch(migration, /create policy "positions_manage_secretary"/);
 });
@@ -31,7 +31,7 @@ test("profile self-update restrictions and Ketua management remain equivalent", 
 });
 
 test("policy consolidation is transactional and does not change grants, data, or RLS state", () => {
-  assert.match(migration, /\\bbegin;/);
-  assert.match(migration, /commit;\\s*$/);
+  assert.match(migration, /\bbegin;/);
+  assert.match(migration, /commit;\s*$/);
   assert.doesNotMatch(migration, /grant |revoke |disable row level security|drop table|truncate|delete from/i);
 });
