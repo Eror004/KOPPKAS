@@ -54,7 +54,7 @@ Migration files berada di `supabase/migrations/` dan harus diterapkan sesuai uru
 Saldo pembukaan November 2026 sebesar Rp205.000 tetap tercatat sebagai snapshot per 1 November 2026, bukan pemasukan baru.
 
 The migrations include:
-- Six organization roles and profile bootstrap.
+- Six organization roles and profile bootstrap; account creation is capped at six total profiles by a database trigger (inactive profiles count toward the limit).
 - Member directory, positions, events, finance ledgers, correspondence, announcements, media metadata, INBOX, notifications, and audit trail.
 - RLS policies and explicit Data API grants.
 - Idempotent monthly dues payments that post once into the overall ledger.
@@ -81,7 +81,7 @@ The migrations include:
 - INBOX read access is available to all six roles. Reply, assignment, status changes, and archive mutations remain disabled until the organization confirms their role permissions.
 - Public Auth signup is disabled. The dedicated KOPPKAS Supabase project already has an Auth user with an active `ketua_pemuda` profile. Do not run a first-account bootstrap.
 - Ketua-only account administration is being moved to the authenticated Supabase Edge Function `account-admin`, which uses Supabase-managed server secrets and does not depend on a Vercel service-role key. The Vercel `SUPABASE_SECRET_KEY` variable entry is currently empty in Production, Preview, and Development. Account administration no longer depends on it; it is only needed for optional Auth IP forwarding. Supabase documents the Password Verification Attempt Hook as Teams/Enterprise-only, so the progressive 5/10-attempt lockout is not active on the current Free plan.
-- Progressive login protection migration is applied; the Password Verification Hook's Dashboard activation still needs verification. The new three-device session enforcement and session-management UI are in `feat/session-security-controls-v2` and are not active until its migration is reviewed, applied, and deployed.
+- Progressive login protection SQL exists, but Supabase documents Password Verification Attempt Hooks as Teams/Enterprise-only; the 5/10-attempt lockout is not active on the current Free plan. Built-in Supabase Auth per-IP limits remain active. The three-device session enforcement, six-account cap, and session-management UI are in `feat/session-security-controls-v2` and are not active until their migrations are reviewed, applied, and deployed.
 - Public Contact Center exposes WhatsApp as the only initial contact channel. The official WhatsApp number has not yet been configured, so the button remains disabled and no personal number or placeholder link is displayed.
 - The private `koppkas-documents` Storage bucket and role-scoped policies are configured; upload UX and runtime access still require smoke testing.
 - Vercel project `koppkas` is linked to this repository and has a READY Production deployment from `main` (commit `ce875fde`). PR #2's login-header fix has been merged to `main`; its production deployment must be checked before declaring the login fix live.
