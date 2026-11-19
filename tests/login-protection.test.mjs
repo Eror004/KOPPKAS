@@ -3,12 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [migration, login, loginPage, authClient, accountActions] = await Promise.all([
+const [migration, login, loginPage, authClient, accountActions, permissions] = await Promise.all([
   read("../supabase/migrations/20261118074605_progressive_login_protection.sql"),
   read("../src/app/login/actions.ts"),
   read("../src/app/login/page.tsx"),
   read("../src/lib/supabase/auth.ts"),
   read("../src/app/dashboard/akun/actions.ts"),
+  read("../src/lib/auth/permissions.ts"),
 ]);
 
 test("progressive login protection applies 15-minute and 1-hour lockouts", () => {
@@ -52,4 +53,27 @@ test("account manager reads lock status computed by Postgres rather than render-
   assert.match(migration, /create or replace view public\.login_protection_status/);
   assert.match(migration, /security_invoker = true/);
   assert.match(migration, /locked_until > now\(\) as is_currently_locked/);
+});
+
+test("concurrent password attempts are serialized per account", () => {
+  assert.match(migration, /pg_advisory_xact_lock\(hashtextextended\(target_user_id::text, 0\)\)/);
+  assert.match(migration, /for update;/i);
+});
+
+test("expired 1-hour lock requires explicit admin unlock before another password check", () => {
+  const adminCheck = migration.indexOf("if found and attempt_row.requires_admin_unlock then");
+  const expiredLock = migration.indexOf("attempt_row.failed_attempts >= 10");
+  const passwordCheck = migration.indexOf("if password_valid then");
+  assert.ok(adminCheck >= 0 && expiredLock > adminCheck && passwordCheck > expiredLock);
+  assert.match(migration, /set requires_admin_unlock = true, updated_at = now\(\)/);
+});
+
+test("successful password verification clears the previous failure counter", () => {
+  assert.match(migration, /if password_valid then\s+delete from public\.login_protection_attempts where user_id = target_user_id;/);
+});
+
+test("only Ketua Pemuda can manage accounts and unlock protected accounts", () => {
+  assert.match(permissions, /ketua_pemuda:\s*\{[\s\S]*?accounts: \["read", "create", "update", "delete", "manage"\]/);
+  assert.doesNotMatch(permissions, /wakil_ketua_pemuda:\s*\{[\s\S]*?accounts:/);
+  assert.match(accountActions, /export async function unlockAccount\(formData: FormData\)\s*\{\s*const actor = await requireModulePermission\("accounts", "manage"\)/);
 });
