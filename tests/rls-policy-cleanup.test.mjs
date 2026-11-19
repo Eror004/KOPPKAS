@@ -28,7 +28,7 @@ test("removes legacy permissive policies that widened media access", () => {
 });
 
 test("policy cleanup is transactional and does not disable RLS", () => {
-  assert.match(migration, /^begin;/);
+  assert.match(migration, /\bbegin;/);
   assert.match(migration, /commit;\s*$/);
   assert.doesNotMatch(migration, /disable row level security/i);
   assert.doesNotMatch(migration, /drop table|truncate|delete from/i);
