@@ -64,7 +64,7 @@ test("each of the six roles can manage only its own session list", () => {
 });
 
 test("session revocation is scoped to the authenticated user and protects the current device", () => {
-  assert.match(migration, /v_user_id := auth\.uid\(\)/);
+  assert.match(migration, /v_user_id uuid := auth\.uid\(\)/);
   assert.match(migration, /p_session_id = v_current_session_id/);
   assert.match(migration, /where id = p_session_id\s+and user_id = v_user_id/);
   assert.match(migration, /delete from auth\.sessions\s+where user_id = v_user_id\s+and id <> v_current_session_id/);
