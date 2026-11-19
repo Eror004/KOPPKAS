@@ -34,7 +34,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Edge Function typecheck
-        run: deno check supabase/functions/account-admin/index.ts
+        run: deno check supabase/functions/account-admin/index.ts supabase/functions/public-contact-submit/index.ts
       - name: Schema invariant tests
         run: npm test
       - name: TypeScript
