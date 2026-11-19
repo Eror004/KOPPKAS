@@ -32,12 +32,11 @@ function hmacSha256(secret: string, value: string) {
 const handler = withSupabase({ auth: "none" }, async (request, context) => {
   if (request.method === "OPTIONS") return new Response("ok", { status: 204, headers: corsHeaders });
   if (request.method !== "POST") return response({ error: "Method not allowed." }, 405);
-  const contentLength = Number(request.headers.get("content-length") ?? 0);
-  if (contentLength > 16_384) return response({ error: "Ukuran pesan terlalu besar." }, 413);
-
   let body: Record<string, unknown>;
   try {
-    const parsed = await request.json();
+    const rawBody = await request.text();
+    if (rawBody.length > 16_384) return response({ error: "Ukuran pesan terlalu besar." }, 413);
+    const parsed = JSON.parse(rawBody);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return response({ error: "Format pesan tidak valid." }, 400);
     }
