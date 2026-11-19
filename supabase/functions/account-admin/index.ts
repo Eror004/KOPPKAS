@@ -1,4 +1,4 @@
-import { withSupabase } from "npm:@supabase/server";
+import { withSupabase } from "npm:@supabase/server@1";
 
 const allowedRoles = new Set([
   "ketua_pemuda",
