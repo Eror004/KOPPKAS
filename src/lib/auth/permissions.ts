@@ -4,7 +4,7 @@ export type ModuleKey =
   | "dashboard" | "members" | "structure" | "events"
   | "general_finance" | "monthly_dues" | "event_finance"
   | "letters" | "announcements" | "media" | "reports"
-  | "notifications" | "activity" | "accounts" | "inbox";
+  | "notifications" | "activity" | "accounts" | "inbox" | "security";
 
 export type PermissionAction = "read" | "create" | "update" | "delete" | "approve" | "manage";
 
