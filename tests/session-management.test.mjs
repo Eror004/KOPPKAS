@@ -78,7 +78,7 @@ test("only an active Ketua Pemuda can revoke another account's sessions", () => 
   const adminRevoke = migration.split("create or replace function public.revoke_user_app_sessions")[1];
   assert.match(adminRevoke, /v_actor_role is distinct from 'ketua_pemuda'/);
   assert.match(adminRevoke, /v_actor_active is distinct from true/);
-  assert.match(accountActions, /revoke_user_app_sessions/);
+  assert.match(adminFunction, /revoke_user_app_sessions_admin/);
 });
 
 test("security UI shows current devices, individual revocation and logout-all-other-devices", () => {
