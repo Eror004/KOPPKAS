@@ -104,6 +104,21 @@ export async function updateAccount(formData: FormData) {
     .eq("id", targetId);
 
   if (error) finish("error", "Perubahan akun gagal disimpan.");
+  if (!isActive || role !== target.role) {
+    const sessionClient = await createClient();
+    const { error: sessionError } = await sessionClient.rpc("revoke_user_app_sessions", {
+      p_user_id: targetId,
+    });
+    if (sessionError) {
+      await admin.from("profiles").update({
+        full_name: target.full_name,
+        role: target.role,
+        is_active: target.is_active,
+      }).eq("id", targetId);
+      finish("error", "Perubahan dibatalkan karena sesi lama akun belum berhasil dicabut.");
+    }
+  }
+
   const { error: auditError } = await admin.from("activity_logs").insert({
     actor_id: actor.profile.id,
     action: "update",
