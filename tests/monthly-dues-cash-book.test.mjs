@@ -13,15 +13,15 @@ const [migration, periodMigration, legacyWritePathMigration, actions, contract] 
 
 
 test("legacy monthly-dues SECURITY DEFINER write paths and direct register inserts are revoked", () => {
-  assert.match(legacyWritePathMigration, /revoke execute on function public\\.create_member_and_monthly_dues\\(text, date\\)\\s+from public, anon, authenticated/);
-  assert.match(legacyWritePathMigration, /revoke execute on function public\\.create_member_for_dues\\(text\\)\\s+from public, anon, authenticated/);
-  assert.match(legacyWritePathMigration, /revoke all on table public\\.monthly_dues from public, anon, authenticated/);
+  assert.match(legacyWritePathMigration, /revoke execute on function public\.create_member_and_monthly_dues\\(text, date\\)\\s+from public, anon, authenticated/);
+  assert.match(legacyWritePathMigration, /revoke execute on function public\.create_member_for_dues\\(text\\)\\s+from public, anon, authenticated/);
+  assert.match(legacyWritePathMigration, /revoke all on table public\.monthly_dues from public, anon, authenticated/);
   assert.match(legacyWritePathMigration, /revoke all on table public\.monthly_dues from public, anon, authenticated/);
   assert.match(legacyWritePathMigration, /grant select on table public\.monthly_dues to authenticated/);
   assert.match(legacyWritePathMigration, /revoke all on table public\.monthly_dues_payments from public, anon, authenticated/);
   assert.match(legacyWritePathMigration, /grant select on table public\.monthly_dues_payments to authenticated/);
   assert.match(legacyWritePathMigration, /create_member_and_monthly_dues_safe/);
-  assert.match(legacyWritePathMigration, /create or replace function public\\.ensure_monthly_dues_for_member/);
+  assert.match(legacyWritePathMigration, /create or replace function public\.ensure_monthly_dues_for_member/);
 });
 
 test("October 2026 historical opening balance is seeded as Rp205,000 and protected from mutation", () => {
