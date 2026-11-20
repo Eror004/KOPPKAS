@@ -29,7 +29,7 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(migration, /monthly_dues_cash_book_summary/);
   assert.match(migration, /monthly_dues_cash_book_movements/);
   assert.match(periodMigration, /pay\.paid_at >= opened\.opened_at/);
-  assert.match(periodMigration, /pay\.paid_at >= period\.opened_at/);
+  assert.match(periodMigration, /p\.paid_at >= period\.opened_at/);
   assert.match(periodMigration, /Saldo awal dari saldo akhir periode sebelumnya/);
   assert.match(periodMigration, /'0:opening:' \|\| summary\.dues_month/);
   assert.match(periodMigration, /'1:payment:' \|\| p\.id/);
