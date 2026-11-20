@@ -128,7 +128,7 @@ export function DuesDirectory(props: Props) {
     {canRecord && <section id="catat-pembayaran" className="bank-panel bank-payment" aria-labelledby="payment-title">
       <div className="bank-section-title"><div><p className="eyebrow">TRANSAKSI BARU</p><h2 id="payment-title">Catat pembayaran</h2><p>Periode berjalan yang telah dibuka: {periodLabel(currentMonth)}. Pembayaran dapat dilakukan sebagian atau beberapa kali.</p></div><span className="bank-icon"><ArrowDownLeft size={20} /></span></div>
       <div className="bank-payment-body">
-        <label className="bank-field" htmlFor={`${selectId}-search`}>Cari anggota aktif<input id={`${selectId}-search`} type="search" value={memberQuery} onChange={event => { setMemberQuery(event.target.value); setMemberId(""); setSelectedMember(null); }} placeholder="Ketik minimal 2 karakter" autoComplete="off" /></label>
+        <label className="bank-field" htmlFor={`${selectId}-search`}>Cari anggota aktif<input id={`${selectId}-search`} type="search" value={memberQuery} onChange={event => { setMemberQuery(event.target.value); setMemberResults({ members: [] }); setMemberError(""); setMemberLoading(false); setMemberId(""); setSelectedMember(null); }} placeholder="Ketik minimal 2 karakter" autoComplete="off" /></label>
         {memberLoading && <p role="status">Mencari anggota…</p>}
         {memberError && <p role="alert">{memberError}</p>}
         {memberResults.hasMore && <p role="status">Hasil dibatasi 15 anggota. Perjelas kata pencarian untuk menemukan anggota lainnya.</p>}
