@@ -2,35 +2,43 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [page, paymentForm] = await Promise.all([
-  readFile(new URL("../src/app/dashboard/uang-kas-bulanan/page.tsx", import.meta.url), "utf8"),
-  readFile(new URL("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", import.meta.url), "utf8"),
+const read = path => readFile(new URL(path, import.meta.url), "utf8");
+const [page, actions, directory, form] = await Promise.all([
+  read("../src/app/dashboard/uang-kas-bulanan/page.tsx"),
+  read("../src/app/dashboard/uang-kas-bulanan/actions.ts"),
+  read("../src/components/monthly-dues/dues-directory.tsx"),
+  read("../src/app/dashboard/uang-kas-bulanan/register-form.tsx"),
 ]);
 
-test("monthly dues dashboard loads a rolling 12-period history", () => {
-  assert.match(page, /historyStart/);
-  assert.match(page, /\.gte\("dues_month", historyStart\)/);
-  assert.match(page, /\.lte\("dues_month", currentMonth\)/);
-  assert.match(page, /for \(const row of allRows\)/);
-  assert.match(page, /Riwayat 12 periode terakhir/);
+test("monthly dues page reads explicit opened periods before querying member summaries", () => {
+  assert.match(page, /getMonthlyDuesPeriods\(\)/);
+  assert.match(page, /periodResult\.error/);
+  assert.match(page, /\.in\("dues_month", openedPeriods\)/);
+  assert.match(page, /\.range\(offset, offset \+ 999\)/);
+  assert.doesNotMatch(page, /historyStart|InlineMemberForm/);
 });
 
-test("monthly dues recap distinguishes historical unpaid periods without debt language", () => {
-  assert.match(page, /PERIODE LAMA BELUM LUNAS/);
-  assert.match(page, /historicalUnpaid/);
-  assert.match(page, /bukan tagihan, utang wajib, atau dasar denda/);
+test("period opening always submits an explicit next-month value", () => {
+  assert.match(form, /name="dues_month"/);
+  assert.match(form, /nextMonth/);
+  assert.match(actions, /formData\.get\("dues_month"\)/);
+  assert.match(actions, /open_monthly_dues_period/);
+  assert.doesNotMatch(actions, /upsert\(rows/);
 });
 
-test("current-month recording and payment controls remain available", () => {
-  assert.match(page, /RegisterForm/);
-  assert.match(page, /PaymentForm monthlyDuesId/);
-  assert.match(page, /InlineMemberForm/);
+test("member search and register creation use stable member IDs and explicit period", () => {
+  assert.match(directory, /searchMembers\(memberQuery, currentMonth\)/);
+  assert.match(directory, /ensureRegister\(member\.memberId, currentMonth\)/);
+  assert.match(directory, /createMember\(newName, currentMonth/);
+  assert.match(directory, /memberResults\.hasMore/);
+  assert.match(actions, /create_member_and_monthly_dues_safe/);
+  assert.match(actions, /ensure_monthly_dues_for_member/);
+  assert.doesNotMatch(directory, /from\("members"\)/);
 });
 
-test("dues payment form generates an idempotency key at submit time", () => {
-  assert.match(paymentForm, /crypto\.randomUUID\(\)/);
-  assert.match(paymentForm, /formData\.set\("idempotency_key"/);
-  assert.match(paymentForm, /useRef<string \| null>\(null\)/);
-  assert.match(paymentForm, /if \(result\.success\) idempotencyKeyRef\.current = null/);
-  assert.match(paymentForm, /value="" readOnly/);
+test("payment receipt lookup remains separate from payment submission", () => {
+  assert.match(directory, /getReceipt=\{getReceipt\}/);
+  assert.match(form, /idempotency_key/);
+  assert.match(form, /getReceipt/);
+  assert.match(actions, /getDuesPaymentReceipt/);
 });
