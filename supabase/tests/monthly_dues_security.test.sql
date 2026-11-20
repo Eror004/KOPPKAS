@@ -196,8 +196,8 @@ select throws_ok($$select public.open_monthly_dues_period(date '2026-11-01')$$, 
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
+select throws_ok($select public.open_monthly_dues_period(date '2026-12-01')$, '22023', 'Only the month immediately following the latest opened period can be opened', 'Cannot skip an unopened month');
 select is((public.open_monthly_dues_period(date '2026-11-01')->>'opening_balance')::numeric, 205000.00::numeric, 'November opens with October closing balance');
-select throws_ok($$select public.open_monthly_dues_period(date '2026-12-01')$$, '22023', 'Only the month immediately following the latest opened period can be opened', 'Cannot skip an unopened month');
 reset role;
 
 -- Persisted payment idempotency: a retry with the same key is a no-op; payload reuse is rejected.
@@ -225,7 +225,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
 select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 225000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'Bendahara can spend the exact available balance');
 select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 225000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'same expense idempotency key returns the original row');
-select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 1, 'Pengeluaran tambahan', timestamptz '2026-10-11 12:00:00+07', '40000000-0000-4000-8000-000000000002')$$, '23514', 'Insufficient cash balance: available 0.00, requested 1.00', 'expense above available balance is rejected');
+select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 1, 'Pengeluaran tambahan', timestamptz '2026-10-11 12:00:00+07', '40000000-0000-4000-8000-000000000002')$$, '23514', 'Insufficient cash balance: available 0.00, requested 1', 'expense above available balance is rejected');
 reset role;
 select is((select count(*)::integer from public.monthly_dues_cash_expenses where idempotency_key = '40000000-0000-4000-8000-000000000001'), 1, 'expense retry persists exactly one row');
 
