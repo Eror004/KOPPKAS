@@ -30,6 +30,9 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(periodMigration, /pay\.paid_at >= opened\.opened_at/);
   assert.match(periodMigration, /pay\.paid_at >= period\.opened_at/);
   assert.match(periodMigration, /Saldo awal dari saldo akhir periode sebelumnya/);
+  assert.match(periodMigration, /'0:opening:' \|\| summary\.dues_month/);
+  assert.match(periodMigration, /'1:payment:' \|\| p\.id/);
+  assert.match(periodMigration, /'2:expense:' \|\| e\.id/);
   assert.equal([...periodMigration.matchAll(/where \(select app_private\.has_any_role\(array\[/g)].length, 2, "both cash-book views must filter to finance roles");
   assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon, authenticated/);
   assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon, authenticated/);
@@ -49,7 +52,8 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(actions, /pageSize = 50/);
   assert.match(actions, /pageSize > 100/);
   assert.match(actions, /count: "exact"/);
-  assert.match(actions, /\.range\(from, from \+ pageSize - 1\)/);
+  assert.match(actions, /const to = from \+ pageSize - 1/);
+  assert.match(actions, /\.range\(from, to\)/);
   assert.match(actions, /hasMore: from \+ pageMovements\.length < count/);
   assert.match(actions, /from\("monthly_dues_cash_book_summary"\)/);
   assert.match(actions, /from\("monthly_dues_cash_book_movements"\)/);
