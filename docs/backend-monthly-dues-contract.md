@@ -93,7 +93,7 @@ The live migration history currently has six versions not present in `main` and 
 - The movement view emits one informational opening-balance row for every opened period. October shows the immutable historical Rp205,000 opening; later periods show their derived carry-forward opening balance. These display rows are not additional income and do not create stored cash transactions.
 - `generateMonthlyRegister(previous, formData)` now requires an explicit `dues_month` field and calls `open_monthly_dues_period`; it no longer silently creates the current calendar month.
 - `getMonthlyDuesPeriods()` lists periods that have actually been opened.
-- `getMonthlyDuesCashBook(duesMonth)` reads the role-filtered summary and movements after its Server Action permission check.
+- `getMonthlyDuesCashBook(duesMonth, page = 0, pageSize = 50)` reads the role-filtered summary and a deterministic movement page after its Server Action permission check. Page size is limited to 1–100; the result includes `movementCount`, `page`, `pageSize`, and `hasMore`. The summary totals are the authoritative full-period totals and must never be recomputed from one movement page.
 - `recordMonthlyDuesCashExpense(previous, formData)` writes only through the database RPC and returns the persisted transaction UUID.
 
 ### Example
