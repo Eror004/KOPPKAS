@@ -41,7 +41,7 @@ Cumulative post-transaction status is ordered by `paid_at, payment_id`, not deri
 
 - `recordDuesPayment` returns `transactionId` from the existing idempotent RPC after successful persistence.
 - `getDuesPaymentReceipt(transactionId)` reads the receipt projection by persisted payment UUID.
-- `searchDuesMembers(query, duesMonth)` searches active members by name and returns `{ members, error? }` with stable member UUIDs, including members without a period register. A query failure is distinct from an empty result.
+- `searchDuesMembers(query, duesMonth)` searches active members by name and returns `{ members, hasMore, error? }` with stable member UUIDs, including members without a period register. It fetches 16 rows to return at most 15 and sets `hasMore` when additional matches exist, so a capped result is never presented as complete. A query failure is distinct from an empty result.
 - `ensureDuesRegister(memberId, duesMonth)` safely creates or returns the period register ID for an existing member.
 - `createDuesMember(fullName, duesMonth, confirmSameName)` returns either the created member/register UUIDs or exact-name candidates for user disambiguation.
 
