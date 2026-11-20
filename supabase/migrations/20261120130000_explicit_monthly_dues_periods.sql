@@ -23,6 +23,14 @@ insert into public.monthly_dues_periods (dues_month, opened_by)
 values (date '2026-10-01', null)
 on conflict (dues_month) do nothing;
 
+-- Prepare the initial October register for members already active when this
+-- migration is applied. Later members are added through the period-gated RPC.
+insert into public.monthly_dues (member_id, dues_month, reference_amount)
+select m.id, date '2026-10-01', 10000
+from public.members m
+where m.archived_at is null
+on conflict (member_id, dues_month) do nothing;
+
 create or replace function public.open_monthly_dues_period(p_dues_month date)
 returns jsonb
 language plpgsql
