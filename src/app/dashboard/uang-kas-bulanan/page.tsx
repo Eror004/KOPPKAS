@@ -56,6 +56,6 @@ export default async function MonthlyDuesPage() {
   return <ModuleShell title="Uang Kas Bulanan"><main className="module-page">
     {canOpenPeriod && <RegisterForm duesMonth={nextOpenPeriod} />}
     <DuesDirectory rows={(data ?? []) as DuesRecord[]} currentMonth={currentMonth}
-      canRecord={can(user.role, "monthly_dues", "create")} openedPeriods={openedPeriods} />
+      canRecord={can(user.role, "monthly_dues", "create")} canViewCashBook={can(user.role, "general_finance", "read")} openedPeriods={openedPeriods} />
   </main></ModuleShell>;
 }
