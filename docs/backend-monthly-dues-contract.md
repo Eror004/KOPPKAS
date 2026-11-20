@@ -56,3 +56,36 @@ Cumulative post-transaction status is ordered by `paid_at, payment_id`, not deri
 ## Migration / verification gate
 This branch contains a prepared migration only. It has not been applied to any Supabase project.
 The live migration history currently has six versions not present in `main` and two local-only versions. Reconcile that history before applying or merging schema changes.
+
+
+## Historical monthly cash book and expenses
+
+### `monthly_dues_cash_opening_balances`
+- October 2026 is seeded with an immutable historical opening balance of Rp205,000.
+- This row is not a dues payment, not member income, and not a new general-ledger income entry.
+- RLS exposes the cash balance only to Ketua Pemuda, Wakil Ketua Pemuda, and Bendahara.
+- A database trigger rejects UPDATE and DELETE; authenticated users receive SELECT only.
+
+### `monthly_dues_cash_expenses`
+- Expenses are append-only records with period, amount, description, actual spending timestamp, recorder UUID, and idempotency key.
+- The selected period must match the spending timestamp in Asia/Jakarta.
+- Direct INSERT, UPDATE, and DELETE are not granted to authenticated clients.
+- The only write path is `record_monthly_dues_cash_expense`, which validates authentication, active finance role, amount, description, period, and idempotency.
+- UPDATE and DELETE are blocked by a database trigger. A correction must be represented by a separate compensating record; existing history is never overwritten.
+
+### Read models and Server Actions
+- `monthly_dues_cash_book_summary` returns opening balance, monthly dues inflows, expenses, and closing cash balance. The October 2026 opening balance is Rp205,000; subsequent periods carry forward the previous closing cash balance.
+- `monthly_dues_cash_book_movements` unifies the immutable opening record, persisted member payments, and persisted expense entries.
+- Both views use `security_invoker = true` and respect underlying RLS.
+- `getMonthlyDuesCashBook(duesMonth)` reads the summary and movements for finance roles.
+- `recordMonthlyDuesCashExpense(previous, formData)` writes only through the database RPC and returns the persisted transaction UUID.
+
+### Example
+For October 2026:
+- Opening balance: Rp205,000.
+- Expense: Rp50,000.
+- Closing balance before other inflows: Rp155,000.
+- The original opening-balance row remains Rp205,000 and cannot be edited or deleted.
+
+### Separation of books
+The historical cash opening record is scoped to UANG KAS BULANAN and is not inserted as an income entry in KEUANGAN. The two books remain separate. Member dues payments continue to be the source of monthly dues inflows; no amount is inferred or fabricated.
