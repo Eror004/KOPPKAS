@@ -77,12 +77,13 @@ export function DuesDirectory(props: Props) {
     }
     setRegisterError("Menyiapkan daftar kas anggota…");
     const result = await ensureRegister(member.memberId, currentMonth);
-    if (result.error || !result.monthlyDuesId) {
+    const monthlyDuesId = result.monthlyDuesId;
+    if (result.error || !monthlyDuesId) {
       setRegisterError(result.error ?? "Daftar kas anggota belum dapat disiapkan.");
       return;
     }
-    setSelectedMember({ memberId: member.memberId, fullName: member.fullName, monthlyDuesId: result.monthlyDuesId, paidAmount: 0 });
-    setMemberResults(current => ({ ...current, members: current.members.map(item => item.memberId === nextId ? { ...item, monthlyDuesId: result.monthlyDuesId, paidAmount: 0 } : item) }));
+    setSelectedMember({ memberId: member.memberId, fullName: member.fullName, monthlyDuesId, paidAmount: 0 });
+    setMemberResults(current => ({ ...current, members: current.members.map(item => item.memberId === nextId ? { ...item, monthlyDuesId, paidAmount: 0 } : item) }));
     setRegisterError("");
   }
 
