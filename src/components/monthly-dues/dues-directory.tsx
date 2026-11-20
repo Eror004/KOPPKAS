@@ -51,12 +51,10 @@ export function DuesDirectory(props: Props) {
 
   useEffect(() => {
     let active = true;
-    if (!canRecord || !currentMonth || memberQuery.trim().length < 2) {
-      setMemberResults({ members: [] }); setMemberError(""); setMemberLoading(false);
-      return () => { active = false; };
-    }
-    setMemberLoading(true); setMemberError("");
+    if (!canRecord || !currentMonth || memberQuery.trim().length < 2) return;
     const timer = setTimeout(() => {
+      setMemberLoading(true);
+      setMemberError("");
       searchMembers(memberQuery, currentMonth).then(result => {
         if (!active) return;
         setMemberResults(result);
