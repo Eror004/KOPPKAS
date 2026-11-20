@@ -48,7 +48,7 @@ export function DuesDirectory({ rows, currentMonth, canRecord, canViewCashBook =
       <a href="#rekap-bulanan"><span><FileText size={20} /></span>Rekap Bulanan</a>
     </nav>
 
-    {canViewCashBook && <AccountingPanel period={period} />
+    {canViewCashBook && <AccountingPanel period={period} />}
 
     <div className="bank-main-grid">
       <section id="mutasi-kas" className="bank-panel bank-transactions" aria-labelledby="transactions-title"><div className="bank-section-title"><div><p className="eyebrow">AKTIVITAS TERBARU</p><h2 id="transactions-title">Mutasi kas</h2></div><span>{periodLabel(period)}</span></div><div className="bank-unavailable"><span className="bank-empty-icon"><Clock3 size={22} aria-hidden="true" /></span><h3>Riwayat transaksi belum tersedia</h3><p>Data yang tersedia saat ini hanya total per anggota, bukan transaksi individual. Mutasi, pencarian transaksi, dan detail akan tersedia setelah kontrak backend disepakati.</p><button type="button" disabled>Cari transaksi</button></div></section>
