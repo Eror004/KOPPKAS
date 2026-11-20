@@ -87,10 +87,13 @@ The live migration history currently has six versions not present in `main` and 
 - `monthly_dues_cash_book_summary` returns only explicitly opened periods, with opening balance, actual dues inflows, expenses, and closing cash balance.
 - The opening balance for each later period is calculated from the preceding opened periods' actual net movements. Historical changes therefore recalculate subsequent opening balances without duplicating transactions.
 - `monthly_dues_cash_book_movements` unifies the immutable October opening record, persisted member payments, and persisted expense entries for opened periods.
-- Both views use `security_invoker = true` and respect underlying RLS.
+- Both views use `security_invoker = true`. Direct SELECT on the cash-book summary and movement views is revoked from `PUBLIC`, `anon`, and `authenticated` so users cannot bypass the finance-role boundary or receive a misleading partial view.
+- `get_monthly_dues_cash_book_summary(p_dues_month)` and `get_monthly_dues_cash_book_movements(p_dues_month)` are the only read paths for these views. They are `SECURITY DEFINER` functions with an empty search path, explicit `auth.uid()` checks, and active-role checks for Ketua, Wakil Ketua, and Bendahara; EXECUTE is revoked from `PUBLIC`/anon and granted to authenticated.
+- Cash-book income includes only payment rows with `paid_at >= monthly_dues_periods.opened_at`. Payments already present before the period's opening timestamp are excluded from the cash-book inflow so historic collections already represented by the Rp205,000 October opening balance are not counted a second time. New payments are written by the database with the current timestamp.
+- The movement view emits one informational opening-balance row for every opened period. October shows the immutable historical Rp205,000 opening; later periods show their derived carry-forward opening balance. These display rows are not additional income and do not create stored cash transactions.
 - `generateMonthlyRegister(previous, formData)` now requires an explicit `dues_month` field and calls `open_monthly_dues_period`; it no longer silently creates the current calendar month.
 - `getMonthlyDuesPeriods()` lists periods that have actually been opened.
-- `getMonthlyDuesCashBook(duesMonth)` reads the summary and movements for finance roles.
+- `getMonthlyDuesCashBook(duesMonth)` reads the summary and movements through the role-checked RPCs for finance roles.
 - `recordMonthlyDuesCashExpense(previous, formData)` writes only through the database RPC and returns the persisted transaction UUID.
 
 ### Example
