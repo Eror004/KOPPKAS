@@ -43,3 +43,11 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(contract, /November's opening cash is Rp255,000/);
   assert.match(contract, /The two books remain separate/);
 });
+
+test("cash expense timestamp validator accepts ISO timestamps with an explicit offset", () => {
+  const match = actions.match(/return (\/\^.*?\/)\.test\(value\)/s);
+  assert.ok(match, "timestamp regex must remain present in the Server Action");
+  const timestampPattern = new RegExp(match[1].slice(1, -1));
+  assert.equal(timestampPattern.test("2026-10-15T10:00:00+07:00"), true);
+  assert.equal(timestampPattern.test("not-a-timestamp"), false);
+});
