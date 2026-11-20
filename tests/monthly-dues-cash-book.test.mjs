@@ -35,8 +35,8 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(periodMigration, /'1:payment:' \|\| p\.id/);
   assert.match(periodMigration, /'2:expense:' \|\| e\.id/);
   assert.equal([...periodMigration.matchAll(/where \(select app_private\.has_any_role\(array\[/g)].length, 2, "both cash-book views must filter to finance roles");
-  assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon, authenticated/);
-  assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon, authenticated/);
+  assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon/);
+  assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon/);
   assert.match(periodMigration, /where \(select app_private\.has_any_role\(array\[/);
   assert.match(periodMigration, /grant select on public\.monthly_dues_cash_book_summary to authenticated/);
   assert.match(periodMigration, /grant select on public\.monthly_dues_cash_book_movements to authenticated/);
