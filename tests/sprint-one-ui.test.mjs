@@ -12,15 +12,19 @@ function load(path, overrides = {}) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
   const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const exports = {};
-  runInNewContext(js, { exports, require: (name) => overrides[name] ?? require(name), Intl, Date, Number });
+  runInNewContext(js, { exports, require: (name) => overrides[name] ?? require(name), Intl, Date, Number, crypto: globalThis.crypto });
   return exports;
 }
 const memberContracts = load("../src/components/members/contracts.ts");
 const duesContracts = load("../src/components/monthly-dues/contracts.ts");
 const { MemberDirectory } = load("../src/components/members/member-directory.tsx", { "./contracts": memberContracts });
-const { PaymentForm } = load("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", { "./actions": { recordDuesPayment: async () => ({}) } });
+const accountingContracts = load("../src/components/monthly-dues/accounting-contract.ts");
+const { AccountingPanel } = load("../src/components/monthly-dues/accounting-panel.tsx", { "./contracts": duesContracts, "./accounting-contract": accountingContracts });
+const { ReceiptFeedback } = load("../src/components/monthly-dues/receipt-feedback.tsx", { "./contracts": duesContracts });
+const { PaymentForm } = load("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", { "./actions": { recordDuesPayment: async () => ({}) }, "@/components/monthly-dues/receipt-feedback": { ReceiptFeedback } });
 const { DuesDirectory } = load("../src/components/monthly-dues/dues-directory.tsx", {
   "./contracts": duesContracts,
+  "./accounting-panel": { AccountingPanel },
   "@/app/dashboard/uang-kas-bulanan/payment-form": { PaymentForm: ({ monthlyDuesId }) => React.createElement("span", null, `Form pembayaran fixture ${monthlyDuesId}`) },
 });
 const members = [
@@ -121,4 +125,106 @@ test("payment form requires a confirmation and supports fractional positive entr
   assert.match(html, /min="0.01"[^>]*name="amount"/);
   assert.match(html, /type="checkbox" required=""/);
   assert.match(html, /Catatan pembayaran/);
+});
+
+test("historical opening is read-only and belongs only to October", () => {
+  const html = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-10-01" }));
+  assert.match(html, /Rp\s?205\.000/);
+  assert.match(html, /bukan transaksi pemasukan baru/i);
+  assert.doesNotMatch(html, /<button[^>]*>\s*(Edit|Hapus)/i);
+  assert.match(html, /<fieldset disabled=""/);
+  const november = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-11-01" }));
+  assert.doesNotMatch(november, /205\.000/);
+  assert.match(november, /tidak dibawa otomatis/);
+});
+
+test("running balance requires complete same-period data; historical opening remains unchanged", () => {
+  const fixtureSnapshot = { period: "2026-10-01", openingAmount: 205000, complete: true, mutations: [
+    { id: "fixture-expense", period: "2026-10-01", occurredAt: "2026-10-02T10:00:00Z", direction: "out", amount: 50000, description: "Pengeluaran fixture", recordedBy: "Penguji fixture" },
+  ] };
+  assert.equal(accountingContracts.runningBalance("2026-10-01", fixtureSnapshot), 155000);
+  assert.equal(accountingContracts.runningBalance("2026-11-01", fixtureSnapshot), null);
+  assert.equal(accountingContracts.runningBalance("2026-10-01", { ...fixtureSnapshot, complete: false }), null);
+  assert.equal(accountingContracts.runningBalance("2026-10-01", { ...fixtureSnapshot, openingAmount: 100000 }), null);
+  assert.equal(accountingContracts.runningBalance("2026-10-01", { ...fixtureSnapshot, mutations: [...fixtureSnapshot.mutations, fixtureSnapshot.mutations[0]] }), null);
+  const html = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-10-01", state: { kind: "ready", snapshot: fixtureSnapshot } }));
+  assert.match(html, /155\.000/); assert.match(html, /205\.000/); assert.match(html, /Pengeluaran fixture/);
+  assert.match(html, /Saldo awal historis/);
+  const november = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-11-01", state: { kind: "ready", snapshot: fixtureSnapshot } }));
+  assert.doesNotMatch(november, /155\.000|205\.000|Pengeluaran fixture/);
+});
+
+test("receipt retrieval failure does not retry payment and can be retried separately", async () => {
+  const { JSDOM } = await import("jsdom");
+  const dom = new JSDOM("<!doctype html><html><body><div id='root'></div></body></html>", { url: "http://localhost/" });
+  const names = ["window", "document", "navigator", "IS_REACT_ACT_ENVIRONMENT"];
+  const old = Object.fromEntries(names.map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, IS_REACT_ACT_ENVIRONMENT: true })) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(dom.window.document.getElementById("root"));
+  let calls = 0;
+  const fixtureReceipt = { payment_id: "fixture-transaction", payment_reference: "FIXTURE-ONLY", monthly_dues_id: "fixture-dues", member_id: "fixture-member", member_name: "Anggota fixture", amount: 5000, paid_at: "2026-10-02T10:00:00Z", dues_month: "2026-10-01", note: null, recorded_by: "fixture-user", recorded_by_name: null, reference_amount: 10000, paid_amount_after_transaction: 5000, status_after_transaction: "kurang" };
+  const getReceipt = async () => { calls++; return calls === 1 ? { error: "Bukti gagal dimuat" } : { receipt: fixtureReceipt }; };
+  try {
+    // ReceiptFeedback is mounted only after a successful payment with a transaction ID.
+    await React.act(async () => root.render(React.createElement(ReceiptFeedback, { transactionId: "fixture-transaction", getReceipt })));
+    assert.match(dom.window.document.body.textContent, /Pembayaran tercatat/);
+    await React.act(async () => dom.window.document.querySelector("button").click());
+    assert.match(dom.window.document.body.textContent, /Pembayaran tetap tercatat/);
+    assert.match(dom.window.document.body.textContent, /Coba ambil bukti lagi/);
+    await React.act(async () => dom.window.document.querySelector("button").click());
+    assert.equal(calls, 2);
+    assert.match(dom.window.document.body.textContent, /FIXTURE-ONLY/);
+    assert.match(dom.window.document.body.textContent, /KURANG/);
+  } finally {
+    await React.act(async () => root.unmount()); dom.window.close();
+    for (const key of names) {
+      if (old[key]) Object.defineProperty(globalThis, key, old[key]);
+      else delete globalThis[key];
+    }
+  }
+});
+
+test("successful payment remains successful if receipt fetch fails, and retry does not resubmit", async () => {
+  const { JSDOM } = await import("jsdom");
+  const dom = new JSDOM("<!doctype html><html><body><div id='root'></div></body></html>", { url: "http://localhost/" });
+  const names = ["window", "document", "navigator", "FormData", "IS_REACT_ACT_ENVIRONMENT"];
+  const old = Object.fromEntries(names.map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, FormData: dom.window.FormData, IS_REACT_ACT_ENVIRONMENT: true })) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import("react-dom/client");
+  let payments = 0; let receiptCalls = 0;
+  const { PaymentForm: TestPaymentForm } = load("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", {
+    "./actions": { recordDuesPayment: async () => { payments++; return { success: "Pembayaran berhasil dicatat.", transactionId: "fixture-id" }; } },
+    "@/components/monthly-dues/receipt-feedback": { ReceiptFeedback },
+  });
+  const root = createRoot(dom.window.document.getElementById("root"));
+  try {
+    await React.act(async () => root.render(React.createElement(TestPaymentForm, { monthlyDuesId: "fixture-dues", getReceipt: async () => { receiptCalls++; return { error: "Bukti belum tersedia" }; } })));
+    const form = dom.window.document.querySelector("form");
+    form.querySelector('[name="amount"]').value = "5000";
+    form.querySelector('input[type="checkbox"]').checked = true;
+    await React.act(async () => form.requestSubmit());
+    assert.equal(payments, 1);
+    assert.match(dom.window.document.body.textContent, /Pembayaran berhasil dicatat/);
+    await React.act(async () => [...form.querySelectorAll('button')].find(button => button.textContent === "Ambil bukti transaksi").click());
+    assert.match(dom.window.document.body.textContent, /Pembayaran berhasil dicatat/);
+    assert.match(dom.window.document.body.textContent, /Pembayaran tetap tercatat/);
+    await React.act(async () => [...form.querySelectorAll('button')].find(button => button.textContent === "Coba ambil bukti lagi").click());
+    assert.equal(receiptCalls, 2); assert.equal(payments, 1);
+  } finally {
+    await React.act(async () => root.unmount()); dom.window.close();
+    for (const key of names) {
+      if (old[key]) Object.defineProperty(globalThis, key, old[key]);
+      else delete globalThis[key];
+    }
+  }
+});
+
+test("accounting boundary renders loading and errors without suggesting a saved transaction", () => {
+  const loading = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-10-01", state: { kind: "loading" } }));
+  assert.match(loading, /Memuat pembukuan/);
+  const error = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-10-01", state: { kind: "error", message: "Data fixture gagal dimuat" } }));
+  assert.match(error, /role="alert"/);
+  assert.match(error, /Data fixture gagal dimuat/);
+  assert.doesNotMatch(error, /berhasil disimpan/i);
 });

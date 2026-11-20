@@ -7,7 +7,7 @@ export interface DuesRecord {
   reference_amount: number | string;
   paid_amount: number | string;
   remaining_amount: number | string;
-  payment_status: "lunas" | "belum_lunas";
+  payment_status: "lunas" | "belum_lunas" | "kurang" | "belum_bayar";
 }
 export const MONTHLY_REFERENCE = 10000;
 export type DuesStatus = "lunas" | "kurang" | "belum_bayar" | "unavailable";

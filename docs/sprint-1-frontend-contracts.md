@@ -27,3 +27,24 @@ The member count is the number of entries in that period's register, **not** all
 ## Validation scope
 
 UI tests use isolated, labelled fixtures and mock the payment form during component rendering; they do not exercise backend persistence. JSDOM interaction tests cover search, filtering, period navigation and selection by stable member ID, not real browser layout or assistive technology. Authenticated end-to-end, role-based RLS, responsive browser and screen-reader smoke tests are still required in an approved test environment.
+
+## Sprint 2: PR #22 readiness and historical accounting
+
+The `MonthlyDuesBackend` types in `backend-contract.ts` mirror the proposed PR #22 action responses reviewed at backend commit `2c00538f0c1557a62905d788f6e93d9df3c7669a`. They are **interfaces only**, not imports or calls to that branch. `searchDuesMembers`, `ensureDuesRegister`, `createDuesMember`, the updated `recordDuesPayment` response and `getDuesPaymentReceipt` are not present on the frontend branch and must not be presented as connected. After backend review, migration reconciliation and merge, wire authorized Server Actions to this boundary, validate role-specific behavior, and test against the real environment. Existing current-month registered-member payment uses the pre-existing action, which currently returns no transaction ID. No real receipt can be loaded on this branch.
+
+`ReceiptFeedback` accepts an injected receipt-read action for future wiring. A successful payment is kept separate from receipt retrieval; failures offer receipt-only retry, never payment resubmission. Only a returned receipt whose payment ID matches is displayed. The current screen does not inject the unavailable action.
+
+The owner-defined October 2026 historical opening reference (Rp205,000) is displayed read-only only for that period. It is explicitly labelled as an owner decision, not a backend-verified ledger row, payment, or November income. The accounting backend is **not connected**: live running balance, expense submission, transaction history and detail are unavailable. Disabled inputs are a UI boundary, not a working form or a fake success.
+
+### Owner/backend decisions required for accounting
+
+- Confirm whether this historical amount belongs in the monthly-dues ledger or an existing general-finance opening snapshot and prevent duplicate accounting across modules. Decide how period-specific balances are initialized without automatic carryover.
+- Provide a read-only, immutable, authorized opening record and a complete, period-scoped mutation read model. Define pagination/completeness so the UI never computes a running balance from a partial history, plus a unique persisted transaction ID, direction, amount, bookkeeping period, timestamp/timezone, description and verified recorder identity.
+- Provide an authorized expense action with validation and idempotency, timestamp/period semantics, immutable audit history, error and success responses, and access rules. No delete/edit action for the opening or history is exposed by this frontend.
+- `AccountingSnapshot` and `runningBalance` in `accounting-contract.ts` are **proposed frontend-only types and calculation** for complete, matching-period fixtures/future integration, not an existing backend schema. A mismatched/incomplete snapshot or invalid values returns unavailable, not a fabricated zero. No snapshot is supplied in production UI.
+
+Tests use fixture snapshots for Rp205,000 − Rp50,000 = Rp155,000, no cross-period leakage, and receipt-only retry after successful payment; they do not prove backend integration or persistence.
+
+### Responsive fixture check
+
+A separate development-only fixture using the actual UI components and no backend data was checked in headless Chromium at widths 320, 390, 768, 1024 and 1440px. It checked horizontal overflow, period navigation, visibility of the October-only opening, disabled expense controls, input focus outline and reduced-motion CSS. Google Fonts could not load due to sandbox network restrictions. This does not replace visual checks of the authenticated app, screen-reader testing, real Server Actions or backend/RLS verification.

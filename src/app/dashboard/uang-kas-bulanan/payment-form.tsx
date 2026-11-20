@@ -1,14 +1,16 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { recordDuesPayment, type DuesActionState } from "./actions";
+import { recordDuesPayment } from "./actions";
+import type { DuesActionState, ReceiptResult } from "@/components/monthly-dues/backend-contract";
+import { ReceiptFeedback } from "@/components/monthly-dues/receipt-feedback";
 
 const initialState: DuesActionState = {};
 const uuidPattern = /^[0-9a-f-]{36}$/i;
 
-export function PaymentForm({ monthlyDuesId }: { monthlyDuesId: string }) {
+export function PaymentForm({ monthlyDuesId, getReceipt }: { monthlyDuesId: string; getReceipt?: (transactionId: string) => Promise<ReceiptResult> }) {
   const idempotencyKeyRef = useRef<string | null>(null);
-  const [state, action, pending] = useActionState(async (previous: DuesActionState, formData: FormData) => {
+  const [state, action, pending] = useActionState(async (previous: DuesActionState, formData: FormData): Promise<DuesActionState> => {
     const existingKey = String(formData.get("idempotency_key") ?? "");
     const key = uuidPattern.test(existingKey) ? existingKey : idempotencyKeyRef.current ?? crypto.randomUUID();
     idempotencyKeyRef.current = key;
@@ -28,6 +30,8 @@ export function PaymentForm({ monthlyDuesId }: { monthlyDuesId: string }) {
       <button className="payment-submit" type="submit" disabled={pending}>{pending ? "Menyimpan..." : "Catat"}</button>
       {state.error && <span className="payment-feedback error" role="alert">{state.error}</span>}
       {state.success && <span className="payment-feedback success" role="status">{state.success}</span>}
+      {state.success && state.transactionId && <ReceiptFeedback key={state.transactionId} transactionId={state.transactionId} getReceipt={getReceipt} />}
+      {state.success && !state.transactionId && <span className="payment-feedback" role="status">Bukti belum tersedia: respons pembayaran belum menyertakan ID transaksi.</span>}
     </form>
   );
 }

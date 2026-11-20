@@ -2,6 +2,7 @@
 
 import { useId, useState, type ReactNode } from "react";
 import { ArrowDownLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Clock3, FileText, Plus, ReceiptText, Search, UsersRound, WalletCards } from "lucide-react";
+import { AccountingPanel } from "./accounting-panel";
 import { PaymentForm } from "@/app/dashboard/uang-kas-bulanan/payment-form";
 import { duesStatus, formatContribution, MONTHLY_REFERENCE, periodLabel, periodWindow, summarizeDues, type DuesRecord } from "./contracts";
 
@@ -41,6 +42,8 @@ export function DuesDirectory({ rows, currentMonth, canRecord, registerForm }: P
       <a href="#mutasi-kas"><span><ArrowDownLeft size={20} /></span>Mutasi Kas</a>
       <a href="#rekap-bulanan"><span><FileText size={20} /></span>Rekap Bulanan</a>
     </nav>
+
+    <AccountingPanel period={period} />
 
     <div className="bank-main-grid">
       <section id="mutasi-kas" className="bank-panel bank-transactions" aria-labelledby="transactions-title"><div className="bank-section-title"><div><p className="eyebrow">AKTIVITAS TERBARU</p><h2 id="transactions-title">Mutasi kas</h2></div><span>{periodLabel(period)}</span></div><div className="bank-unavailable"><span className="bank-empty-icon"><Clock3 size={22} aria-hidden="true" /></span><h3>Riwayat transaksi belum tersedia</h3><p>Data yang tersedia saat ini hanya total per anggota, bukan transaksi individual. Mutasi, pencarian transaksi, dan detail akan tersedia setelah kontrak backend disepakati.</p><button type="button" disabled>Cari transaksi</button></div></section>
