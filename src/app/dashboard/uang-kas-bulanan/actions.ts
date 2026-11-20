@@ -303,25 +303,27 @@ export async function getMonthlyDuesCashBook(duesMonth: string): Promise<Monthly
   if (!isValidMonth(duesMonth)) return { movements: [], error: "Periode buku kas tidak valid." };
 
   const supabase = await createClient();
-  const [{ data: summary, error: summaryError }, { data: movements, error: movementsError }] = await Promise.all([
-    supabase.from("monthly_dues_cash_book_summary")
-      .select("dues_month, opening_balance, income_amount, expense_amount, closing_balance")
-      .eq("dues_month", duesMonth)
-      .maybeSingle(),
-    supabase.from("monthly_dues_cash_book_movements")
-      .select("movement_key, transaction_id, dues_month, occurred_at, movement_type, description, amount, recorded_by, note, immutable")
-      .eq("dues_month", duesMonth)
-      .order("occurred_at", { ascending: true })
-      .order("movement_key", { ascending: true }),
+  const [{ data: summaryRows, error: summaryError }, { data: movementRows, error: movementsError }] = await Promise.all([
+    supabase.rpc("get_monthly_dues_cash_book_summary", {
+      p_dues_month: duesMonth,
+    }),
+    supabase.rpc("get_monthly_dues_cash_book_movements", {
+      p_dues_month: duesMonth,
+    }),
   ]);
 
   if (summaryError || movementsError) {
     return { movements: [], error: "Pembukuan kas periode ini belum dapat dimuat." };
   }
 
+  const summary = Array.isArray(summaryRows) ? summaryRows[0] : summaryRows;
+  if (!summary) {
+    return { movements: [], error: "Periode kas belum dibuka atau ringkasan pembukuannya belum tersedia." };
+  }
+
   return {
-    summary: (summary as MonthlyDuesCashBookSummary | null) ?? undefined,
-    movements: (movements ?? []) as MonthlyDuesCashMovement[],
+    summary: summary as MonthlyDuesCashBookSummary,
+    movements: (movementRows ?? []) as MonthlyDuesCashMovement[],
   };
 }
 
