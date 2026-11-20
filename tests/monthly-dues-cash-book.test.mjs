@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [migration, periodMigration, legacyWritePathMigration, actions, contract] = await Promise.all([
+const [duesMigration, migration, periodMigration, legacyWritePathMigration, actions, contract] = await Promise.all([
+  read("../supabase/migrations/20261120100000_monthly_dues_receipts_and_status.sql"),
   read("../supabase/migrations/20261120120000_monthly_dues_cash_book_opening_and_expenses.sql"),
   read("../supabase/migrations/20261120130000_explicit_monthly_dues_periods.sql"),
   read("../supabase/migrations/20261120140000_close_legacy_monthly_dues_write_paths.sql"),
@@ -24,6 +25,15 @@ test("legacy monthly-dues SECURITY DEFINER write paths and direct register inser
   assert.ok(periodMigration.includes("revoke all on function public.ensure_monthly_dues_for_member(uuid, date) from public, anon"));
   assert.ok(periodMigration.includes("grant execute on function public.ensure_monthly_dues_for_member(uuid, date) to authenticated"));
   assert.ok(periodMigration.includes("Monthly dues period has not been opened"));
+});
+
+test("partial voluntary payments remain unpaid until the monthly aggregate reaches Rp10,000", () => {
+  assert.match(duesMigration, /when coalesce\(sum\(p\.amount\), 0::numeric\) >= 10000 then 'lunas'/);
+  assert.match(duesMigration, /else 'belum_bayar'::text\s+end as payment_status/);
+  assert.match(duesMigration, /when op\.paid_amount_after_transaction >= 10000 then 'lunas'/);
+  assert.match(duesMigration, /else 'belum_bayar'::text\s+end as status_after_transaction/);
+  assert.doesNotMatch(duesMigration, /then 'kurang'/);
+  assert.match(contract, /whenever the aggregate is below Rp10,000, including partial voluntary payments/);
 });
 
 test("October 2026 historical opening balance is seeded as Rp205,000 and protected from mutation", () => {
