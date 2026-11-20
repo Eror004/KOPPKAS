@@ -20,7 +20,10 @@ test("legacy monthly-dues SECURITY DEFINER write paths and direct register inser
   assert.ok(legacyWritePathMigration.includes("revoke all on table public.monthly_dues_payments from public, anon, authenticated"));
   assert.ok(legacyWritePathMigration.includes("grant select on table public.monthly_dues_payments to authenticated"));
   assert.ok(legacyWritePathMigration.includes("create_member_and_monthly_dues_safe"));
-  assert.ok(legacyWritePathMigration.includes("ensure_monthly_dues_for_member"));
+  assert.ok(periodMigration.includes("create or replace function public.ensure_monthly_dues_for_member"));
+  assert.ok(periodMigration.includes("revoke all on function public.ensure_monthly_dues_for_member(uuid, date) from public, anon"));
+  assert.ok(periodMigration.includes("grant execute on function public.ensure_monthly_dues_for_member(uuid, date) to authenticated"));
+  assert.ok(periodMigration.includes("Monthly dues period has not been opened"));
 });
 
 test("October 2026 historical opening balance is seeded as Rp205,000 and protected from mutation", () => {
