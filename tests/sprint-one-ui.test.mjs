@@ -57,6 +57,8 @@ test("cash book shows official summary and paginates movements independently", (
   assert.match(accounting, /getCashBook\(period, \(result\.page \?\? 0\) \+ 1/);
   assert.match(accounting, /result\.hasMore/);
   assert.doesNotMatch(accounting, /reduce\(.*amount|runningBalance/);
+  assert.match(accounting, /getCashBook\(period, 0, 50\)/);
+  assert.match(accounting, /setCashState\(\{ period, result: refreshed/);
 });
 
 
