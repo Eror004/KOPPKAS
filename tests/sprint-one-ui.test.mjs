@@ -60,14 +60,25 @@ test("dues summary distinguishes partial, over-reference and no payments without
 });
 
 test("dues UI does not invent payment history or expose recording to read-only users", () => {
-  const html = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", canRecord: false }));
+  const html = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: false }));
   assert.match(html, /Contoh Sebagian/); assert.match(html, /KURANG/); assert.match(html, /BELUM BAYAR/); assert.match(html, /Riwayat transaksi individual belum tersedia/);
   assert.match(html, /sukarela/); assert.doesNotMatch(html, /Form pembayaran fixture/);
-  const recorder = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", canRecord: true }));
+  const recorder = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: true }));
   assert.doesNotMatch(recorder, /Form pembayaran fixture/);
   assert.match(recorder, /Penambahan dari kas sementara tidak tersedia/);
-  const empty = renderToStaticMarkup(React.createElement(DuesDirectory, { rows: [], currentMonth: "2026-11-01", canRecord: false }));
+  const empty = renderToStaticMarkup(React.createElement(DuesDirectory, { rows: [], currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: false }));
   assert.match(empty, /Belum ada daftar kas untuk periode ini/);
+});
+
+test("periods are not inferred from calendar or register rows", () => {
+  const missing = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", canRecord: true }));
+  assert.match(missing, /Daftar periode yang dibuka belum terhubung/);
+  assert.doesNotMatch(missing, /November 2026|Contoh Sebagian|Catat pembayaran/);
+  const empty = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: [], canRecord: true }));
+  assert.match(empty, /Belum ada periode dibuka/);
+  assert.doesNotMatch(empty, /November 2026|Contoh Sebagian/);
+  const october = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: ["2026-10-01"], canRecord: true }));
+  assert.doesNotMatch(october, /November 2026|Contoh Sebagian|id="catat-pembayaran"/);
 });
 
 test("search, filtering and month navigation update the rendered UI", async () => {
@@ -89,7 +100,7 @@ test("search, filtering and month navigation update the rendered UI", async () =
     });
     assert.match(dom.window.document.body.textContent, /Contoh Belum Lengkap/);
     assert.doesNotMatch(dom.window.document.body.textContent, /Contoh Anggota/);
-    await React.act(async () => root.render(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", canRecord: false })));
+    await React.act(async () => root.render(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: false })));
     const select = dom.window.document.querySelector(".sprint-select select");
     await React.act(async () => { select.value = "lunas"; select.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
     assert.match(dom.window.document.body.textContent, /Contoh Lunas/);
@@ -98,7 +109,7 @@ test("search, filtering and month navigation update the rendered UI", async () =
     assert.match(dom.window.document.querySelector("#dues-title").textContent, /Oktober 2026/);
     assert.match(dom.window.document.body.textContent, /Belum ada daftar kas untuk periode ini/);
     const duplicates = [...rows, { ...rows[0], id: "fixture-duplicate", member_id: "member-fixture-duplicate" }];
-    await React.act(async () => root.render(React.createElement(DuesDirectory, { rows: duplicates, currentMonth: "2026-11-01", canRecord: true })));
+    await React.act(async () => root.render(React.createElement(DuesDirectory, { rows: duplicates, currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: true })));
     const memberSearch = dom.window.document.querySelector('input[placeholder="Ketik nama anggota"]');
     await React.act(async () => {
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(memberSearch, "Sebagian");

@@ -5,7 +5,6 @@ import { Status } from "@/components/ui/status";
 import { can } from "@/lib/auth/permissions";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { createClient } from "@/lib/supabase/server";
-import { RegisterForm } from "./register-form";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +23,7 @@ export default async function MonthlyDuesPage() {
     .order("full_name", { ascending: true });
 
   const canRecord = can(user.role, "monthly_dues", "create");
-  const canRegister = canRecord && ["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role);
   return <ModuleShell title="Uang Kas Bulanan"><main className="module-page">
-    {error ? <Status kind="error" title="Data kas belum dapat dimuat">Silakan coba muat ulang halaman.</Status> : <DuesDirectory rows={(data ?? []) as DuesRecord[]} currentMonth={currentMonth} canRecord={canRecord} registerForm={canRegister ? <RegisterForm /> : undefined} />}
+    {error ? <Status kind="error" title="Data kas belum dapat dimuat">Silakan coba muat ulang halaman.</Status> : <DuesDirectory rows={(data ?? []) as DuesRecord[]} currentMonth={currentMonth} canRecord={canRecord} />}
   </main></ModuleShell>;
 }
