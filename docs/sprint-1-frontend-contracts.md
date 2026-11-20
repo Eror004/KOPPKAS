@@ -38,7 +38,7 @@ The owner-defined October 2026 historical opening reference (Rp205,000) is displ
 
 ### Owner/backend decisions required for accounting
 
-- Confirm whether this historical amount belongs in the monthly-dues ledger or an existing general-finance opening snapshot and prevent duplicate accounting across modules. Decide how period-specific balances are initialized without automatic carryover.
+- Confirm whether this historical amount belongs in the monthly-dues ledger or an existing general-finance opening snapshot and prevent duplicate accounting across modules. The owner has decided that a period is explicitly opened by the administrators with the previous period’s closing balance; obtain the final backend status, opening action and validation contract before integration.
 - Provide a read-only, immutable, authorized opening record and a complete, period-scoped mutation read model. Define pagination/completeness so the UI never computes a running balance from a partial history, plus a unique persisted transaction ID, direction, amount, bookkeeping period, timestamp/timezone, description and verified recorder identity.
 - Provide an authorized expense action with validation and idempotency, timestamp/period semantics, immutable audit history, error and success responses, and access rules. No delete/edit action for the opening or history is exposed by this frontend.
 - `AccountingSnapshot` and `runningBalance` in `accounting-contract.ts` are **proposed frontend-only types and calculation** for complete, matching-period fixtures/future integration, not an existing backend schema. A mismatched/incomplete snapshot or invalid values returns unavailable, not a fabricated zero. No snapshot is supplied in production UI.

@@ -15,6 +15,11 @@ export type AccountingState =
   | { kind: "error"; message: string }
   | { kind: "ready"; snapshot: AccountingSnapshot };
 
+/** Presentation boundary only, not a backend contract. Never infer status from missing rows. */
+export type PeriodPresentation =
+  | { period: string; status: "unopened" }
+  | { period: string; status: "opened"; opening: number | string; income: number | string; expenses: number | string; closing: number | string };
+
 /** Convert non-negative amounts to integer cents, without rounding away invalid precision. */
 function cents(value: number | string): number | null {
   const raw = String(value).trim();

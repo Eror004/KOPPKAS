@@ -139,7 +139,22 @@ test("historical opening is read-only and belongs only to October", () => {
   assert.match(html, /PEMASUKAN · Oktober 2026/);
   assert.match(html, /PENGELUARAN · Oktober 2026/);
   assert.match(html, /SALDO AKHIR · Oktober 2026/);
-  assert.match(html, /Menunggu data dan status penutupan resmi/);
+  assert.match(html, /Menunggu data resmi/);
+});
+
+test("period presentation requires explicit same-period status and never opens a period", () => {
+  const unopened = { period: "2026-11-01", status: "unopened" };
+  const html = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-11-01", periodData: unopened }));
+  assert.match(html, /Status periode: Belum dibuka/);
+  assert.match(html, /disabled=""[^>]*>Buka periode/);
+  assert.doesNotMatch(html, /205\.000|155\.000/);
+  const opened = { period: "2026-11-01", status: "opened", opening: 155000, income: 20000, expenses: 5000, closing: 170000 };
+  const display = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-11-01", periodData: opened }));
+  assert.match(display, /Status periode: Sudah dibuka/);
+  for (const value of ["155.000", "20.000", "5.000", "170.000"]) assert.ok(display.includes(value));
+  const mismatched = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-12-01", periodData: opened }));
+  assert.match(mismatched, /Status periode: Belum terverifikasi/);
+  assert.doesNotMatch(mismatched, /155\.000|170\.000/);
 });
 
 test("running balance requires complete same-period data; historical opening remains unchanged", () => {
