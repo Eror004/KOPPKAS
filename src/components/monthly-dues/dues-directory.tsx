@@ -7,10 +7,10 @@ import { PaymentForm } from "@/app/dashboard/uang-kas-bulanan/payment-form";
 import { DuesMemberCreateForm } from "@/app/dashboard/uang-kas-bulanan/member-create-form";
 import { duesStatus, formatContribution, MONTHLY_REFERENCE, periodLabel, summarizeDues, type DuesRecord } from "./contracts";
 
-type Props = { rows: DuesRecord[]; currentMonth: string; canRecord: boolean; openedPeriods?: readonly string[] };
+type Props = { rows: DuesRecord[]; currentMonth: string; canRecord: boolean; canViewCashBook?: boolean; openedPeriods?: readonly string[] };
 const labels = { lunas: "LUNAS", kurang: "KURANG", belum_bayar: "BELUM BAYAR", unavailable: "PERLU DIPERIKSA" } as const;
 
-export function DuesDirectory({ rows, currentMonth, canRecord, openedPeriods }: Props) {
+export function DuesDirectory({ rows, currentMonth, canRecord, canViewCashBook = false, openedPeriods }: Props) {
   const periods = Array.from(new Set(openedPeriods ?? [])).sort().reverse();
   const [selectedPeriod, setPeriod] = useState<string | null>(null);
   const period = selectedPeriod && periods.includes(selectedPeriod) ? selectedPeriod : periods[0] ?? "";
@@ -48,7 +48,7 @@ export function DuesDirectory({ rows, currentMonth, canRecord, openedPeriods }: 
       <a href="#rekap-bulanan"><span><FileText size={20} /></span>Rekap Bulanan</a>
     </nav>
 
-    <AccountingPanel period={period} />
+    {canViewCashBook && <AccountingPanel period={period} />
 
     <div className="bank-main-grid">
       <section id="mutasi-kas" className="bank-panel bank-transactions" aria-labelledby="transactions-title"><div className="bank-section-title"><div><p className="eyebrow">AKTIVITAS TERBARU</p><h2 id="transactions-title">Mutasi kas</h2></div><span>{periodLabel(period)}</span></div><div className="bank-unavailable"><span className="bank-empty-icon"><Clock3 size={22} aria-hidden="true" /></span><h3>Riwayat transaksi belum tersedia</h3><p>Data yang tersedia saat ini hanya total per anggota, bukan transaksi individual. Mutasi, pencarian transaksi, dan detail akan tersedia setelah kontrak backend disepakati.</p><button type="button" disabled>Cari transaksi</button></div></section>
