@@ -289,6 +289,10 @@ export type MonthlyDuesCashMovement = {
 export type MonthlyDuesCashBookResult = {
   summary?: MonthlyDuesCashBookSummary;
   movements: MonthlyDuesCashMovement[];
+  movementCount?: number;
+  page?: number;
+  pageSize?: number;
+  hasMore?: boolean;
   error?: string;
 };
 
@@ -298,33 +302,49 @@ function isOffsetTimestamp(value: string): boolean {
 }
 
 /** Finance-role-only read model for the monthly cash book and its immutable movements. */
-export async function getMonthlyDuesCashBook(duesMonth: string): Promise<MonthlyDuesCashBookResult> {
+export async function getMonthlyDuesCashBook(
+  duesMonth: string,
+  page = 0,
+  pageSize = 50,
+): Promise<MonthlyDuesCashBookResult> {
   await requireModulePermission("general_finance", "read");
   if (!isValidMonth(duesMonth)) return { movements: [], error: "Periode buku kas tidak valid." };
+  if (!Number.isSafeInteger(page) || page < 0
+      || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+    return { movements: [], error: "Halaman atau ukuran halaman mutasi tidak valid." };
+  }
+  const from = page * pageSize;
+  if (!Number.isSafeInteger(from)) return { movements: [], error: "Rentang halaman mutasi tidak valid." };
 
   const supabase = await createClient();
-  const [{ data: summary, error: summaryError }, { data: movements, error: movementsError }] = await Promise.all([
+  const [{ data: summary, error: summaryError }, { data: movements, error: movementsError, count }] = await Promise.all([
     supabase.from("monthly_dues_cash_book_summary")
       .select("dues_month, opening_balance, income_amount, expense_amount, closing_balance")
       .eq("dues_month", duesMonth)
       .maybeSingle(),
     supabase.from("monthly_dues_cash_book_movements")
-      .select("movement_key, transaction_id, dues_month, occurred_at, movement_type, description, amount, recorded_by, note, immutable")
+      .select("movement_key, transaction_id, dues_month, occurred_at, movement_type, description, amount, recorded_by, note, immutable", { count: "exact" })
       .eq("dues_month", duesMonth)
       .order("occurred_at", { ascending: true })
-      .order("movement_key", { ascending: true }),
+      .order("movement_key", { ascending: true })
+      .range(from, from + pageSize - 1),
   ]);
 
-  if (summaryError || movementsError) {
+  if (summaryError || movementsError || count === null) {
     return { movements: [], error: "Pembukuan kas periode ini belum dapat dimuat." };
   }
   if (!summary) {
     return { movements: [], error: "Periode kas belum dibuka atau ringkasan pembukuannya belum tersedia." };
   }
 
+  const pageMovements = (movements ?? []) as MonthlyDuesCashMovement[];
   return {
     summary: summary as MonthlyDuesCashBookSummary,
-    movements: (movements ?? []) as MonthlyDuesCashMovement[],
+    movements: pageMovements,
+    movementCount: count,
+    page,
+    pageSize,
+    hasMore: from + pageMovements.length < count,
   };
 }
 
