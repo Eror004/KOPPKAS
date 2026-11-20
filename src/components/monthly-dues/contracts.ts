@@ -12,7 +12,7 @@ export interface DuesRecord {
 export const MONTHLY_REFERENCE = 10000;
 
 export function isValidDuesMonth(value: string): boolean {
-  return /^\\d{4}-(0[1-9]|1[0-2])-01$/.test(value);
+  return /^\d{4}-(0[1-9]|1[0-2])-01$/.test(value);
 }
 export type DuesStatus = "lunas" | "kurang" | "belum_bayar" | "unavailable";
 
