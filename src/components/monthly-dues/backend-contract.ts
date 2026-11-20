@@ -56,3 +56,5 @@ export type MonthlyDuesCashBookResult = {
   hasMore?: boolean;
   error?: string;
 };
+
+export type DuesActionState = { success?: string; error?: string; transactionId?: string };
