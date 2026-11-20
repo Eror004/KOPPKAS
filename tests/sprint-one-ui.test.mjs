@@ -76,4 +76,5 @@ test("inline member creation prevents duplicate submissions while an action is p
   assert.match(duesDirectory, /createPendingRef\.current/);
   assert.match(duesDirectory, /disabled=\{createPending\}/);
   assert.match(duesDirectory, /finally \{[\s\S]*createPendingRef\.current = false/);
+  assert.ok(duesDirectory.indexOf("if (createPendingRef.current) return;") < duesDirectory.indexOf("await createMember("));
 });
