@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
-const [page, actions, directory, form] = await Promise.all([
+const [page, actions, directory, registerForm, paymentForm] = await Promise.all([
   read("../src/app/dashboard/uang-kas-bulanan/page.tsx"),
   read("../src/app/dashboard/uang-kas-bulanan/actions.ts"),
   read("../src/components/monthly-dues/dues-directory.tsx"),
   read("../src/app/dashboard/uang-kas-bulanan/register-form.tsx"),
+  read("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx"),
 ]);
 
 test("monthly dues page reads explicit opened periods before querying member summaries", () => {
@@ -19,8 +20,8 @@ test("monthly dues page reads explicit opened periods before querying member sum
 });
 
 test("period opening always submits an explicit next-month value", () => {
-  assert.match(form, /name="dues_month"/);
-  assert.match(form, /nextMonth/);
+  assert.match(registerForm, /name="dues_month"/);
+  assert.match(registerForm, /nextMonth/);
   assert.match(actions, /formData\.get\("dues_month"\)/);
   assert.match(actions, /open_monthly_dues_period/);
   assert.doesNotMatch(actions, /upsert\(rows/);
@@ -38,7 +39,7 @@ test("member search and register creation use stable member IDs and explicit per
 
 test("payment receipt lookup remains separate from payment submission", () => {
   assert.match(directory, /getReceipt=\{getReceipt\}/);
-  assert.match(form, /idempotency_key/);
-  assert.match(form, /getReceipt/);
+  assert.match(paymentForm, /idempotency_key/);
+  assert.match(paymentForm, /getReceipt/);
   assert.match(actions, /getDuesPaymentReceipt/);
 });
