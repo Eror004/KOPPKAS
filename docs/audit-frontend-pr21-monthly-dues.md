@@ -1,0 +1,44 @@
+# Audit frontend Uang Kas Bulanan — PR #21
+
+Audit terhadap frontend pada `7f79197d85cb365b25332f83a839172b2ed311fb` dan kontrak **sementara** PR #22 pada `51cb2ed09900bcc48222722d41f45c15277db40f`. PR #22 masih draft dan backend specialist sedang mengubahnya; temuan bukan persetujuan kontrak. Tidak ada perubahan ke PR #22, migrasi, action backend, auth, database atau deployment.
+
+## Kondisi pada branch frontend
+
+| Area | Kondisi yang dapat dibuktikan dari kode |
+| --- | --- |
+| Pembayaran | `PaymentForm` terhubung ke action `recordDuesPayment` yang sudah ada pada branch ini dan memilih `monthly_dues_id` dari baris register. Input mencakup nominal, catatan dan konfirmasi, dengan key idempotensi. Success/error UI berasal dari action, bukan mock. Belum ada verifikasi sesi terautentikasi, RLS atau persistensi nyata pada audit ini. |
+| Autocomplete | Pencarian client hanya terhadap baris register bulan berjalan yang sudah dimuat, bukan seluruh direktori anggota. Pemilihan menggunakan `member_id`, kemudian `monthly_dues_id` untuk action. Nama yang sama tidak menjadi identitas transaksi. Anggota tanpa register belum dapat dipilih. |
+| Tambah anggota | Entry point dari kas dinonaktifkan karena action lama tidak memberikan resolusi duplikasi atomik. UI Keanggotaan dan action lamanya tetap ada; keberhasilan lintas modul belum diuji live. |
+| Struk | Action lama hanya mengembalikan success/error tanpa `transactionId`. `ReceiptFeedback` dan retry bukti ada sebagai komponen dengan action yang harus disuntikkan, tetapi halaman belum memberinya `getReceipt`; bukti riil belum tersedia. Test memakai fixture/stub, bukan transaksi nyata. |
+| Mutasi | Halaman hanya meng-query `monthly_dues_summary` agregat. Panel mutasi dan struk menampilkan belum tersedia; tidak ada detail atau transaksi palsu. |
+| Saldo awal | Oktober 2026 menampilkan Rp205.000 dari keputusan pemilik, read-only dan dilabeli **belum terverifikasi backend**. Bukan catatan pemasukan atau iuran. Tidak ada tombol edit/hapus pada kartu saldo awal. |
+| Pemasukan/pengeluaran/saldo akhir | Label terpisah tersedia; nominal ditampilkan `—` hingga data dan status penutupan resmi tersedia. Saldo berjalan juga `—` pada halaman aktual karena belum ada snapshot backend. `AccountingSnapshot`/`runningBalance` adalah batas frontend hipotetis dan diuji hanya dengan fixture. Saldo berjalan tidak otomatis berarti saldo akhir yang sudah ditutup. |
+| November | UI tidak mengasumsikan angka Oktober sebagai saldo awal November dan menyatakan status pembukaan belum terverifikasi. Belum ada sumber otoritatif pada frontend untuk menyatakan bahwa November sudah/belum dibuka atau berapa saldonya. Tidak boleh menampilkan status atau saldo tersebut sebagai fakta backend sampai kontrak disepakati. |
+| Pengeluaran | Field dan tombol sengaja disabled; tidak ada submit, validasi runtime, pencatat terautentikasi atau sukses palsu. State loading/error boundary dan contoh nominal hanya diuji memakai fixture. |
+
+## Ketidaksesuaian dan pertanyaan untuk Backend Specialist/pemilik
+
+1. **Kontrak belum final:** tipe `src/components/monthly-dues/backend-contract.ts` mencerminkan PR #22 lama (`2c00538...`), bukan jaminan kontrak akhir. Action `searchDuesMembers`, `ensureDuesRegister`, `createDuesMember`, respons transaksi dari `recordDuesPayment`, serta `getDuesPaymentReceipt` belum di-wire ke halaman.
+2. **Status buka/tutup dan carry-forward:** kontrak draft `51cb2ed...` menyatakan saldo akhir bulan sebelumnya otomatis menjadi saldo awal berikutnya, dan view menggunakan `generate_series` hingga bulan berjalan/terakhir. Respons summary tidak memiliki status periode dibuka/ditutup. Karena pemilik meminta November yang belum dibuka dibedakan, jangan menyimpulkan bahwa adanya baris summary berarti November telah dibuka atau bahwa carry-forward telah disetujui. Konfirmasi aturan saldo awal November, persetujuan pembukaan/penutupan, serta sumber status otoritatif. Ini berbeda dari larangan membawa *kekurangan iuran* antarbulan.
+3. **Model pembukuan:** frontend sementara mengusulkan `AccountingSnapshot`/`AccountingMutation` (`direction`, `complete`); PR #22 menawarkan `MonthlyDuesCashBookSummary` (`opening_balance`, `income_amount`, `expense_amount`, `closing_balance`) dan `MonthlyDuesCashMovement` (`movement_key`, `movement_type`, dst.), tanpa `complete` atau status penutupan. Jangan cast langsung. Utamakan angka summary otoritatif yang telah disetujui; definisikan pagination dan bukti kelengkapan untuk riwayat, dan jangan menghitung saldo dari halaman mutasi parsial. Hindari menjumlahkan `saldo_awal` kedua kalinya sebagai pemasukan.
+4. **Akses:** frontend saat ini memasang panel historis statis untuk seluruh role dengan akses kas bulanan; PR #22 draft mensyaratkan `general_finance` untuk cash book/pengeluaran, sehingga Sekretaris dapat mengakses kas bulanan tetapi tidak cash book draft. Konfirmasi apakah label dan angka historis boleh terlihat pada role tersebut; data sensitif dan action final harus dibatasi di server sesuai keputusan final. Juga konfirmasi apakah saldo awal khusus kas dan snapshot keuangan umum berisiko menggandakan pelaporan.
+5. **Potensi bug PR #22 draft:** pada `actions.ts` di commit `51cb2ed...`, regex `isOffsetTimestamp` memakai `\\\\d` dalam regex literal. Evaluasi ekspresi yang diambil dari file menghasilkan `false` untuk `2026-10-15T10:00:00+07:00`, sehingga tanggal ISO yang valid tampaknya ditolak. Ini temuan statis, bukan uji action/DB; perlu Backend Specialist memverifikasi dan memperbaiki jika masih ada di kontrak final. Frontend tidak mengubah file backend.
+6. **Idempotensi dan status tak pasti:** action pembayaran existing mempertahankan key saat gagal; pengguna mengubah nominal/catatan lalu mencoba dengan key yang sama dapat terkena konflik payload. Menukar key secara otomatis setelah kegagalan tak pasti juga bisa menggandakan pembayaran. Perlu kontrak backend dan UX yang membedakan gagal pasti vs hasil tak diketahui sebelum perubahan retry. Gagal mengambil struk tidak boleh memicu ulang pembayaran.
+7. **Tanggal/waktu dan identitas:** input `datetime-local` tidak membawa offset. Action pengeluaran draft meminta timestamp dengan offset dan periodenya harus sesuai Asia/Jakarta; cara konversi, verifikasi DST/timezone, dan idempotency key harus disepakati. Identitas pencatat harus berasal dari sesi server, bukan input pengguna.
+
+## File/komponen untuk integrasi setelah kontrak final
+
+- `src/app/dashboard/uang-kas-bulanan/page.tsx`: auth/role-scoped data loading cash book, state unavailable/denied/error dan boundary server; jangan query atau menampilkan data sebelum role diizinkan.
+- `src/components/monthly-dues/backend-contract.ts`: cocokkan jenis dan signature final; hindari kontrak ganda yang tertinggal.
+- `src/components/monthly-dues/dues-directory.tsx`: search autocomplete seluruh anggota, ensure register berdasarkan UUID, alur kandidat nama sama, riwayat dan paging, serta periode yang benar.
+- `src/app/dashboard/uang-kas-bulanan/payment-form.tsx` dan `src/components/monthly-dues/receipt-feedback.tsx`: integrasikan respons ID transaksi dan action baca bukti; pertahankan retry terpisah dan tangani response yang ambigu.
+- `src/components/monthly-dues/accounting-panel.tsx` dan `accounting-contract.ts`: adaptasi summary/movement/status periode final, role visibility, dan expense UI ke action backend yang telah disetujui. Jangan memakai `complete` atau struktur usulan sebagai fakta backend.
+- `src/components/monthly-dues/contracts.ts`, `src/app/globals.css`, `tests/sprint-one-ui.test.mjs`, dan dokumentasi ini: sesuaikan status, accessible states, responsive dan regression coverage.
+
+## Test yang masih diperlukan sebelum menyatakan integrasi berfungsi
+
+- Test dengan database terisolasi yang telah dimigrasikan dan akun keenam role: reads, writes, akses ditolak, RLS, ID anggota stabil, nama sama, register baru dan duplikasi konkuren.
+- Test pembayaran parsial/berulang, double submit, konflik/retry idempotensi, status belum pasti, receipt fetch gagal setelah pembayaran sukses, retry bukti tanpa transaksi baru dan akses receipt lintas role.
+- Test saldo awal Oktober immutable, pemasukan/pengeluaran nyata, mutasi append-only dan page batas/urutan, akurasi snapshot lengkap, pembukaan/penutupan dan November hanya sesuai keputusan final; validasi tidak ada posting ganda antar buku.
+- Test input tanggal dengan offset dan batas tengah malam Asia/Jakarta, invalid date, periode salah, akun pencatat dan permission sesuai role.
+- Browser desktop/tablet/mobile, keyboard/focus, screen reader, reduced motion, loading/empty/error/success yang benar-benar berasal dari backend, serta hydration/console dengan sesi autentikasi. Test fixture JSDOM/Chromium sebelumnya bukan bukti integrasi produksi.

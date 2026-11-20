@@ -135,7 +135,11 @@ test("historical opening is read-only and belongs only to October", () => {
   assert.match(html, /<fieldset disabled=""/);
   const november = renderToStaticMarkup(React.createElement(AccountingPanel, { period: "2026-11-01" }));
   assert.doesNotMatch(november, /205\.000/);
-  assert.match(november, /tidak dibawa otomatis/);
+  assert.match(november, /status pembukaan periode belum terverifikasi oleh backend/);
+  assert.match(html, /PEMASUKAN · Oktober 2026/);
+  assert.match(html, /PENGELUARAN · Oktober 2026/);
+  assert.match(html, /SALDO AKHIR · Oktober 2026/);
+  assert.match(html, /Menunggu data dan status penutupan resmi/);
 });
 
 test("running balance requires complete same-period data; historical opening remains unchanged", () => {
