@@ -13,20 +13,20 @@ test("monthly dues dashboard loads a rolling 12-period history", () => {
   assert.match(page, /\.gte\("dues_month", historyStart\)/);
   assert.match(page, /\.lte\("dues_month", currentMonth\)/);
   assert.match(directory, /periodWindow\(currentMonth\)/);
-  assert.match(directory, /Riwayat 12 periode terakhir/);
+  assert.match(directory, /12 periode terakhir/);
 });
 
 test("monthly dues recap explicitly avoids debt or automatic arrears", () => {
-  assert.match(directory, /bukan tagihan, utang wajib, atau dasar denda/);
+  assert.match(directory, /Setiap bulan berdiri sendiri/);
   assert.match(directory, /rows\.filter\(row => row\.dues_month === period\)/);
 });
 
 test("current-month recording and payment controls remain role scoped", () => {
   assert.match(page, /can\(user\.role, "monthly_dues", "create"\)/);
   assert.match(page, /RegisterForm/);
-  assert.match(page, /InlineMemberForm/);
-  assert.match(directory, /canRecord && period === currentMonth/);
-  assert.match(directory, /PaymentForm monthlyDuesId/);
+  assert.doesNotMatch(page, /<InlineMemberForm/);
+  assert.match(directory, /row.dues_month === currentMonth/);
+  assert.match(directory, /PaymentForm key=\{selected.id\} monthlyDuesId=\{selected.id\}/);
 });
 
 test("dues payment form generates an idempotency key at submit time", () => {

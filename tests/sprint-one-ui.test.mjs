@@ -18,18 +18,19 @@ function load(path, overrides = {}) {
 const memberContracts = load("../src/components/members/contracts.ts");
 const duesContracts = load("../src/components/monthly-dues/contracts.ts");
 const { MemberDirectory } = load("../src/components/members/member-directory.tsx", { "./contracts": memberContracts });
+const { PaymentForm } = load("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", { "./actions": { recordDuesPayment: async () => ({}) } });
 const { DuesDirectory } = load("../src/components/monthly-dues/dues-directory.tsx", {
   "./contracts": duesContracts,
-  "@/app/dashboard/uang-kas-bulanan/payment-form": { PaymentForm: () => React.createElement("span", null, "Form pembayaran fixture") },
+  "@/app/dashboard/uang-kas-bulanan/payment-form": { PaymentForm: ({ monthlyDuesId }) => React.createElement("span", null, `Form pembayaran fixture ${monthlyDuesId}`) },
 });
 const members = [
   { id: "fixture-1", full_name: "Contoh Anggota", gender: "laki_laki", phone: null, created_at: "2026-01-01" },
   { id: "fixture-2", full_name: "Contoh Belum Lengkap", gender: null, phone: null, created_at: "2026-01-01" },
 ];
 const rows = [
-  { id: "fixture-a", full_name: "Contoh Sebagian", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: "4000", remaining_amount: 6000, payment_status: "belum_lunas" },
-  { id: "fixture-b", full_name: "Contoh Lunas", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: "12000", remaining_amount: 0, payment_status: "lunas" },
-  { id: "fixture-c", full_name: "Contoh Belum Bayar", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: 0, remaining_amount: 10000, payment_status: "belum_lunas" },
+  { id: "fixture-a", member_id: "member-fixture-a", full_name: "Contoh Sebagian", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: "4000", remaining_amount: 6000, payment_status: "belum_lunas" },
+  { id: "fixture-b", member_id: "member-fixture-b", full_name: "Contoh Lunas", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: "12000", remaining_amount: 0, payment_status: "lunas" },
+  { id: "fixture-c", member_id: "member-fixture-c", full_name: "Contoh Belum Bayar", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: 0, remaining_amount: 10000, payment_status: "belum_lunas" },
 ];
 
 test("membership UI renders real fields, empty state and role-scoped unavailable edit", () => {
@@ -43,8 +44,12 @@ test("membership UI renders real fields, empty state and role-scoped unavailable
 
 test("dues summary distinguishes partial, over-reference and no payments without carryover", () => {
   const summary = duesContracts.summarizeDues(rows);
-  assert.equal(summary.members, 3); assert.equal(summary.paid, 1); assert.equal(summary.unpaid, 2);
-  assert.equal(summary.withPayments, 2); assert.equal(summary.withoutPayments, 1); assert.equal(summary.collected, 16000);
+  assert.equal(summary.members, 3); assert.equal(summary.paid, 1); assert.equal(summary.short, 1); assert.equal(summary.unpaid, 1); assert.equal(summary.collected, 16000);
+  assert.equal(duesContracts.duesStatus(rows[0]), "kurang"); assert.equal(duesContracts.duesStatus(rows[1]), "lunas"); assert.equal(duesContracts.duesStatus(rows[2]), "belum_bayar");
+  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 9999.99 }), "kurang");
+  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 10000 }), "lunas");
+  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: "" }), "unavailable");
+  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: "bad" }), "unavailable");
   assert.equal(duesContracts.periodWindow("2026-01-01")[11], "2025-02-01");
   assert.equal(duesContracts.periodLabel("2026-01-01"), "Januari 2026");
   assert.equal(duesContracts.formatContribution("1000.5"), "Rp 1.000,5");
@@ -52,10 +57,11 @@ test("dues summary distinguishes partial, over-reference and no payments without
 
 test("dues UI does not invent payment history or expose recording to read-only users", () => {
   const html = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", canRecord: false }));
-  assert.match(html, /Contoh Sebagian/); assert.match(html, /BELUM LUNAS/); assert.match(html, /Riwayat transaksi individual belum tersedia/);
+  assert.match(html, /Contoh Sebagian/); assert.match(html, /KURANG/); assert.match(html, /BELUM BAYAR/); assert.match(html, /Riwayat transaksi individual belum tersedia/);
   assert.match(html, /sukarela/); assert.doesNotMatch(html, /Form pembayaran fixture/);
   const recorder = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", canRecord: true }));
-  assert.match(recorder, /Form pembayaran fixture/);
+  assert.doesNotMatch(recorder, /Form pembayaran fixture/);
+  assert.match(recorder, /Penambahan dari kas sementara tidak tersedia/);
   const empty = renderToStaticMarkup(React.createElement(DuesDirectory, { rows: [], currentMonth: "2026-11-01", canRecord: false }));
   assert.match(empty, /Belum ada daftar kas untuk periode ini/);
 });
@@ -87,9 +93,32 @@ test("search, filtering and month navigation update the rendered UI", async () =
     await React.act(async () => dom.window.document.querySelector('[aria-label="Periode sebelumnya"]').click());
     assert.match(dom.window.document.querySelector("#dues-title").textContent, /Oktober 2026/);
     assert.match(dom.window.document.body.textContent, /Belum ada daftar kas untuk periode ini/);
+    const duplicates = [...rows, { ...rows[0], id: "fixture-duplicate", member_id: "member-fixture-duplicate" }];
+    await React.act(async () => root.render(React.createElement(DuesDirectory, { rows: duplicates, currentMonth: "2026-11-01", canRecord: true })));
+    const memberSearch = dom.window.document.querySelector('input[placeholder="Ketik nama anggota"]');
+    await React.act(async () => {
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(memberSearch, "Sebagian");
+      memberSearch.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    });
+    const memberSelect = dom.window.document.querySelector('.bank-field select');
+    assert.equal(memberSelect.options.length, 3);
+    await React.act(async () => { memberSelect.value = "member-fixture-a"; memberSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
+    assert.match(dom.window.document.body.textContent, /Form pembayaran fixture fixture-a/);
+    await React.act(async () => { memberSelect.value = "member-fixture-duplicate"; memberSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
+    assert.match(dom.window.document.body.textContent, /Form pembayaran fixture fixture-duplicate/);
+
   } finally {
     await React.act(async () => root.unmount());
     dom.window.close();
     for (const [key, value] of Object.entries(previous)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
+});
+
+
+test("payment form requires a confirmation and supports fractional positive entries", () => {
+  const html = renderToStaticMarkup(React.createElement(PaymentForm, { monthlyDuesId: "fixture-dues-id" }));
+  assert.match(html, /name="monthly_dues_id" value="fixture-dues-id"/);
+  assert.match(html, /min="0.01"[^>]*name="amount"/);
+  assert.match(html, /type="checkbox" required=""/);
+  assert.match(html, /Catatan pembayaran/);
 });
