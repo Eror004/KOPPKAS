@@ -12,13 +12,14 @@ revoke execute on function public.create_member_for_dues(text)
 
 -- Monthly dues register rows must only be created by the period-gated RPCs.
 -- SECURITY DEFINER functions owned by the migration owner continue to insert.
-revoke insert on table public.monthly_dues from public, anon, authenticated;
+revoke all on table public.monthly_dues from public, anon, authenticated;
+grant select on table public.monthly_dues to authenticated;
 
 comment on function public.create_member_and_monthly_dues(text, date) is
   'Legacy entry point disabled for authenticated Data API callers; use create_member_and_monthly_dues_safe after explicit period opening.';
 comment on function public.create_member_for_dues(text) is
   'Legacy entry point disabled for authenticated Data API callers; use create_member_and_monthly_dues_safe after explicit period opening.';
 comment on table public.monthly_dues is
-  'Register rows are created through period-gated SECURITY DEFINER RPCs; direct authenticated INSERT is revoked.';
+  'Register rows are created through period-gated SECURITY DEFINER RPCs; direct Data API writes are revoked; authenticated reads remain subject to RLS.';
 
 commit;
