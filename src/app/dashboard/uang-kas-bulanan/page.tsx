@@ -49,7 +49,7 @@ export default async function MonthlyDuesPage() {
   const nextOpenPeriod = openedPeriods.length
     ? nextMonth([...openedPeriods].sort().at(-1)!)
     : "2026-10-01";
-  const canOpenPeriod = can(user.role, "monthly_dues", "create")
+  const canOpenPeriod = ["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)
     && nextOpenPeriod <= currentMonth
     && !openedPeriods.includes(nextOpenPeriod);
 
