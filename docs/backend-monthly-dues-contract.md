@@ -54,7 +54,7 @@ Cumulative post-transaction status is ordered by `paid_at, payment_id`, not deri
 
 ## Migration / verification gate
 This branch contains a prepared migration only. It has not been applied to any Supabase project.
-The live migration history currently has six versions not present in `main` and two local-only versions. Reconcile that history before applying or merging schema changes.
+The hosted database has 38 applied migration versions, and all 38 now have matching local SQL source files in this branch. The branch contains 44 migration files total; six are local-only and pending: two pre-existing migrations (`app_device_sessions`, `koppkas_account_limit`) and four new monthly-dues migrations. Do not run a production migration until the owner reviews the full six-migration pending set.
 
 
 ## Explicit monthly period opening and cumulative cash book
@@ -91,11 +91,11 @@ The live migration history currently has six versions not present in `main` and 
 
 ### Read models and Server Actions
 - `monthly_dues_cash_book_summary` returns only explicitly opened periods, with opening balance, actual dues inflows, expenses, and closing cash balance.
-- The opening balance for each later period is calculated from the preceding opened periods' actual net movements. Historical changes therefore recalculate subsequent opening balances without duplicating transactions.
+- The opening balance for each later period is calculated from the preceding opened periods' actual net movements. Historical changes therefore recalculate subsequent opening balances without duplicating transactions. This means late/backdated transactions can change previously displayed closing and later opening balances; owner approval of this behavior is required before release.
 - `monthly_dues_cash_book_movements` unifies the immutable October opening record, persisted member payments, and persisted expense entries for opened periods.
 - Both views use `security_invoker = true` and retain SELECT for authenticated callers. Each view also applies an explicit active-role filter for Ketua, Wakil Ketua, and Bendahara, so Sekretaris cannot query a partial or misleading cash-book result directly through the Data API. The underlying opening-balance and expense tables have matching RLS restrictions.
 - The cash-book Server Action separately requires `general_finance:read` before querying the two views. No additional public `SECURITY DEFINER` read RPC is introduced; this avoids widening the exposed privileged-function surface.
-- Cash-book income includes only payment rows with `paid_at >= monthly_dues_periods.opened_at`. Payments already present before the period's opening timestamp are excluded from the cash-book inflow so historic collections already represented by the Rp205,000 October opening balance are not counted a second time. New payments are written by the database with the current timestamp.
+- Cash-book income is currently attributed to the `dues_month` of the member register, and only payment rows with `paid_at >= monthly_dues_periods.opened_at` are counted. Payments already present before the period's opening timestamp are excluded so historic collections already represented by the Rp205,000 October opening balance are not counted a second time. A payment entered later for an older dues month is therefore reflected in that older cash-book period; the owner must confirm this attribution before release.
 - The movement view emits one informational opening-balance row for every opened period. October shows the immutable historical Rp205,000 opening; later periods show their derived carry-forward opening balance. These display rows are not additional income and do not create stored cash transactions.
 - `generateMonthlyRegister(previous, formData)` now requires an explicit `dues_month` field and calls `open_monthly_dues_period`; it no longer silently creates the current calendar month.
 - `getMonthlyDuesPeriods()` lists periods that have actually been opened.
@@ -115,3 +115,11 @@ The historical cash opening record is scoped to UANG KAS BULANAN and is not inse
 
 ### Migration / verification gate
 The period-opening migration is prepared on the isolated backend branch and has not been applied to Supabase. Live migration history still requires reconciliation before any hosted migration, merge, or deployment. Authenticated role/RLS tests and a real database test of concurrent period opening remain required.
+
+ 
+### Outstanding integration and owner gates
+- The current page still renders `InlineMemberForm`, whose Server Action calls the legacy `create_member_and_monthly_dues` RPC. The final migration revokes that legacy RPC for authenticated callers. The frontend integration PR must replace this path with `createDuesMember` before the migration is deployed.
+- The current `RegisterForm` does not submit a `dues_month` field, while `generateMonthlyRegister` now requires one. The frontend integration must supply the next explicit period and label the action accordingly.
+- The owner must confirm whether a payment for an older dues month should be attributed to that dues month or to the actual month cash was received, and whether late historical entries may recalculate closed-period balances.
+- The historical October 2026 opening amount of Rp205,000 must be reconciled against the organization's actual cash records before applying the migration.
+- Local pgTAP verifies authorization and integrity behavior, but a real concurrent period-opening / concurrent expense test and final frontend-to-backend E2E verification remain release gates.
