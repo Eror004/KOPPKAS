@@ -9,6 +9,7 @@ import { officialCashSummary } from "./accounting-contract";
 
 type CashBookAction = (duesMonth: string, page?: number, pageSize?: number) => Promise<MonthlyDuesCashBookResult>;
 type ExpenseAction = (previous: DuesActionState, formData: FormData) => Promise<DuesActionState>;
+type CashBookState = { period: string; result: MonthlyDuesCashBookResult | null; error: string };
 
 export function AccountingPanel({ period, canViewFinance, getCashBook, recordExpense }: {
   period: string;
@@ -16,9 +17,8 @@ export function AccountingPanel({ period, canViewFinance, getCashBook, recordExp
   getCashBook?: CashBookAction;
   recordExpense?: ExpenseAction;
 }) {
-  const [result, setResult] = useState<MonthlyDuesCashBookResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState("");
+  const [cashState, setCashState] = useState<CashBookState | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const router = useRouter();
   const keyRef = useRef<string | null>(null);
   const [expenseState, expenseAction, expensePending] = useActionState(async (previous: DuesActionState, formData: FormData) => {
@@ -35,41 +35,47 @@ export function AccountingPanel({ period, canViewFinance, getCashBook, recordExp
   }, {});
 
   useEffect(() => {
+    if (!canViewFinance || !getCashBook || !period) return;
     let active = true;
-    if (!canViewFinance || !getCashBook || !period) {
-      setResult(null); setLoadError(""); setLoading(false);
-      return () => { active = false; };
-    }
-    setLoading(true); setLoadError(""); setResult(null);
     getCashBook(period, 0, 50).then(value => {
-      if (!active) return;
-      setResult(value);
-      setLoadError(value.error ?? "");
-    }).catch(() => { if (active) setLoadError("Pembukuan belum dapat dimuat."); })
-      .finally(() => { if (active) setLoading(false); });
+      if (active) setCashState({ period, result: value, error: value.error ?? "" });
+    }).catch(() => {
+      if (active) setCashState({ period, result: null, error: "Pembukuan belum dapat dimuat." });
+    });
     return () => { active = false; };
   }, [period, canViewFinance, getCashBook]);
 
+  const currentState = cashState?.period === period ? cashState : null;
+  const result = currentState?.result ?? null;
+  const loading = canViewFinance && Boolean(getCashBook) && Boolean(period) && !currentState;
+  const loadError = currentState?.error ?? "";
   const summary = result ? officialCashSummary(period, result) : null;
+
   async function loadMore() {
-    if (!getCashBook || !result || !result.hasMore || loading) return;
-    setLoading(true);
+    if (!getCashBook || !result || !result.hasMore || loadingMore) return;
+    setLoadingMore(true);
     try {
       const next = await getCashBook(period, (result.page ?? 0) + 1, result.pageSize ?? 50);
-      if (next.error) setLoadError(next.error);
-      else setResult(current => current ? { ...next, movements: [...current.movements, ...next.movements] } : next);
-    } catch { setLoadError("Mutasi berikutnya belum dapat dimuat."); }
-    finally { setLoading(false); }
+      if (next.error) {
+        setCashState(current => current?.period === period ? { ...current, error: next.error ?? "Mutasi berikutnya belum dapat dimuat." } : current);
+      } else {
+        setCashState(current => current?.period === period && current.result
+          ? { ...current, result: { ...next, movements: [...current.result.movements, ...next.movements] } }
+          : current);
+      }
+    } catch {
+      setCashState(current => current?.period === period ? { ...current, error: "Mutasi berikutnya belum dapat dimuat." } : current);
+    } finally { setLoadingMore(false); }
   }
 
   return <section className="bank-panel accounting-panel" aria-labelledby="accounting-title">
     <div className="bank-section-title"><div><p className="eyebrow">PEMBUKUAN TERPISAH</p><h2 id="accounting-title">Saldo dan pengeluaran</h2><p>Periode {periodLabel(period)} · terpisah dari status iuran anggota.</p></div><History size={20} aria-hidden="true" /></div>
     {!canViewFinance ? <div className="bank-unavailable" role="note"><LockKeyhole size={20} /><h3>Akses buku kas terbatas</h3><p>Ringkasan saldo dan pengeluaran hanya tersedia bagi pengurus yang memiliki izin pembukuan.</p></div> : <>
-      {loading && !result && <p role="status">Memuat pembukuan resmi…</p>}
+      {loading && <p role="status">Memuat pembukuan resmi…</p>}
       {loadError && <p role="alert" className="accounting-state">{loadError}</p>}
       {summary ? <>
         <div className="accounting-balances">
-          <div className="accounting-opening"><span>SALDO AWAL</span><strong>{formatContribution(summary.opening_balance)}</strong><p>Saldo awal dari periode pembukuan resmi.</p></div>
+          <div className="accounting-opening"><span>{period === "2026-10-01" ? "SALDO AWAL HISTORIS · OKTOBER 2026" : "SALDO AWAL"}</span><strong>{formatContribution(summary.opening_balance)}</strong><p>{period === "2026-10-01" ? "Saldo historis yang dibawa dari sebelum periode KOPPKAS; bukan pemasukan iuran baru." : "Saldo awal dari periode pembukuan resmi."}</p></div>
           <div className="accounting-current"><span>SALDO AKHIR</span><strong>{formatContribution(summary.closing_balance)}</strong><p>Saldo akhir resmi, bukan hasil penjumlahan halaman mutasi.</p></div>
         </div>
         <div className="accounting-period-totals">
@@ -92,7 +98,7 @@ export function AccountingPanel({ period, canViewFinance, getCashBook, recordExp
           </div>
           <div><h3>Riwayat mutasi</h3>
             {result?.movements.length ? <ul className="accounting-mutations">{result.movements.map(item => <li key={item.movement_key}><div><strong>{item.description}</strong><span>{item.movement_type.replaceAll("_", " ")} · {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(item.occurred_at))}</span><small>{item.recorded_by ?? "Pencatat tidak tersedia"}{item.note ? ` · ${item.note}` : ""}</small></div><strong>{item.movement_type === "pengeluaran" ? "−" : item.movement_type === "saldo_awal" ? "" : "+"}{formatContribution(item.amount)}</strong></li>)}</ul> : <p>Belum ada mutasi pada periode ini.</p>}
-            {result?.hasMore && <button type="button" onClick={loadMore} disabled={loading}>{loading ? "Memuat..." : "Muat mutasi berikutnya"}</button>}
+            {result?.hasMore && <button type="button" onClick={loadMore} disabled={loadingMore}>{loadingMore ? "Memuat..." : "Muat mutasi berikutnya"}</button>}
             {result && <small>{result.movements.length} dari {result.movementCount ?? result.movements.length} mutasi ditampilkan.</small>}
           </div>
         </div>
