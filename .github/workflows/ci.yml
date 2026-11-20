@@ -60,3 +60,5 @@ jobs:
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
       - name: Rebuild local database from repository migrations
         run: supabase db reset --local --no-seed
+      - name: Run database authorization and integrity tests
+        run: supabase test db
