@@ -76,6 +76,10 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(periodMigration, /monthly_dues_cash_expense_requires_open_period/);
   assert.doesNotMatch(periodMigration, /generate_series\(/);
   assert.match(migration, /opening_balance \+ income_amount - expense_amount/);
+  assert.match(actions, /\.limit\(16\)/);
+  assert.match(actions, /const hasMore = \(fetchedMembers\?\.length \?\? 0\) > 15/);
+  assert.match(actions, /slice\(0, 15\)/);
+  assert.match(actions, /hasMore\s*\}/);
   assert.match(actions, /getMonthlyDuesCashBook/);
   assert.match(actions, /pageSize = 50/);
   assert.match(actions, /pageSize > 100/);
