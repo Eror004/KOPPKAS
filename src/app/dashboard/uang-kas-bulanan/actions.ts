@@ -356,7 +356,7 @@ export async function recordMonthlyDuesCashExpense(
   _previous: DuesActionState,
   formData: FormData,
 ): Promise<DuesActionState> {
-  const user = await requireModulePermission("general_finance", "create");
+  await requireModulePermission("general_finance", "create");
   const duesMonth = String(formData.get("dues_month") ?? "");
   const amount = Number(formData.get("amount"));
   const description = String(formData.get("description") ?? "").trim();
