@@ -291,7 +291,7 @@ export async function getMonthlyDuesCashBook(duesMonth: string): Promise<Monthly
   }
 
   return {
-    summary: summary as MonthlyDuesCashBookSummary | null ?? undefined,
+    summary: (summary as MonthlyDuesCashBookSummary | null) ?? undefined,
     movements: (movements ?? []) as MonthlyDuesCashMovement[],
   };
 }
@@ -313,11 +313,14 @@ export async function recordMonthlyDuesCashExpense(
     return { error: "Periode, tanggal pengeluaran, atau kunci transaksi tidak valid." };
   }
 
-  const localPeriod = new Intl.DateTimeFormat("en-CA", {
+  const localParts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
     month: "2-digit",
-  }).format(new Date(spentAt)) + "-01";
+  }).formatToParts(new Date(spentAt));
+  const localYear = localParts.find((part) => part.type === "year")?.value;
+  const localMonth = localParts.find((part) => part.type === "month")?.value;
+  const localPeriod = localYear && localMonth ? `${localYear}-${localMonth}-01` : "";
 
   if (localPeriod !== duesMonth) {
     return { error: "Tanggal pengeluaran harus berada dalam periode buku kas yang dipilih." };
