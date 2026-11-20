@@ -5,11 +5,10 @@ Branch: `chatgpt/backend-monthly-dues`
 ## Read models
 
 ### `monthly_dues_summary`
-The view keeps its existing columns and changes `payment_status` to:
+The view keeps its existing columns and sets `payment_status` to:
 - `lunas` when the member's aggregate in that month is at least Rp10,000.
-- `kurang` when the aggregate is positive and below Rp10,000.
-- `belum_bayar` when no positive payment rows exist.
-- The aggregate remains isolated to one `monthly_dues` row (one member, one month).
+- `belum_bayar` whenever the aggregate is below Rp10,000, including partial voluntary payments.
+- The aggregate remains isolated to one `monthly_dues` row (one member, one month). Partial amounts remain visible in `paid_amount`; they do not change the unpaid status.
 
 ### `monthly_dues_payment_receipts`
 Read-only, `security_invoker` view. One row per persisted payment:
@@ -19,7 +18,7 @@ Read-only, `security_invoker` view. One row per persisted payment:
 - `recorded_by`, optional `recorded_by_name`.
 - `reference_amount`, `paid_amount_after_transaction`, `status_after_transaction`.
 
-Cumulative post-transaction status is ordered by `paid_at, payment_id`, not derived from today's aggregate. View access uses underlying RLS on monthly dues, payments, members, and profiles.
+Cumulative post-transaction status is ordered by `paid_at, payment_id`, not derived from today's aggregate. A cumulative amount below Rp10,000 remains `belum_bayar`, including partial payments. View access uses underlying RLS on monthly dues, payments, members, and profiles.
 
 ## RPC contracts
 
