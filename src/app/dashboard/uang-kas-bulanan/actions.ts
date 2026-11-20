@@ -55,32 +55,41 @@ function isValidMonth(value: string): boolean {
 
 export async function generateMonthlyRegister(previous: DuesActionState, formData: FormData): Promise<DuesActionState> {
   void previous;
-  void formData;
+  const duesMonth = String(formData.get("dues_month") ?? "");
   const user = await requireModulePermission("monthly_dues", "create");
   if (!["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)) {
-    return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat membuat daftar kas bulanan." };
+    return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat membuka periode kas bulanan." };
+  }
+  if (!isValidMonth(duesMonth)) {
+    return { error: "Pilih periode bulan yang valid sebelum membuka buku kas." };
   }
 
   const supabase = await createClient();
-  const month = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" }).slice(0, 7) + "-01";
-  const { data: members, error: membersError } = await supabase
-    .from("members").select("id").is("archived_at", null);
+  const { data, error } = await supabase.rpc("open_monthly_dues_period", {
+    p_dues_month: duesMonth,
+  });
+  if (error || !data || typeof data !== "object") {
+    return { error: "Periode gagal dibuka. Pastikan yang dipilih adalah bulan berikutnya dari periode terakhir." };
+  }
 
-  if (membersError) return { error: "Daftar anggota belum dapat dibaca." };
-  if (!members?.length) return { error: "Belum ada anggota aktif untuk dibuatkan daftar kas." };
-
-  const rows = members.map((member) => ({
-    member_id: member.id,
-    dues_month: month,
-    reference_amount: 10000,
-  }));
-
-  const { error } = await supabase.from("monthly_dues")
-    .upsert(rows, { onConflict: "member_id,dues_month", ignoreDuplicates: true });
-
-  if (error) return { error: "Daftar kas bulanan gagal dibuat." };
   revalidatePath("/dashboard/uang-kas-bulanan");
-  return { success: "Daftar kas bulan berjalan berhasil disiapkan." };
+  return { success: "Periode kas berhasil dibuka dan daftar anggota disiapkan." };
+}
+
+export type MonthlyDuesPeriodOption = {
+  dues_month: string;
+  opened_at: string;
+};
+
+export async function getMonthlyDuesPeriods(): Promise<{ periods: MonthlyDuesPeriodOption[]; error?: string }> {
+  await requireModulePermission("monthly_dues", "read");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("monthly_dues_periods")
+    .select("dues_month, opened_at")
+    .order("dues_month", { ascending: false });
+  if (error) return { periods: [], error: "Daftar periode kas belum dapat dimuat." };
+  return { periods: (data ?? []) as MonthlyDuesPeriodOption[] };
 }
 
 /** Search active membership by name, but always return the stable member UUID. */
