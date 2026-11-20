@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 const [page, client] = await Promise.all([
   read("../src/app/dashboard/page.tsx"),
-  read("../src/components/dashboard-home-client.tsx"),
+  read("../src/components/dashboard-content-client.tsx"),
 ]);
 
 test("dashboard metrics come from role-scoped Supabase queries", () => {
