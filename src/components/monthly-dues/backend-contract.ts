@@ -1,4 +1,4 @@
-/** Frontend boundary for the PR #22 contract at 64e04901 (draft, not implemented on this branch). No implementation is provided here. */
+/** Frontend boundary for the PR #22 contract at 3bd714a25e9d091e531cc6ff70c358a02097dde8 (draft, not implemented on this branch). No implementation is provided here. */
 export type BackendDuesStatus = "lunas" | "kurang" | "belum_bayar";
 export type DuesMemberOption = { memberId: string; fullName: string; monthlyDuesId: string | null; paidAmount: string | number | null; paymentStatus: BackendDuesStatus | null };
 export type DuesMemberSearchResult = { members: DuesMemberOption[]; error?: string };
@@ -17,7 +17,7 @@ export interface MonthlyDuesBackend {
   getMonthlyDuesPeriods(): Promise<{ periods: MonthlyDuesPeriodOption[]; error?: string }>;
   openMonthlyDuesPeriod(duesMonth: string): Promise<DuesActionState>;
   generateMonthlyRegister(previous: DuesActionState, formData: FormData): Promise<DuesActionState>;
-  getMonthlyDuesCashBook(duesMonth: string): Promise<MonthlyDuesCashBookResult>;
+  getMonthlyDuesCashBook(duesMonth: string, page?: number, pageSize?: number): Promise<MonthlyDuesCashBookResult>;
   recordMonthlyDuesCashExpense(previous: DuesActionState, formData: FormData): Promise<DuesActionState>;
   searchDuesMembers(query: string, duesMonth: string): Promise<DuesMemberSearchResult>;
   ensureDuesRegister(memberId: string, duesMonth: string): Promise<{ monthlyDuesId?: string; error?: string }>;
@@ -36,4 +36,4 @@ export type MonthlyDuesCashMovement = {
   movement_type: "saldo_awal" | "pemasukan_iuran" | "pengeluaran"; description: string;
   amount: string | number; recorded_by: string | null; note: string | null; immutable: boolean;
 };
-export type MonthlyDuesCashBookResult = { summary?: MonthlyDuesCashBookSummary; movements: MonthlyDuesCashMovement[]; error?: string };
+export type MonthlyDuesCashBookResult = { summary?: MonthlyDuesCashBookSummary; movements: MonthlyDuesCashMovement[]; movementCount?: number; page?: number; pageSize?: number; hasMore?: boolean; error?: string };

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dashboardCashDisplay, type DashboardCashState } from "./monthly-dues/dashboard-cash-state";
 import type { ModuleKey } from "@/lib/auth/permissions";
 import type { NavigationItem } from "./dashboard-navigation";
 import { Status } from "./ui/status";
@@ -10,20 +11,13 @@ import { ArrowDownRight, ArrowUpRight, Bell, CalendarDays, ChevronRight, HandCoi
 type DashboardStats = {
   members: number | null;
   events: number | null;
-  monthlyCollected: number | null;
+  monthlyCollected: DashboardCashState;
   newMessages: number | null;
 };
 
-function formatRupiah(value: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 export function DashboardContentClient({ stats, items, todayLabel, monthLabel }: { stats: DashboardStats; items: NavigationItem[]; todayLabel: string; monthLabel: string }) {
   const has = (module: ModuleKey) => items.some(item => item.module === module);
+  const cashDisplay = dashboardCashDisplay(has("monthly_dues") ? stats.monthlyCollected : { kind: "restricted" });
   const router = useRouter();
   const [active, setActive] = useState("Beranda");
   const [search, setSearch] = useState("");
@@ -69,7 +63,7 @@ export function DashboardContentClient({ stats, items, todayLabel, monthLabel }:
               <div className="metric-grid">
                 <article className="metric-card members-card"><div className="metric-top"><span>KEANGGOTAAN</span><UsersRound size={18} /></div><div className="metric-value">{stats.members ?? "—"}</div><div className="metric-foot"><span>{stats.members === null ? "Data anggota belum tersedia" : "Anggota aktif"}</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line blue-line" /></article>
                 <article className="metric-card activity-card"><div className="metric-top"><span>KEGIATAN</span><CalendarDays size={18} /></div><div className="metric-value">{stats.events ?? "—"}</div><div className="metric-foot"><span>{stats.events === null ? "Data kegiatan belum tersedia" : "Kegiatan tercatat"}</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line cyan-line" /></article>
-                <article className="metric-card cash-card"><div className="metric-top"><span>KAS BULANAN</span><HandCoins size={18} /></div><div className="metric-value">{stats.monthlyCollected === null ? "—" : formatRupiah(stats.monthlyCollected)}</div><div className="metric-foot"><span>{!has("monthly_dues") ? "Akses terbatas" : stats.monthlyCollected === null ? "Data kas belum tersedia" : "Tercatat bulan ini"}</span><span className="metric-arrow"><ArrowDownRight size={16} /></span></div><div className="metric-line pink-line" /></article>
+                <article className="metric-card cash-card"><div className="metric-top"><span>KAS BULANAN</span><HandCoins size={18} /></div><div className="metric-value">{cashDisplay.value}</div><div className="metric-foot"><span>{cashDisplay.label}</span><span className="metric-arrow"><ArrowDownRight size={16} /></span></div><div className="metric-line pink-line" /></article>
                 <article className="metric-card inbox-card"><div className="metric-top"><span>PESAN MASUK</span><Inbox size={18} /></div><div className="metric-value">{stats.newMessages ?? "—"}</div><div className="metric-foot"><span>{stats.newMessages === null ? "Data inbox belum tersedia" : "Pesan baru"}</span><span className="metric-arrow"><ArrowUpRight size={16} /></span></div><div className="metric-line orange-line" /></article>
               </div>
 
