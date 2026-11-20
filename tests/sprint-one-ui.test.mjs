@@ -5,12 +5,13 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
-const [duesSource, page, payment, receipt, accounting] = await Promise.all([
+const [duesSource, page, payment, receipt, accounting, duesDirectory] = await Promise.all([
   read("../src/components/monthly-dues/contracts.ts"),
   read("../src/app/dashboard/uang-kas-bulanan/page.tsx"),
   read("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx"),
   read("../src/components/monthly-dues/receipt-feedback.tsx"),
   read("../src/components/monthly-dues/accounting-panel.tsx"),
+  read("../src/components/monthly-dues/dues-directory.tsx"),
 ]);
 const js = ts.transpileModule(duesSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const exports = {};
@@ -68,4 +69,11 @@ test("receipt validation accepts a valid opened month and rejects malformed date
   assert.equal(isValidDuesMonth("2026-13-01"), false);
   assert.equal(isValidDuesMonth("2026-11-20"), false);
   assert.equal(isValidDuesMonth("not-a-month"), false);
+});
+
+
+test("inline member creation prevents duplicate submissions while an action is pending", () => {
+  assert.match(duesDirectory, /createPendingRef\.current/);
+  assert.match(duesDirectory, /disabled=\{createPending\}/);
+  assert.match(duesDirectory, /finally \{[\s\S]*createPendingRef\.current = false/);
 });
