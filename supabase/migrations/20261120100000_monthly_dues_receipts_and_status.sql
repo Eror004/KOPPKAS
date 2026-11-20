@@ -25,7 +25,6 @@ select
   greatest(md.reference_amount - coalesce(sum(p.amount), 0::numeric), 0::numeric)::numeric(15,2) as remaining_amount,
   case
     when coalesce(sum(p.amount), 0::numeric) >= 10000 then 'lunas'::text
-    when coalesce(sum(p.amount), 0::numeric) > 0 then 'kurang'::text
     else 'belum_bayar'::text
   end as payment_status
 from public.monthly_dues md
@@ -72,7 +71,6 @@ select
   op.paid_amount_after_transaction,
   case
     when op.paid_amount_after_transaction >= 10000 then 'lunas'::text
-    when op.paid_amount_after_transaction > 0 then 'kurang'::text
     else 'belum_bayar'::text
   end as status_after_transaction
 from ordered_payments op
