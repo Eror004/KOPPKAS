@@ -323,6 +323,7 @@ select
   e.recorded_by,
   null::text,
   true
+from public.monthly_dues_cash_expenses e
 )
 select *
 from movements
