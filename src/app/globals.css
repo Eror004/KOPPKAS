@@ -523,3 +523,9 @@ button:disabled { cursor: not-allowed; }
 }
 @media(prefers-reduced-motion:reduce) { .foundation-shell *, .dashboard-home *, .ui-spinner { animation: none !important; transition: none !important; } }
 .activity-panel .ui-status { margin-top: 18px; min-height: 150px; align-content: center; justify-items: center; text-align: center; background: #f8fbfd; font-size: 12px; }
+/* Keep the compact search usable and visibly focused on narrow screens. */
+.search-box:focus-within { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+@media(max-width: 400px) {
+  .dashboard-home .breadcrumb > span, .dashboard-home .breadcrumb > svg { display: none; }
+  .dashboard-home .search-box, .dashboard-home .search-box:focus-within { width: 110px; }
+}

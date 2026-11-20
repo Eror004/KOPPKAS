@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [page, client] = await Promise.all([
+const [page, client, home] = await Promise.all([
   read("../src/app/dashboard/page.tsx"),
   read("../src/components/dashboard-content-client.tsx"),
+  read("../src/components/dashboard-home-client.tsx"),
 ]);
 
 test("dashboard metrics come from role-scoped Supabase queries", () => {
@@ -22,7 +23,7 @@ test("dashboard displays live metrics and Jakarta-local date instead of static p
   assert.match(client, /stats\.events/);
   assert.match(client, /stats\.monthlyCollected/);
   assert.match(client, /stats\.newMessages/);
-  assert.match(client, /timeZone: "Asia\/Jakarta"/);
+  assert.match(home, /timeZone: "Asia\/Jakarta"/);
   assert.doesNotMatch(client, /SELASA, 17 NOVEMBER 2026|BUILD IN PROGRESS|Menunggu koneksi data|Inbox belum terhubung/);
 });
 

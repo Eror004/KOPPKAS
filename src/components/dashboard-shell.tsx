@@ -30,26 +30,28 @@ export function DashboardShell({ items, children }: { items: NavigationItem[]; c
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       }
     };
+    const onResize = () => { if (window.matchMedia("(min-width: 701px)").matches) setOpen(false); };
+    window.addEventListener("resize", onResize);
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("keydown", onKey); previous?.focus(); };
+    return () => { window.removeEventListener("resize", onResize); document.removeEventListener("keydown", onKey); previous?.focus(); };
   }, [open]);
   const groups = [...new Set(items.map(item => item.group))];
   const links = (className: string) => groups.map(group => <div className="foundation-nav-group" key={group}><p>{group}</p>{items.filter(item => item.group === group).map(item => {
     const Icon = icons[item.icon] || LayoutGrid;
-    return <Link href={item.href} key={item.href} className={`${className} ${pathname === item.href ? "is-active" : ""}`} aria-current={pathname === item.href ? "page" : undefined} title={collapsed ? item.label : undefined} onClick={() => setOpen(false)}><Icon size={19} aria-hidden="true" /><span>{item.label}</span></Link>;
+    return <Link href={item.href} key={item.href} className={`${className} ${pathname === item.href ? "is-active" : ""}`} aria-current={pathname === item.href ? "page" : undefined} aria-label={item.label} title={collapsed ? item.label : undefined} onClick={() => setOpen(false)}><Icon size={19} aria-hidden="true" /><span>{item.label}</span></Link>;
   })}</div>);
   const bottom = primary.map(href => items.find(item => item.href === href)).filter((item): item is NavigationItem => Boolean(item));
   return <div className={`foundation-shell ${collapsed ? "is-collapsed" : ""}`}>
     <aside className="foundation-sidebar" aria-label="Navigasi desktop">
-      <Link href="/dashboard" className="foundation-brand"><span><Command size={20} /></span><strong>KOPPKAS<small>RUANG ORGANISASI</small></strong></Link>
+      <Link href="/dashboard" className="foundation-brand" aria-label="KOPPKAS — Beranda"><span><Command size={20} /></span><strong>KOPPKAS<small>RUANG ORGANISASI</small></strong></Link>
       <button className="foundation-collapse" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"} aria-expanded={!collapsed}>{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}</button>
       <nav aria-label="Navigasi utama" className="foundation-nav">{links("foundation-link")}</nav>
       <div className="foundation-sidebar-foot">Pemuda Kampung Sawah Kaum</div>
     </aside>
     <div className="foundation-main">{children}</div>
     <nav className="foundation-bottom" aria-label="Navigasi mobile">
-      {bottom.map(item => { const Icon = icons[item.icon] || LayoutGrid; return <Link key={item.href} href={item.href} className={pathname === item.href ? "is-active" : ""} aria-current={pathname === item.href ? "page" : undefined}><Icon size={20} aria-hidden="true" /><span>{item.label}</span></Link>; })}
-      <button ref={menuRef} onClick={() => setOpen(true)} aria-expanded={open} aria-controls="dashboard-menu"><LayoutGrid size={20} aria-hidden="true" /><span>Lainnya</span></button>
+      {bottom.map(item => { const Icon = icons[item.icon] || LayoutGrid; return <Link key={item.href} href={item.href} className={pathname === item.href ? "is-active" : ""} aria-current={pathname === item.href ? "page" : undefined}><Icon size={20} aria-hidden="true" /><span>{item.href === "/dashboard/keanggotaan" ? "Anggota" : item.label}</span></Link>; })}
+      <button ref={menuRef} className={items.some(item => item.href === pathname && !primary.includes(item.href)) ? "is-active" : undefined} onClick={() => setOpen(true)} aria-expanded={open} aria-controls="dashboard-menu"><LayoutGrid size={20} aria-hidden="true" /><span>Lainnya</span></button>
     </nav>
     {open && <div className="foundation-overlay" onClick={() => setOpen(false)}><div id="dashboard-menu" className="foundation-drawer" role="dialog" aria-modal="true" aria-labelledby="dashboard-menu-title" onClick={event => event.stopPropagation()}><div className="foundation-drawer-head"><div><span>RUANG ORGANISASI</span><h2 id="dashboard-menu-title">Semua menu</h2></div><button ref={closeRef} className="icon-button" onClick={() => setOpen(false)} aria-label="Tutup menu"><X size={20} /></button></div><nav aria-label="Semua menu">{links("foundation-link")}</nav></div></div>}
   </div>;

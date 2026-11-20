@@ -22,19 +22,13 @@ function formatRupiah(value: number) {
   }).format(value);
 }
 
-export function DashboardContentClient({ stats, items }: { stats: DashboardStats; items: NavigationItem[] }) {
+export function DashboardContentClient({ stats, items, todayLabel, monthLabel }: { stats: DashboardStats; items: NavigationItem[]; todayLabel: string; monthLabel: string }) {
   const has = (module: ModuleKey) => items.some(item => item.module === module);
   const router = useRouter();
   const [active, setActive] = useState("Beranda");
   const [search, setSearch] = useState("");
 
   const searchResults = search.trim() ? items.filter((item) => item.label.toLowerCase().includes(search.trim().toLowerCase())) : [];
-  const todayLabel = new Intl.DateTimeFormat("id-ID", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta",
-  }).format(new Date());
-  const monthLabel = new Intl.DateTimeFormat("id-ID", {
-    month: "long", year: "numeric", timeZone: "Asia/Jakarta",
-  }).format(new Date());
   const quickAccessCount = [
     has("members"),
     has("events"),
