@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(46);
+select plan(65);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
