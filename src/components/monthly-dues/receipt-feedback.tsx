@@ -9,7 +9,7 @@ function validReceipt(receipt: DuesPaymentReceipt, transactionId: string): boole
     && Boolean(receipt.payment_reference && receipt.member_id && receipt.member_name)
     && Number.isFinite(Number(receipt.amount)) && Number(receipt.amount) > 0
     && Number.isFinite(Date.parse(receipt.paid_at))
-    && /^\\d{4}-(0[1-9]|1[0-2])-01$/.test(receipt.dues_month)
+    && isValidDuesMonth(receipt.dues_month)
     && ["lunas", "belum_bayar"].includes(receipt.status_after_transaction);
 }
 
@@ -53,7 +53,7 @@ export function ReceiptFeedback({ transactionId, getReceipt }: {
           <div><dt>Referensi</dt><dd>{receipt.payment_reference}</dd></div>
           <div><dt>Anggota</dt><dd>{receipt.member_name}</dd></div>
           <div><dt>Waktu transaksi</dt><dd>{new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(receipt.paid_at))} WIB</dd></div>
-          <div><dt>Periode</dt><dd>{periodLabel(receipt.dues_month)}</dd></div>
+    && isValidDuesMonth(receipt.dues_month)
           <div><dt>Status setelah transaksi</dt><dd>{receipt.status_after_transaction === "lunas" ? "LUNAS" : "BELUM LUNAS"}</dd></div>
           {receipt.note && <div><dt>Catatan</dt><dd>{receipt.note}</dd></div>}
           {(receipt.recorded_by_name || receipt.recorded_by) && <div><dt>Dicatat oleh</dt><dd>{receipt.recorded_by_name || receipt.recorded_by}</dd></div>}
