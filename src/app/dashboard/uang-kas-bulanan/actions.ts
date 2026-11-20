@@ -20,6 +20,7 @@ export type DuesMemberOption = {
 
 export type DuesMemberSearchResult = {
   members: DuesMemberOption[];
+  hasMore?: boolean;
   error?: string;
 };
 
@@ -121,16 +122,18 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
   // Escape ILIKE wildcards so user input is treated as a literal substring.
   const escapedQuery = normalizedQuery.replace(/[\\%_]/g, "\\$&");
   const supabase = await createClient();
-  const { data: members, error } = await supabase
+  const { data: fetchedMembers, error } = await supabase
     .from("members")
     .select("id, full_name")
     .is("archived_at", null)
     .ilike("full_name", `%${escapedQuery}%`)
     .order("full_name", { ascending: true })
-    .limit(15);
+    .limit(16);
 
-  if (error) return { members: [], error: "Pencarian anggota belum dapat dilakukan." };
-  if (!members?.length) return { members: [] };
+  if (error) return { members: [], hasMore: false, error: "Pencarian anggota belum dapat dilakukan." };
+  const hasMore = (fetchedMembers?.length ?? 0) > 15;
+  const members = (fetchedMembers ?? []).slice(0, 15);
+  if (!members.length) return { members: [], hasMore: false };
   const memberIds = members.map((member) => member.id);
   const { data: duesRows, error: duesError } = await supabase
     .from("monthly_dues_summary")
@@ -138,7 +141,7 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
     .eq("dues_month", duesMonth)
     .in("member_id", memberIds);
 
-  if (duesError) return { members: [], error: "Status daftar kas periode ini belum dapat dimuat." };
+  if (duesError) return { members: [], hasMore, error: "Status daftar kas periode ini belum dapat dimuat." };
 
   const duesByMember = new Map((duesRows ?? []).map((row) => [row.member_id, row]));
   return { members: members.map((member) => {
@@ -150,7 +153,7 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
       paidAmount: dues?.paid_amount ?? null,
       paymentStatus: dues?.payment_status ?? null,
     };
-  }) };
+  }), hasMore };
 }
 
 /** Ensure an existing active member has exactly one register row for the selected month. */
