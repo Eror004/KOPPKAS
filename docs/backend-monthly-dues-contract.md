@@ -58,34 +58,51 @@ This branch contains a prepared migration only. It has not been applied to any S
 The live migration history currently has six versions not present in `main` and two local-only versions. Reconcile that history before applying or merging schema changes.
 
 
-## Historical monthly cash book and expenses
+## Explicit monthly period opening and cumulative cash book
 
-### `monthly_dues_cash_opening_balances`
-- October 2026 is seeded with an immutable historical opening balance of Rp205,000.
-- This row is not a dues payment, not member income, and not a new general-ledger income entry.
-- RLS exposes the cash balance only to Ketua Pemuda, Wakil Ketua Pemuda, and Bendahara.
-- A database trigger rejects UPDATE and DELETE; authenticated users receive SELECT only.
+### `monthly_dues_periods`
+- A month appears in UANG KAS BULANAN only after an authorized officer explicitly opens it.
+- October 2026 is the first period and is seeded once with the historical opening cash of Rp205,000.
+- A later period can only be opened if it is the immediately following month after the latest opened period. No calendar-based month generation exists.
+- Opening a period is one atomic RPC operation: it records who opened it, creates the period, and prepares one Rp10,000 register row for every active member.
+- Opening a later period derives its opening cash balance from the previous opened period's closing balance. It does not create a second opening-money transaction or duplicate the historical Rp205,000.
+- Reopening an existing month is rejected. Gaps and out-of-order periods are rejected.
+- Register creation, member creation from the dues workflow, payment recording, and expense recording are rejected for unopened periods.
+
+### RPC: `open_monthly_dues_period(p_dues_month date) returns jsonb`
+- Requires an authenticated Ketua Pemuda, Wakil Ketua Pemuda, or Bendahara.
+- Accepts only the first day of the immediately following month.
+- Uses a transaction advisory lock to serialize concurrent opening attempts.
+- Returns the opened month, its derived opening balance, and the number of active-member register rows created.
+- Creates the period and member registers in the same transaction; a failure rolls back the whole operation.
 
 ### `monthly_dues_cash_expenses`
 - Expenses are append-only records with period, amount, description, actual spending timestamp, recorder UUID, and idempotency key.
-- The selected period must match the spending timestamp in Asia/Jakarta.
+- The selected period must match the spending timestamp in Asia/Jakarta and must already be opened.
 - Direct INSERT, UPDATE, and DELETE are not granted to authenticated clients.
 - The only write path is `record_monthly_dues_cash_expense`, which validates authentication, active finance role, amount, description, period, and idempotency.
-- UPDATE and DELETE are blocked by a database trigger. A correction must be represented by a separate compensating record; existing history is never overwritten.
+- A database trigger also rejects expense inserts into unopened periods. UPDATE and DELETE are blocked by a separate trigger. Corrections require a separate compensating record.
 
 ### Read models and Server Actions
-- `monthly_dues_cash_book_summary` returns opening balance, monthly dues inflows, expenses, and closing cash balance. The October 2026 opening balance is Rp205,000; subsequent periods carry forward the previous closing cash balance.
-- `monthly_dues_cash_book_movements` unifies the immutable opening record, persisted member payments, and persisted expense entries.
+- `monthly_dues_cash_book_summary` returns only explicitly opened periods, with opening balance, actual dues inflows, expenses, and closing cash balance.
+- The opening balance for each later period is calculated from the preceding opened periods' actual net movements. Historical changes therefore recalculate subsequent opening balances without duplicating transactions.
+- `monthly_dues_cash_book_movements` unifies the immutable October opening record, persisted member payments, and persisted expense entries for opened periods.
 - Both views use `security_invoker = true` and respect underlying RLS.
+- `generateMonthlyRegister(previous, formData)` now requires an explicit `dues_month` field and calls `open_monthly_dues_period`; it no longer silently creates the current calendar month.
+- `getMonthlyDuesPeriods()` lists periods that have actually been opened.
 - `getMonthlyDuesCashBook(duesMonth)` reads the summary and movements for finance roles.
 - `recordMonthlyDuesCashExpense(previous, formData)` writes only through the database RPC and returns the persisted transaction UUID.
 
 ### Example
-For October 2026:
-- Opening balance: Rp205,000.
-- Expense: Rp50,000.
-- Closing balance before other inflows: Rp155,000.
-- The original opening-balance row remains Rp205,000 and cannot be edited or deleted.
+- October 2026 opens with Rp205,000 historical opening cash.
+- If October receives Rp100,000 and spends Rp50,000, October closes at Rp255,000.
+- When an authorized officer explicitly opens November, November's opening cash is Rp255,000.
+- If November then receives Rp80,000 and spends Rp20,000, November closes at Rp315,000.
+- December does not appear until it is explicitly opened. Its opening cash is derived from November's closing balance.
+- Member payment status remains isolated to its own month; voluntary payments are not carried as member debt.
 
 ### Separation of books
-The historical cash opening record is scoped to UANG KAS BULANAN and is not inserted as an income entry in KEUANGAN. The two books remain separate. Member dues payments continue to be the source of monthly dues inflows; no amount is inferred or fabricated.
+The historical cash opening record is scoped to UANG KAS BULANAN and is not inserted as an income entry in KEUANGAN. The two books remain separate. Member dues payments continue to be the source of actual monthly dues inflows; no amount is inferred or fabricated.
+
+### Migration / verification gate
+The period-opening migration is prepared on the isolated backend branch and has not been applied to Supabase. Live migration history still requires reconciliation before any hosted migration, merge, or deployment. Authenticated role/RLS tests and a real database test of concurrent period opening remain required.
