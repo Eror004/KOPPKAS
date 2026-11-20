@@ -33,6 +33,7 @@ join public.members m on m.id = md.member_id
 left join public.monthly_dues_payments p on p.monthly_dues_id = md.id
 group by md.id, md.member_id, m.full_name, m.gender, md.dues_month, md.reference_amount;
 
+revoke all on public.monthly_dues_summary from public, anon;
 grant select on public.monthly_dues_summary to authenticated;
 
 -- A receipt is a read-only projection of a persisted payment. The UUID-derived
@@ -79,6 +80,7 @@ join public.monthly_dues md on md.id = op.monthly_dues_id
 join public.members m on m.id = md.member_id
 left join public.profiles recorder on recorder.id = op.recorded_by;
 
+revoke all on public.monthly_dues_payment_receipts from public, anon;
 grant select on public.monthly_dues_payment_receipts to authenticated;
 
 -- Add a period register for an existing active member without creating a new identity.
