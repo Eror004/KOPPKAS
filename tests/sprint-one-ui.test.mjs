@@ -15,7 +15,7 @@ const [duesSource, page, payment, receipt, accounting] = await Promise.all([
 const js = ts.transpileModule(duesSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const exports = {};
 runInNewContext(js, { exports, Intl, Number, Date });
-const { duesStatus, summarizeDues } = exports;
+const { duesStatus, summarizeDues, isValidDuesMonth } = exports;
 const rows = [
   { id: "a", member_id: "a", full_name: "Parsial", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: 4000, remaining_amount: 6000, payment_status: "belum_bayar" },
   { id: "b", member_id: "b", full_name: "Lunas", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: 12000, remaining_amount: 0, payment_status: "lunas" },
@@ -57,4 +57,13 @@ test("cash book shows official summary and paginates movements independently", (
   assert.match(accounting, /getCashBook\(period, \(result\.page \?\? 0\) \+ 1/);
   assert.match(accounting, /result\.hasMore/);
   assert.doesNotMatch(accounting, /reduce\(.*amount|runningBalance/);
+});
+
+
+test("receipt validation accepts a valid opened month and rejects malformed dates", () => {
+  assert.equal(isValidDuesMonth("2026-11-01"), true);
+  assert.equal(isValidDuesMonth("2026-02-01"), true);
+  assert.equal(isValidDuesMonth("2026-13-01"), false);
+  assert.equal(isValidDuesMonth("2026-11-20"), false);
+  assert.equal(isValidDuesMonth("not-a-month"), false);
 });
