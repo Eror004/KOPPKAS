@@ -32,8 +32,10 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(periodMigration, /Saldo awal dari saldo akhir periode sebelumnya/);
   assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon, authenticated/);
   assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon, authenticated/);
-  assert.match(periodMigration, /get_monthly_dues_cash_book_summary/);
-  assert.match(periodMigration, /get_monthly_dues_cash_book_movements/);
+  assert.match(periodMigration, /where \(select app_private\.has_any_role\(array\[/);
+  assert.match(periodMigration, /grant select on public\.monthly_dues_cash_book_summary to authenticated/);
+  assert.match(periodMigration, /grant select on public\.monthly_dues_cash_book_movements to authenticated/);
+  assert.doesNotMatch(periodMigration, /create or replace function public\.get_monthly_dues_cash_book/);
   assert.match(periodMigration, /create table public\.monthly_dues_periods/);
   assert.match(periodMigration, /select m\.id, date '2026-10-01', 10000/);
   assert.match(periodMigration, /insert into public\.monthly_dues_periods/);
@@ -43,10 +45,8 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.doesNotMatch(periodMigration, /generate_series\(/);
   assert.match(migration, /opening_balance \+ income_amount - expense_amount/);
   assert.match(actions, /getMonthlyDuesCashBook/);
-  assert.match(actions, /get_monthly_dues_cash_book_summary/);
-  assert.match(actions, /get_monthly_dues_cash_book_movements/);
-  assert.doesNotMatch(actions, /from\("monthly_dues_cash_book_summary"\)/);
-  assert.doesNotMatch(actions, /from\("monthly_dues_cash_book_movements"\)/);
+  assert.match(actions, /from\("monthly_dues_cash_book_summary"\)/);
+  assert.match(actions, /from\("monthly_dues_cash_book_movements"\)/);
   assert.match(actions, /recordMonthlyDuesCashExpense/);
   assert.match(actions, /getMonthlyDuesPeriods/);
   assert.match(actions, /open_monthly_dues_period/);
