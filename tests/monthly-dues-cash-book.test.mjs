@@ -74,3 +74,18 @@ test("cash expense timestamp validator accepts ISO timestamps with an explicit o
   assert.equal(timestampPattern.test("2026-10-15T10:00:00+07:00"), true);
   assert.equal(timestampPattern.test("not-a-timestamp"), false);
 });
+
+test("expense RPC serializes writes and rejects spending above the official available cash balance", () => {
+  assert.match(migration, /pg_advisory_xact_lock\([\s\S]*?koppkas-monthly-dues-cash-balance/);
+  assert.match(migration, /from public\.monthly_dues_cash_book_summary summary[\s\S]*?order by summary\.dues_month desc[\s\S]*?limit 1/);
+  assert.match(migration, /if p_amount > v_available_balance then[\s\S]*?using errcode = '23514'/);
+  assert.match(migration, /Re-check idempotency after acquiring the lock/);
+  assert.match(migration, /Official available cash balance is unavailable/);
+});
+
+test("cash-book views are role-filtered and non-public from their first migration", () => {
+  assert.equal([...migration.matchAll(/where \(select app_private\.has_any_role\(array\[/g)].length, 2);
+  assert.match(migration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon/);
+  assert.match(migration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon/);
+  assert.match(migration, /with movements as \([\s\S]*?\)\s*select \*\s*from movements[\s\S]*?has_any_role/);
+});
