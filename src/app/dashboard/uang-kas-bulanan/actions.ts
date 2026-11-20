@@ -235,3 +235,118 @@ export async function getDuesPaymentReceipt(
   }
   return { receipt: data as DuesPaymentReceipt };
 }
+
+export type MonthlyDuesCashBookSummary = {
+  dues_month: string;
+  opening_balance: string | number;
+  income_amount: string | number;
+  expense_amount: string | number;
+  closing_balance: string | number;
+};
+
+export type MonthlyDuesCashMovement = {
+  movement_key: string;
+  transaction_id: string | null;
+  dues_month: string;
+  occurred_at: string;
+  movement_type: "saldo_awal" | "pemasukan_iuran" | "pengeluaran";
+  description: string;
+  amount: string | number;
+  recorded_by: string | null;
+  note: string | null;
+  immutable: boolean;
+};
+
+export type MonthlyDuesCashBookResult = {
+  summary?: MonthlyDuesCashBookSummary;
+  movements: MonthlyDuesCashMovement[];
+  error?: string;
+};
+
+function isOffsetTimestamp(value: string): boolean {
+  return /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?(?:Z|[+-]\\d{2}:\\d{2})$/.test(value)
+    && Number.isFinite(Date.parse(value));
+}
+
+/** Finance-role-only read model for the monthly cash book and its immutable movements. */
+export async function getMonthlyDuesCashBook(duesMonth: string): Promise<MonthlyDuesCashBookResult> {
+  await requireModulePermission("general_finance", "read");
+  if (!isValidMonth(duesMonth)) return { movements: [], error: "Periode buku kas tidak valid." };
+
+  const supabase = await createClient();
+  const [{ data: summary, error: summaryError }, { data: movements, error: movementsError }] = await Promise.all([
+    supabase.from("monthly_dues_cash_book_summary")
+      .select("dues_month, opening_balance, income_amount, expense_amount, closing_balance")
+      .eq("dues_month", duesMonth)
+      .maybeSingle(),
+    supabase.from("monthly_dues_cash_book_movements")
+      .select("movement_key, transaction_id, dues_month, occurred_at, movement_type, description, amount, recorded_by, note, immutable")
+      .eq("dues_month", duesMonth)
+      .order("occurred_at", { ascending: true })
+      .order("movement_key", { ascending: true }),
+  ]);
+
+  if (summaryError || movementsError) {
+    return { movements: [], error: "Pembukuan kas periode ini belum dapat dimuat." };
+  }
+
+  return {
+    summary: summary as MonthlyDuesCashBookSummary | null ?? undefined,
+    movements: (movements ?? []) as MonthlyDuesCashMovement[],
+  };
+}
+
+/** Records an append-only expense through the database RPC; direct table writes are not granted. */
+export async function recordMonthlyDuesCashExpense(
+  _previous: DuesActionState,
+  formData: FormData,
+): Promise<DuesActionState> {
+  const user = await requireModulePermission("general_finance", "create");
+  const duesMonth = String(formData.get("dues_month") ?? "");
+  const amount = Number(formData.get("amount"));
+  const description = String(formData.get("description") ?? "").trim();
+  const spentAt = String(formData.get("spent_at") ?? "");
+  const idempotencyKey = String(formData.get("idempotency_key") ?? "");
+
+  if (!isValidMonth(duesMonth) || !isOffsetTimestamp(spentAt)
+      || !UUID_PATTERN.test(idempotencyKey)) {
+    return { error: "Periode, tanggal pengeluaran, atau kunci transaksi tidak valid." };
+  }
+
+  const localPeriod = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+  }).format(new Date(spentAt)) + "-01";
+
+  if (localPeriod !== duesMonth) {
+    return { error: "Tanggal pengeluaran harus berada dalam periode buku kas yang dipilih." };
+  }
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999999999.99) {
+    return { error: "Nominal pengeluaran harus lebih dari nol." };
+  }
+  if (description.length < 2 || description.length > 240) {
+    return { error: "Keterangan pengeluaran harus berisi 2–240 karakter." };
+  }
+
+  const supabase = await createClient();
+  const { data: transactionId, error } = await supabase.rpc("record_monthly_dues_cash_expense", {
+    p_dues_month: duesMonth,
+    p_amount: amount,
+    p_description: description,
+    p_spent_at: spentAt,
+    p_idempotency_key: idempotencyKey,
+  });
+
+  if (error || typeof transactionId !== "string" || !UUID_PATTERN.test(transactionId)) {
+    return { error: "Pengeluaran gagal dicatat. Periksa hak akses dan koneksi database." };
+  }
+
+  revalidatePath("/dashboard/uang-kas-bulanan");
+  revalidatePath("/dashboard/keuangan");
+  return {
+    success: "Pengeluaran kas berhasil dicatat.",
+    transactionId,
+  };
+}
+
