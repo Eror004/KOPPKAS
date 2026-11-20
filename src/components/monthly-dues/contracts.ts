@@ -14,7 +14,7 @@ export const MONTHLY_REFERENCE = 10000;
 export function isValidDuesMonth(value: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])-01$/.test(value);
 }
-export type DuesStatus = "lunas" | "kurang" | "belum_bayar" | "unavailable";
+export type DuesStatus = "lunas" | "belum_bayar" | "unavailable";
 
 export function duesStatus(row: DuesRecord): DuesStatus {
   const raw = row.paid_amount;
@@ -23,15 +23,14 @@ export function duesStatus(row: DuesRecord): DuesStatus {
   const reference = Number(row.reference_amount);
   if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(reference) || reference !== MONTHLY_REFERENCE) return "unavailable";
   if (amount >= MONTHLY_REFERENCE) return "lunas";
-  return amount > 0 ? "kurang" : "belum_bayar";
+  return "belum_bayar";
 }
-export interface DuesPeriodSummary { members: number; paid: number; short: number; unpaid: number; unavailable: number; collected: number }
+export interface DuesPeriodSummary { members: number; paid: number; unpaid: number; unavailable: number; collected: number }
 export function summarizeDues(rows: DuesRecord[]): DuesPeriodSummary {
   const paid = rows.filter(row => duesStatus(row) === "lunas").length;
-  const short = rows.filter(row => duesStatus(row) === "kurang").length;
   const unpaid = rows.filter(row => duesStatus(row) === "belum_bayar").length;
-  const unavailable = rows.length - paid - short - unpaid;
-  return { members: rows.length, paid, short, unpaid, unavailable, collected: unavailable ? NaN : rows.reduce((total, row) => total + Number(row.paid_amount), 0) };
+  const unavailable = rows.length - paid - unpaid;
+  return { members: rows.length, paid, unpaid, unavailable, collected: unavailable ? NaN : rows.reduce((total, row) => total + Number(row.paid_amount), 0) };
 }
 export function periodLabel(period: string): string {
   const [year, month] = period.split("-").map(Number);

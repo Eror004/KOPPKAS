@@ -53,7 +53,6 @@ export function ReceiptFeedback({ transactionId, getReceipt }: {
           <div><dt>Referensi</dt><dd>{receipt.payment_reference}</dd></div>
           <div><dt>Anggota</dt><dd>{receipt.member_name}</dd></div>
           <div><dt>Waktu transaksi</dt><dd>{new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(receipt.paid_at))} WIB</dd></div>
-    && isValidDuesMonth(receipt.dues_month)
           <div><dt>Status setelah transaksi</dt><dd>{receipt.status_after_transaction === "lunas" ? "LUNAS" : "BELUM LUNAS"}</dd></div>
           {receipt.note && <div><dt>Catatan</dt><dd>{receipt.note}</dd></div>}
           {(receipt.recorded_by_name || receipt.recorded_by) && <div><dt>Dicatat oleh</dt><dd>{receipt.recorded_by_name || receipt.recorded_by}</dd></div>}

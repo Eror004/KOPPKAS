@@ -24,16 +24,16 @@ const rows = [
 ];
 
 test("voluntary contribution status is derived from the Rp10,000 threshold", () => {
-  assert.equal(duesStatus(rows[0]), "kurang");
+  assert.equal(duesStatus(rows[0]), "belum_bayar");
   assert.equal(duesStatus(rows[1]), "lunas");
   assert.equal(duesStatus(rows[2]), "belum_bayar");
-  assert.equal(duesStatus({ ...rows[0], paid_amount: 9999.99 }), "kurang");
+  assert.equal(duesStatus({ ...rows[0], paid_amount: 9999.99 }), "belum_bayar");
   assert.equal(duesStatus({ ...rows[0], paid_amount: 10000 }), "lunas");
   assert.equal(duesStatus({ ...rows[0], reference_amount: 9000 }), "unavailable");
   const summary = summarizeDues(rows);
   assert.equal(summary.paid, 1);
-  assert.equal(summary.short, 1);
-  assert.equal(summary.unpaid, 1);
+  assert.equal(summary.unpaid, 2);
+  assert.equal("short" in summary, false);
   assert.equal(summary.collected, 16000);
 });
 
