@@ -10,6 +10,7 @@ create table public.monthly_dues_cash_opening_balances (
 );
 
 alter table public.monthly_dues_cash_opening_balances enable row level security;
+revoke all on public.monthly_dues_cash_opening_balances from public, anon, authenticated;
 create policy "monthly_dues_cash_opening_read_finance_roles"
 on public.monthly_dues_cash_opening_balances
 for select to authenticated
@@ -57,12 +58,14 @@ create index monthly_dues_cash_expenses_period_idx
   on public.monthly_dues_cash_expenses (dues_month, spent_at desc, id);
 
 alter table public.monthly_dues_cash_expenses enable row level security;
+revoke all on public.monthly_dues_cash_expenses from public, anon, authenticated;
 create policy "monthly_dues_cash_expenses_read_finance_roles"
 on public.monthly_dues_cash_expenses
 for select to authenticated
 using (app_private.has_any_role(array['ketua_pemuda','wakil_ketua_pemuda','bendahara']::public.app_role[]));
 grant select on public.monthly_dues_cash_expenses to authenticated;
-revoke insert, update, delete on public.monthly_dues_cash_expenses from anon, authenticated;
+-- SELECT is the only direct Data API privilege; writes are RPC-only.
+
 
 create or replace function app_private.prevent_monthly_dues_cash_expense_mutation()
 returns trigger
