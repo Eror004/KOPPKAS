@@ -30,6 +30,7 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(periodMigration, /pay\.paid_at >= opened\.opened_at/);
   assert.match(periodMigration, /pay\.paid_at >= period\.opened_at/);
   assert.match(periodMigration, /Saldo awal dari saldo akhir periode sebelumnya/);
+  assert.equal([...periodMigration.matchAll(/where \(select app_private\.has_any_role\(array\[/g)].length, 2, "both cash-book views must filter to finance roles");
   assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon, authenticated/);
   assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon, authenticated/);
   assert.match(periodMigration, /where \(select app_private\.has_any_role\(array\[/);
