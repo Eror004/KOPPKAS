@@ -99,6 +99,7 @@ declare
   v_expense_id uuid;
   v_existing public.monthly_dues_cash_expenses%rowtype;
   v_description text;
+  v_available_balance numeric(15,2);
 begin
   if auth.uid() is null then
     raise exception 'Authentication required' using errcode = '28000';
@@ -142,6 +143,42 @@ begin
       raise exception 'Idempotency key was already used with different expense data' using errcode = '22023';
     end if;
     return v_existing.id;
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('koppkas-monthly-dues-cash-balance', 0)
+  );
+
+  -- Re-check idempotency after acquiring the lock to handle concurrent retries.
+  select * into v_existing
+  from public.monthly_dues_cash_expenses
+  where idempotency_key = p_idempotency_key;
+
+  if found then
+    if v_existing.dues_month <> p_dues_month
+       or v_existing.amount <> p_amount
+       or v_existing.description <> v_description
+       or v_existing.spent_at <> p_spent_at
+       or v_existing.recorded_by <> auth.uid() then
+      raise exception 'Idempotency key was already used with different expense data' using errcode = '22023';
+    end if;
+    return v_existing.id;
+  end if;
+
+  select summary.closing_balance
+  into v_available_balance
+  from public.monthly_dues_cash_book_summary summary
+  order by summary.dues_month desc
+  limit 1;
+
+  if v_available_balance is null then
+    raise exception 'Official available cash balance is unavailable' using errcode = 'P0002';
+  end if;
+
+  if p_amount > v_available_balance then
+    raise exception 'Insufficient cash balance: available %, requested %',
+      v_available_balance, p_amount
+      using errcode = '23514';
   end if;
 
   insert into public.monthly_dues_cash_expenses (
@@ -232,13 +269,18 @@ select
   income_amount,
   expense_amount,
   (opening_balance + income_amount - expense_amount)::numeric(15,2) as closing_balance
-from running;
+from running
+where (select app_private.has_any_role(array[
+  'ketua_pemuda','wakil_ketua_pemuda','bendahara'
+]::public.app_role[]));
 
+revoke all on public.monthly_dues_cash_book_summary from public, anon;
 grant select on public.monthly_dues_cash_book_summary to authenticated;
 
 create or replace view public.monthly_dues_cash_book_movements
 with (security_invoker = true)
 as
+with movements as (
 select
   'opening:' || o.dues_month::text as movement_key,
   null::uuid as transaction_id,
@@ -281,8 +323,14 @@ select
   e.recorded_by,
   null::text,
   true
-from public.monthly_dues_cash_expenses e;
+)
+select *
+from movements
+where (select app_private.has_any_role(array[
+  'ketua_pemuda','wakil_ketua_pemuda','bendahara'
+]::public.app_role[]));
 
+revoke all on public.monthly_dues_cash_book_movements from public, anon;
 grant select on public.monthly_dues_cash_book_movements to authenticated;
 
 comment on table public.monthly_dues_cash_opening_balances is
