@@ -30,7 +30,18 @@ export function AccountingPanel({ period, canViewFinance, getCashBook, recordExp
     const localDate = String(formData.get("spent_at") ?? "");
     formData.set("spent_at", localDate ? `${localDate}:00+07:00` : "");
     const next = await recordExpense(previous, formData);
-    if (next.success) { keyRef.current = null; router.refresh(); }
+    if (next.success) {
+      keyRef.current = null;
+      if (getCashBook) {
+        try {
+          const refreshed = await getCashBook(period, 0, 50);
+          setCashState({ period, result: refreshed, error: refreshed.error ?? "" });
+        } catch {
+          setCashState({ period, result: null, error: "Pengeluaran tercatat, tetapi pembukuan belum dapat diperbarui." });
+        }
+      }
+      router.refresh();
+    }
     return next;
   }, {});
 
