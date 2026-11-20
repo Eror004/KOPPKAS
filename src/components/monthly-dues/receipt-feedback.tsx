@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { DuesPaymentReceipt, ReceiptResult } from "./backend-contract";
-import { formatContribution, periodLabel } from "./contracts";
+import { formatContribution, isValidDuesMonth, periodLabel } from "./contracts";
 
 function validReceipt(receipt: DuesPaymentReceipt, transactionId: string): boolean {
   return receipt.payment_id === transactionId
