@@ -391,7 +391,7 @@ with all_movements as (
   -- Every opened period gets an informational opening-balance movement. For later
   -- periods this is a carry-forward display row, not a new cash inflow.
   select
-    'opening:' || summary.dues_month::text as movement_key,
+    '0:opening:' || summary.dues_month::text as movement_key,
     null::uuid as transaction_id,
     summary.dues_month,
     (summary.dues_month::timestamp at time zone 'Asia/Jakarta') as occurred_at,
@@ -412,7 +412,7 @@ with all_movements as (
   union all
 
   select
-    'payment:' || p.id::text,
+    '1:payment:' || p.id::text,
     p.id,
     md.dues_month,
     p.paid_at,
@@ -431,7 +431,7 @@ with all_movements as (
   union all
 
   select
-    'expense:' || e.id::text,
+    '2:expense:' || e.id::text,
     e.id,
     e.dues_month,
     e.spent_at,
