@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema, accountLimit] = await Promise.all([
+const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema, accountLimit, navigation, moduleShell] = await Promise.all([
   read("../src/lib/auth/permissions.ts"),
   read("../src/app/dashboard/akun/actions.ts"),
   read("../src/lib/supabase/admin.ts"),
@@ -12,6 +12,8 @@ const [permissions, actions, admin, page, dashboard, edgeFunction, coreSchema, a
   read("../supabase/functions/account-admin/index.ts"),
   read("../supabase/migrations/20261118033833_core_schema.sql"),
   read("../supabase/migrations/20261119090000_koppkas_account_limit.sql"),
+  read("../src/components/dashboard-navigation.ts"),
+  read("../src/components/module-shell.tsx"),
 ]);
 
 test("account management is granted only to Ketua Pemuda", () => {
@@ -70,8 +72,9 @@ test("new Auth users update the profile row created by the database trigger", ()
 });
 
 test("account management navigation remains role-filtered", () => {
-  assert.match(dashboard, /"Manajemen Akun": "accounts"/);
-  assert.match(dashboard, /"Manajemen Akun": "\/dashboard\/akun"/);
+  assert.match(navigation, /href: "\/dashboard\/akun", label: "Manajemen Akun"[^\n]*module: "accounts"/);
+  assert.match(dashboard, /dashboardNavigation\.filter\(item => can\(role, item\.module\)\)/);
+  assert.match(moduleShell, /dashboardNavigation\.filter\(\(item\) => can\(user\.role, item\.module\)\)/);
 });
 
 test("account security revokes existing sessions before role, status or password changes", () => {
