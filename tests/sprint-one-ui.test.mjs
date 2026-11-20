@@ -26,6 +26,7 @@ const { DuesDirectory } = load("../src/components/monthly-dues/dues-directory.ts
   "./contracts": duesContracts,
   "./accounting-panel": { AccountingPanel },
   "@/app/dashboard/uang-kas-bulanan/payment-form": { PaymentForm: ({ monthlyDuesId }) => React.createElement("span", null, `Form pembayaran fixture ${monthlyDuesId}`) },
+  "@/app/dashboard/uang-kas-bulanan/member-create-form": { DuesMemberCreateForm: () => React.createElement("span", null, "Form tambah anggota fixture") },
 });
 const members = [
   { id: "fixture-1", full_name: "Contoh Anggota", gender: "laki_laki", phone: null, created_at: "2026-01-01" },
@@ -65,7 +66,7 @@ test("dues UI does not invent payment history or expose recording to read-only u
   assert.match(html, /sukarela/); assert.doesNotMatch(html, /Form pembayaran fixture/);
   const recorder = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: true }));
   assert.doesNotMatch(recorder, /Form pembayaran fixture/);
-  assert.match(recorder, /Penambahan dari kas sementara tidak tersedia/);
+  assert.match(recorder, /Form tambah anggota fixture/);
   const empty = renderToStaticMarkup(React.createElement(DuesDirectory, { rows: [], currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: false }));
   assert.match(empty, /Belum ada daftar kas untuk periode ini/);
 });
