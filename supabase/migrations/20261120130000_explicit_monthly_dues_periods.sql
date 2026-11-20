@@ -10,6 +10,7 @@ create table public.monthly_dues_periods (
 );
 
 alter table public.monthly_dues_periods enable row level security;
+revoke all on public.monthly_dues_periods from public, anon, authenticated;
 create policy "monthly_dues_periods_read_finance_roles"
 on public.monthly_dues_periods for select to authenticated
 using (app_private.has_any_role(array[
@@ -382,6 +383,7 @@ where (select app_private.has_any_role(array[
   'ketua_pemuda','wakil_ketua_pemuda','bendahara'
 ]::public.app_role[]));
 
+revoke all on public.monthly_dues_cash_book_summary from public, anon;
 grant select on public.monthly_dues_cash_book_summary to authenticated;
 
 create or replace view public.monthly_dues_cash_book_movements
@@ -450,6 +452,7 @@ where (select app_private.has_any_role(array[
   'ketua_pemuda','wakil_ketua_pemuda','bendahara'
 ]::public.app_role[]));
 
+revoke all on public.monthly_dues_cash_book_movements from public, anon;
 grant select on public.monthly_dues_cash_book_movements to authenticated;
 
 comment on table public.monthly_dues_periods is
