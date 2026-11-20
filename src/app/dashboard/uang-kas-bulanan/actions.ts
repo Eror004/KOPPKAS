@@ -18,6 +18,11 @@ export type DuesMemberOption = {
   paymentStatus: "lunas" | "kurang" | "belum_bayar" | null;
 };
 
+export type DuesMemberSearchResult = {
+  members: DuesMemberOption[];
+  error?: string;
+};
+
 export type DuesMemberCreationResult =
   | { status: "created"; member_id: string; monthly_dues_id: string; full_name: string }
   | { status: "duplicate_candidates"; matches: Array<{ id: string; full_name: string }> };
@@ -79,10 +84,10 @@ export async function generateMonthlyRegister(previous: DuesActionState, formDat
 }
 
 /** Search active membership by name, but always return the stable member UUID. */
-export async function searchDuesMembers(query: string, duesMonth: string): Promise<DuesMemberOption[]> {
+export async function searchDuesMembers(query: string, duesMonth: string): Promise<DuesMemberSearchResult> {
   await requireModulePermission("monthly_dues", "read");
   const normalizedQuery = query.trim();
-  if (normalizedQuery.length < 2 || normalizedQuery.length > 80 || !isValidMonth(duesMonth)) return [];
+  if (normalizedQuery.length < 2 || normalizedQuery.length > 80 || !isValidMonth(duesMonth)) return { members: [] };
 
   // Escape ILIKE wildcards so user input is treated as a literal substring.
   const escapedQuery = normalizedQuery.replace(/[\\%_]/g, "\\$&");
@@ -95,7 +100,8 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
     .order("full_name", { ascending: true })
     .limit(15);
 
-  if (error || !members?.length) return [];
+  if (error) return { members: [], error: "Pencarian anggota belum dapat dilakukan." };
+  if (!members?.length) return { members: [] };
   const memberIds = members.map((member) => member.id);
   const { data: duesRows, error: duesError } = await supabase
     .from("monthly_dues_summary")
@@ -103,18 +109,10 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
     .eq("dues_month", duesMonth)
     .in("member_id", memberIds);
 
-  if (duesError) {
-    return members.map((member) => ({
-      memberId: member.id,
-      fullName: member.full_name,
-      monthlyDuesId: null,
-      paidAmount: null,
-      paymentStatus: null,
-    }));
-  }
+  if (duesError) return { members: [], error: "Status daftar kas periode ini belum dapat dimuat." };
 
   const duesByMember = new Map((duesRows ?? []).map((row) => [row.member_id, row]));
-  return members.map((member) => {
+  return { members: members.map((member) => {
     const dues = duesByMember.get(member.id);
     return {
       memberId: member.id,
@@ -123,7 +121,7 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
       paidAmount: dues?.paid_amount ?? null,
       paymentStatus: dues?.payment_status ?? null,
     };
-  });
+  }) };
 }
 
 /** Ensure an existing active member has exactly one register row for the selected month. */
@@ -171,10 +169,18 @@ export async function createDuesMember(
 
   const result = data as DuesMemberCreationResult;
   if (result.status === "created") {
+    if (!UUID_PATTERN.test(result.member_id) || !UUID_PATTERN.test(result.monthly_dues_id)) {
+      return { error: "Respons pembuatan anggota tidak valid. Periksa data sebelum melanjutkan." };
+    }
     revalidatePath("/dashboard/uang-kas-bulanan");
     revalidatePath("/dashboard/keanggotaan");
+    return { result };
   }
-  return { result };
+  if (result.status === "duplicate_candidates" && Array.isArray(result.matches)
+    && result.matches.every((match) => UUID_PATTERN.test(match.id) && typeof match.full_name === "string")) {
+    return { result };
+  }
+  return { error: "Respons pembuatan anggota tidak dikenali. Silakan coba lagi." };
 }
 
 export async function recordDuesPayment(_previous: DuesActionState, formData: FormData): Promise<DuesActionState> {
