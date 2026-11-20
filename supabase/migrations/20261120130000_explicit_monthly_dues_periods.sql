@@ -377,131 +377,80 @@ select
   income_amount,
   expense_amount,
   closing_balance::numeric(15,2) as closing_balance
-from running;
+from running
+where (select app_private.has_any_role(array[
+  'ketua_pemuda','wakil_ketua_pemuda','bendahara'
+]::public.app_role[]));
 
-revoke all on public.monthly_dues_cash_book_summary from public, anon, authenticated;
+grant select on public.monthly_dues_cash_book_summary to authenticated;
 
 create or replace view public.monthly_dues_cash_book_movements
 with (security_invoker = true)
 as
--- Every opened period gets an informational opening-balance movement. For later
--- periods this is a carry-forward display row, not a new cash inflow.
-select
-  'opening:' || summary.dues_month::text as movement_key,
-  null::uuid as transaction_id,
-  summary.dues_month,
-  (summary.dues_month::timestamp at time zone 'Asia/Jakarta') as occurred_at,
-  'saldo_awal'::text as movement_type,
-  case when summary.dues_month = date '2026-10-01'
-    then 'Saldo awal historis'
-    else 'Saldo awal dari saldo akhir periode sebelumnya'
-  end as description,
-  summary.opening_balance as amount,
-  null::uuid as recorded_by,
-  case when summary.dues_month = date '2026-10-01'
-    then 'Saldo awal historis organisasi; bukan pemasukan iuran.'
-    else 'Saldo kas terakumulasi dari periode sebelumnya; bukan pemasukan baru.'
-  end as note,
-  true as immutable
-from public.monthly_dues_cash_book_summary summary
-
-union all
-
-select
-  'payment:' || p.id::text,
-  p.id,
-  md.dues_month,
-  p.paid_at,
-  'pemasukan_iuran'::text,
-  'Pembayaran uang kas bulanan'::text,
-  p.amount,
-  p.recorded_by,
-  p.note,
-  true
-from public.monthly_dues_payments p
-join public.monthly_dues md on md.id = p.monthly_dues_id
-join public.monthly_dues_periods period
-  on period.dues_month = md.dues_month
- and p.paid_at >= period.opened_at
-
-union all
-
-select
-  'expense:' || e.id::text,
-  e.id,
-  e.dues_month,
-  e.spent_at,
-  'pengeluaran'::text,
-  e.description,
-  e.amount,
-  e.recorded_by,
-  null::text,
-  true
-from public.monthly_dues_cash_expenses e
-join public.monthly_dues_periods period on period.dues_month = e.dues_month;
-
-revoke all on public.monthly_dues_cash_book_movements from public, anon, authenticated;
-
--- The raw views are not directly exposed to authenticated users. These RPCs
--- enforce the finance-role boundary before returning the complete read model.
-create or replace function public.get_monthly_dues_cash_book_summary(p_dues_month date)
-returns setof public.monthly_dues_cash_book_summary
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-begin
-  if auth.uid() is null then
-    raise exception 'Authentication required' using errcode = '28000';
-  end if;
-  if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
-  ]::public.app_role[]) then
-    raise exception 'Not authorized to read the monthly dues cash book' using errcode = '42501';
-  end if;
-  if p_dues_month is null or extract(day from p_dues_month) <> 1 then
-    raise exception 'Period must be the first day of a month' using errcode = '22023';
-  end if;
-
-  return query
-  select summary.*
+with all_movements as (
+  -- Every opened period gets an informational opening-balance movement. For later
+  -- periods this is a carry-forward display row, not a new cash inflow.
+  select
+    'opening:' || summary.dues_month::text as movement_key,
+    null::uuid as transaction_id,
+    summary.dues_month,
+    (summary.dues_month::timestamp at time zone 'Asia/Jakarta') as occurred_at,
+    'saldo_awal'::text as movement_type,
+    case when summary.dues_month = date '2026-10-01'
+      then 'Saldo awal historis'
+      else 'Saldo awal dari saldo akhir periode sebelumnya'
+    end as description,
+    summary.opening_balance as amount,
+    null::uuid as recorded_by,
+    case when summary.dues_month = date '2026-10-01'
+      then 'Saldo awal historis organisasi; bukan pemasukan iuran.'
+      else 'Saldo kas terakumulasi dari periode sebelumnya; bukan pemasukan baru.'
+    end as note,
+    true as immutable
   from public.monthly_dues_cash_book_summary summary
-  where summary.dues_month = p_dues_month;
-end;
-$function$;
 
-revoke all on function public.get_monthly_dues_cash_book_summary(date) from public, anon, authenticated;
-grant execute on function public.get_monthly_dues_cash_book_summary(date) to authenticated;
+  union all
 
-create or replace function public.get_monthly_dues_cash_book_movements(p_dues_month date)
-returns setof public.monthly_dues_cash_book_movements
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-begin
-  if auth.uid() is null then
-    raise exception 'Authentication required' using errcode = '28000';
-  end if;
-  if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
-  ]::public.app_role[]) then
-    raise exception 'Not authorized to read the monthly dues cash book' using errcode = '42501';
-  end if;
-  if p_dues_month is null or extract(day from p_dues_month) <> 1 then
-    raise exception 'Period must be the first day of a month' using errcode = '22023';
-  end if;
+  select
+    'payment:' || p.id::text,
+    p.id,
+    md.dues_month,
+    p.paid_at,
+    'pemasukan_iuran'::text,
+    'Pembayaran uang kas bulanan'::text,
+    p.amount,
+    p.recorded_by,
+    p.note,
+    true
+  from public.monthly_dues_payments p
+  join public.monthly_dues md on md.id = p.monthly_dues_id
+  join public.monthly_dues_periods period
+    on period.dues_month = md.dues_month
+   and p.paid_at >= period.opened_at
 
-  return query
-  select movement.*
-  from public.monthly_dues_cash_book_movements movement
-  where movement.dues_month = p_dues_month
-  order by movement.occurred_at asc, movement.movement_key asc;
-end;
-$function$;
+  union all
 
-revoke all on function public.get_monthly_dues_cash_book_movements(date) from public, anon, authenticated;
-grant execute on function public.get_monthly_dues_cash_book_movements(date) to authenticated;
+  select
+    'expense:' || e.id::text,
+    e.id,
+    e.dues_month,
+    e.spent_at,
+    'pengeluaran'::text,
+    e.description,
+    e.amount,
+    e.recorded_by,
+    null::text,
+    true
+  from public.monthly_dues_cash_expenses e
+  join public.monthly_dues_periods period on period.dues_month = e.dues_month
+)
+select *
+from all_movements
+where (select app_private.has_any_role(array[
+  'ketua_pemuda','wakil_ketua_pemuda','bendahara'
+]::public.app_role[]));
+
+grant select on public.monthly_dues_cash_book_movements to authenticated;
 
 comment on table public.monthly_dues_periods is
   'A month appears in UANG KAS BULANAN only after an authorized officer explicitly opens it. October 2026 is the seeded first period.';
