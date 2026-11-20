@@ -196,7 +196,7 @@ select throws_ok($$select public.open_monthly_dues_period(date '2026-11-01')$$, 
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
-select throws_ok($select public.open_monthly_dues_period(date '2026-12-01')$, '22023', 'Only the month immediately following the latest opened period can be opened', 'Cannot skip an unopened month');
+select throws_ok($$select public.open_monthly_dues_period(date '2026-12-01')$$, '22023', 'Only the month immediately following the latest opened period can be opened', 'Cannot skip an unopened month');
 select is((public.open_monthly_dues_period(date '2026-11-01')->>'opening_balance')::numeric, 205000.00::numeric, 'November opens with October closing balance');
 reset role;
 
