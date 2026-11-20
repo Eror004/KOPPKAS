@@ -2,37 +2,41 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [page, directory, paymentForm] = await Promise.all([
+const [page, directory, paymentForm, registerForm, actions] = await Promise.all([
   readFile(new URL("../src/app/dashboard/uang-kas-bulanan/page.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/components/monthly-dues/dues-directory.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/app/dashboard/uang-kas-bulanan/register-form.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/app/dashboard/uang-kas-bulanan/actions.ts", import.meta.url), "utf8"),
 ]);
 
-test("monthly dues page fails closed without inferring periods or querying calendar history", () => {
-  assert.match(page, /requireModulePermission\("monthly_dues", "read"\)/);
-  assert.match(page, /Daftar periode yang dibuka belum terhubung/);
-  assert.doesNotMatch(page, /monthly_dues_summary|createClient|historyStart|currentMonth|new Date|<DuesDirectory/);
-  assert.match(directory, /openedPeriods/);
-  assert.match(directory, /Pilih periode yang sudah dibuka/);
+test("monthly dues page reads only explicitly opened periods", () => {
+  assert.match(page, /getMonthlyDuesPeriods/);
+  assert.match(page, /\.in\("dues_month", openedPeriods\)/);
+  assert.match(page, /<DuesDirectory/);
+  assert.doesNotMatch(page, /create_member_and_monthly_dues|InlineMemberForm/);
+  assert.match(page, /canViewCashBook=\{can\(user\.role, "general_finance", "read"\)\}/);
 });
 
-test("monthly dues recap explicitly avoids debt or automatic arrears", () => {
-  assert.match(directory, /Setiap bulan berdiri sendiri/);
-  assert.match(directory, /rows\.filter\(row => row\.dues_month === period\)/);
+test("period opening submits an explicit month and only authorized officers see the action", () => {
+  assert.match(page, /\["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"\]\.includes\(user\.role\)/);
+  assert.match(registerForm, /name="dues_month" value=\{duesMonth\}/);
+  assert.match(registerForm, /generateMonthlyRegister/);
+  assert.match(actions, /open_monthly_dues_period/);
+  assert.match(actions, /isValidMonth\(duesMonth\)/);
 });
 
-test("current-month recording and payment controls remain role scoped", () => {
-  assert.doesNotMatch(page, /<DuesDirectory|<PaymentForm|<RegisterForm/);
-  assert.doesNotMatch(page, /<RegisterForm/);
-  assert.doesNotMatch(page, /<InlineMemberForm/);
-  assert.match(directory, /row.dues_month === currentMonth/);
-  assert.match(directory, /PaymentForm key=\{selected.id\} monthlyDuesId=\{selected.id\}/);
+test("member creation uses safe backend action and explicit duplicate review", () => {
+  assert.match(actions, /create_member_and_monthly_dues_safe/);
+  assert.match(actions, /p_confirm_same_name/);
+  assert.match(directory, /DuesMemberCreateForm/);
 });
 
-test("dues payment form generates an idempotency key at submit time", () => {
+test("payment uses idempotency key and retrieves persisted receipt separately", () => {
   assert.match(paymentForm, /crypto\.randomUUID\(\)/);
   assert.match(paymentForm, /formData\.set\("idempotency_key"/);
-  assert.match(paymentForm, /useRef<string \| null>\(null\)/);
   assert.match(paymentForm, /if \(result\.success\) idempotencyKeyRef\.current = null/);
-  assert.match(paymentForm, /value="" readOnly/);
+  assert.match(paymentForm, /getDuesPaymentReceipt/);
+  assert.match(paymentForm, /ReceiptFeedback/);
+  assert.match(actions, /monthly_dues_payment_receipts/);
 });
