@@ -314,7 +314,10 @@ export async function getMonthlyDuesCashBook(
     return { movements: [], error: "Halaman atau ukuran halaman mutasi tidak valid." };
   }
   const from = page * pageSize;
-  if (!Number.isSafeInteger(from)) return { movements: [], error: "Rentang halaman mutasi tidak valid." };
+  const to = from + pageSize - 1;
+  if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to)) {
+    return { movements: [], error: "Rentang halaman mutasi tidak valid." };
+  }
 
   const supabase = await createClient();
   const [{ data: summary, error: summaryError }, { data: movements, error: movementsError, count }] = await Promise.all([
@@ -327,7 +330,7 @@ export async function getMonthlyDuesCashBook(
       .eq("dues_month", duesMonth)
       .order("occurred_at", { ascending: true })
       .order("movement_key", { ascending: true })
-      .range(from, from + pageSize - 1),
+      .range(from, to),
   ]);
 
   if (summaryError || movementsError || count === null) {
