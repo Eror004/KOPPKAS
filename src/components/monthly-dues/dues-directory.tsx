@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ArrowDownLeft, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, FileText, Plus, ReceiptText, Search, UsersRound, WalletCards } from "lucide-react";
+import { ArrowDownLeft, CalendarDays, ChevronLeft, ChevronRight, FileText, Plus, Search, UsersRound, WalletCards } from "lucide-react";
 import { AccountingPanel } from "./accounting-panel";
 import { PaymentForm } from "@/app/dashboard/uang-kas-bulanan/payment-form";
-import type { DuesMemberCreationResult, DuesMemberSearchResult, DuesPaymentReceipt, ReceiptResult, MonthlyDuesCashBookResult } from "./backend-contract";
+import type { DuesMemberCreationResult, DuesMemberSearchResult, ReceiptResult, MonthlyDuesCashBookResult } from "./backend-contract";
 import { duesStatus, formatContribution, MONTHLY_REFERENCE, periodLabel, summarizeDues, type DuesRecord } from "./contracts";
 import type { DuesActionState } from "./backend-contract";
 
