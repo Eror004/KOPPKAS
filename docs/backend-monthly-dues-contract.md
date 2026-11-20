@@ -76,6 +76,13 @@ The live migration history currently has six versions not present in `main` and 
 - Returns the opened month, its derived opening balance, and the number of active-member register rows created.
 - Creates the period and member registers in the same transaction; a failure rolls back the whole operation.
 
+### Cash availability guard
+- A cash expense is rejected when its amount is greater than the latest official closing cash balance.
+- The database serializes expense transactions with a transaction-scoped advisory lock before reading the authoritative cash-book summary. Concurrent expenses therefore cannot each spend the same available balance.
+- The RPC rechecks an idempotency key after acquiring the lock, so a concurrent retry returns the original persisted transaction rather than being rejected as a second expense.
+- An unavailable official balance fails closed; no expense is inserted.
+- Insufficient balance is returned as a database constraint-style error (23514). The Server Action must present this as an insufficient-balance message without retrying under a new idempotency key.
+
 ### `monthly_dues_cash_expenses`
 - Expenses are append-only records with period, amount, description, actual spending timestamp, recorder UUID, and idempotency key.
 - The selected period must match the spending timestamp in Asia/Jakarta and must already be opened.
