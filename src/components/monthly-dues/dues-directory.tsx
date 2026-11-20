@@ -7,6 +7,7 @@ import { PaymentForm } from "@/app/dashboard/uang-kas-bulanan/payment-form";
 import type { DuesMemberCreationResult, DuesMemberSearchResult, ReceiptResult, MonthlyDuesCashBookResult } from "./backend-contract";
 import { duesStatus, formatContribution, MONTHLY_REFERENCE, periodLabel, summarizeDues, type DuesRecord } from "./contracts";
 import type { DuesActionState } from "./backend-contract";
+import { createLatestRequestGate } from "./latest-request.js";
 
 type Props = {
   rows: DuesRecord[];
@@ -42,6 +43,9 @@ export function DuesDirectory(props: Props) {
   const [createSuccess, setCreateSuccess] = useState("");
   const [createPending, setCreatePending] = useState(false);
   const createPendingRef = useRef(false);
+  const selectionGateRef = useRef<ReturnType<typeof createLatestRequestGate> | null>(null);
+  if (selectionGateRef.current === null) selectionGateRef.current = createLatestRequestGate();
+  const selectionGate = selectionGateRef.current;
   const [duplicates, setDuplicates] = useState<Array<{ id: string; full_name: string }>>([]);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const selectId = useId();
@@ -68,6 +72,7 @@ export function DuesDirectory(props: Props) {
   }, [memberQuery, currentMonth, canRecord, searchMembers]);
 
   async function selectMember(nextId: string) {
+    const requestId = selectionGate.begin();
     setMemberId(nextId); setSelectedMember(null); setRegisterError("");
     const member = memberResults.members.find(item => item.memberId === nextId);
     if (!member) return;
@@ -76,7 +81,15 @@ export function DuesDirectory(props: Props) {
       return;
     }
     setRegisterError("Menyiapkan daftar kas anggota…");
-    const result = await ensureRegister(member.memberId, currentMonth);
+    let result: { monthlyDuesId?: string; error?: string };
+    try {
+      result = await ensureRegister(member.memberId, currentMonth);
+    } catch {
+      if (!selectionGate.isCurrent(requestId)) return;
+      setRegisterError("Daftar kas anggota belum dapat disiapkan. Periksa koneksi sebelum mencoba lagi.");
+      return;
+    }
+    if (!selectionGate.isCurrent(requestId)) return;
     const monthlyDuesId = result.monthlyDuesId;
     if (result.error || !monthlyDuesId) {
       setRegisterError(result.error ?? "Daftar kas anggota belum dapat disiapkan.");
@@ -140,7 +153,7 @@ export function DuesDirectory(props: Props) {
     {canRecord && <section id="catat-pembayaran" className="bank-panel bank-payment" aria-labelledby="payment-title">
       <div className="bank-section-title"><div><p className="eyebrow">TRANSAKSI BARU</p><h2 id="payment-title">Catat pembayaran</h2><p>Periode berjalan yang telah dibuka: {periodLabel(currentMonth)}. Pembayaran dapat dilakukan sebagian atau beberapa kali.</p></div><span className="bank-icon"><ArrowDownLeft size={20} /></span></div>
       <div className="bank-payment-body">
-        <label className="bank-field" htmlFor={`${selectId}-search`}>Cari anggota aktif<input id={`${selectId}-search`} type="search" value={memberQuery} onChange={event => { setMemberQuery(event.target.value); setMemberResults({ members: [] }); setMemberError(""); setMemberLoading(false); setMemberId(""); setSelectedMember(null); }} placeholder="Ketik minimal 2 karakter" autoComplete="off" /></label>
+        <label className="bank-field" htmlFor={`${selectId}-search`}>Cari anggota aktif<input id={`${selectId}-search`} type="search" value={memberQuery} onChange={event => { selectionGate.invalidate(); setMemberQuery(event.target.value); setMemberResults({ members: [] }); setMemberError(""); setMemberLoading(false); setMemberId(""); setSelectedMember(null); }} placeholder="Ketik minimal 2 karakter" autoComplete="off" /></label>
         {memberLoading && <p role="status">Mencari anggota…</p>}
         {memberError && <p role="alert">{memberError}</p>}
         {memberResults.hasMore && <p role="status">Hasil dibatasi 15 anggota. Perjelas kata pencarian untuk menemukan anggota lainnya.</p>}

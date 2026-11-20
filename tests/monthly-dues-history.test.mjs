@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createLatestRequestGate } from "../src/components/monthly-dues/latest-request.js";
 import { readFile } from "node:fs/promises";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
@@ -35,6 +36,34 @@ test("member search and register creation use stable member IDs and explicit per
   assert.match(actions, /create_member_and_monthly_dues_safe/);
   assert.match(actions, /ensure_monthly_dues_for_member/);
   assert.doesNotMatch(directory, /from\("members"\)/);
+});
+
+test("late register responses cannot replace a newer member selection", async () => {
+  assert.match(directory, /selectionGate\.begin\(\)/);
+  assert.match(directory, /selectionGate\.isCurrent\(requestId\)/);
+  assert.match(directory, /selectionGate\.invalidate\(\)/);
+
+  const gate = createLatestRequestGate();
+  let selected = null;
+  let resolveFirst;
+  let resolveSecond;
+  const firstResult = new Promise(resolve => { resolveFirst = resolve; });
+  const secondResult = new Promise(resolve => { resolveSecond = resolve; });
+  const select = async (memberId, resultPromise) => {
+    const requestId = gate.begin();
+    const result = await resultPromise;
+    if (!gate.isCurrent(requestId)) return;
+    selected = { memberId, registerId: result.registerId };
+  };
+
+  const firstSelection = select("member-a", firstResult);
+  const secondSelection = select("member-b", secondResult);
+  resolveSecond({ registerId: "register-b" });
+  await secondSelection;
+  resolveFirst({ registerId: "register-a" });
+  await firstSelection;
+
+  assert.deepEqual(selected, { memberId: "member-b", registerId: "register-b" });
 });
 
 test("payment receipt lookup remains separate from payment submission", () => {
