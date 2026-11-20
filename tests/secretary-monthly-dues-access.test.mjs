@@ -20,9 +20,10 @@ test("Sekretaris read policies replace legacy policy names instead of duplicatin
   assert.match(migration, /has_any_role\(array\['sekretaris'\]::public\.app_role\[\]\)/);
 });
 
-test("monthly dues page uses an invoker-secured summary view", () => {
+test("summary view is invoker-secured and unavailable period state stays guarded", () => {
   assert.match(core, /create or replace view public\.monthly_dues_summary\s+with \(security_invoker = true\)/);
-  assert.match(workflow, /monthly_dues_summary/);
+  assert.match(workflow, /requireModulePermission\("monthly_dues", "read"\)/);
+  assert.doesNotMatch(workflow, /monthly_dues_summary/);
 });
 
 test("Sekretaris retains explicit permission to read and record voluntary payments", () => {
