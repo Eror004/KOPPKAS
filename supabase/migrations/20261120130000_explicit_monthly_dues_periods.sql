@@ -374,7 +374,7 @@ select
   (total_seed + prior_net)::numeric(15,2) as opening_balance,
   income_amount,
   expense_amount,
-  closing_balance
+  closing_balance::numeric(15,2) as closing_balance
 from running;
 
 grant select on public.monthly_dues_cash_book_summary to authenticated;
