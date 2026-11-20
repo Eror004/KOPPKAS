@@ -29,6 +29,6 @@ test("cash book exposes opening, income, expenses, and carried closing balance w
   assert.match(migration, /opening_balance \+ income_amount - expense_amount/);
   assert.match(actions, /getMonthlyDuesCashBook/);
   assert.match(actions, /recordMonthlyDuesCashExpense/);
-  assert.match(contract, /Saldo awal historis UANG KAS BULANAN Oktober 2026/);
+  assert.match(contract, /October 2026 is seeded with an immutable historical opening balance of Rp205,000/);
   assert.match(contract, /The two books remain separate/);
 });
