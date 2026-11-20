@@ -23,12 +23,15 @@ test("expense write path is finance-role gated, validated, idempotent, and appen
   assert.match(migration, /p_spent_at at time zone 'Asia\/Jakarta'/);
 });
 
-test("cash book exposes opening, income, expenses, and carried closing balance without mutating opening", () => {
+test("cash book exposes only explicitly opened periods and continuously carries the actual cash balance", () => {
   assert.match(migration, /monthly_dues_cash_book_summary/);
   assert.match(migration, /monthly_dues_cash_book_movements/);
   assert.match(migration, /opening_balance \+ income_amount - expense_amount/);
   assert.match(actions, /getMonthlyDuesCashBook/);
   assert.match(actions, /recordMonthlyDuesCashExpense/);
-  assert.match(contract, /October 2026 is seeded with an immutable historical opening balance of Rp205,000/);
+  assert.match(actions, /getMonthlyDuesPeriods/);
+  assert.match(actions, /open_monthly_dues_period/);
+  assert.match(contract, /A month appears in UANG KAS BULANAN only after an authorized officer explicitly opens it/);
+  assert.match(contract, /November's opening cash is Rp255,000/);
   assert.match(contract, /The two books remain separate/);
 });
