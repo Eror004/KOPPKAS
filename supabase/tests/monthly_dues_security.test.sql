@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(65);
+select plan(69);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -29,6 +29,17 @@ insert into public.monthly_dues (id, member_id, dues_month, reference_amount)
 values (
   '20000000-0000-4000-8000-000000000001',
   '10000000-0000-4000-8000-000000000001',
+  date '2026-10-01',
+  10000
+);
+
+insert into public.members (id, full_name, created_by)
+values ('10000000-0000-4000-8000-000000000002', 'Anggota Uji Parsial', '00000000-0000-4000-8000-000000000001');
+
+insert into public.monthly_dues (id, member_id, dues_month, reference_amount)
+values (
+  '20000000-0000-4000-8000-000000000002',
+  '10000000-0000-4000-8000-000000000002',
   date '2026-10-01',
   10000
 );
@@ -198,11 +209,22 @@ select throws_ok($$select public.record_monthly_dues_payment('20000000-0000-4000
 reset role;
 select is((select count(*)::integer from public.monthly_dues_payments where idempotency_key = '30000000-0000-4000-8000-000000000001'), 1, 'payment retry persists exactly one row');
 
+-- Partial voluntary payments remain BELUM LUNAS until the monthly aggregate reaches Rp10,000.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
+select lives_ok($select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000002', 1000, '30000000-0000-4000-8000-000000000002', 'Cicilan sukarela')$, 'Sekretaris can record a partial voluntary payment');
+select is((select payment_status from public.monthly_dues_summary where id = '20000000-0000-4000-8000-000000000002'), 'belum_bayar', 'partial amount below Rp10,000 remains unpaid');
+select is((select status_after_transaction from public.monthly_dues_payment_receipts where payment_id = '30000000-0000-4000-8000-000000000002'), 'belum_bayar', 'partial receipt remains unpaid');
+select lives_ok($select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000002', 9000, '30000000-0000-4000-8000-000000000003', 'Pelunasan sukarela')$, 'Sekretaris can record the remaining voluntary payment');
+select is((select payment_status from public.monthly_dues_summary where id = '20000000-0000-4000-8000-000000000002'), 'lunas', 'aggregate at Rp10,000 becomes paid');
+select is((select status_after_transaction from public.monthly_dues_payment_receipts where payment_id = '30000000-0000-4000-8000-000000000003'), 'lunas', 'receipt becomes paid when cumulative total reaches Rp10,000');
+reset role;
+
 -- Expense guard uses the full official balance, is idempotent, and fails closed on overspend.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 215000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'Bendahara can spend the exact available balance');
-select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 215000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'same expense idempotency key returns the original row');
+select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 225000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'Bendahara can spend the exact available balance');
+select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 225000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'same expense idempotency key returns the original row');
 select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 1, 'Pengeluaran tambahan', timestamptz '2026-10-11 12:00:00+07', '40000000-0000-4000-8000-000000000002')$$, '23514', 'Insufficient cash balance: available 0.00, requested 1.00', 'expense above available balance is rejected');
 reset role;
 select is((select count(*)::integer from public.monthly_dues_cash_expenses where idempotency_key = '40000000-0000-4000-8000-000000000001'), 1, 'expense retry persists exactly one row');
