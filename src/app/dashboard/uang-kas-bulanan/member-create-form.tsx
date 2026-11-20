@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus, UserRoundCheck } from "lucide-react";
-import { createDuesMember, ensureDuesRegister, type DuesMemberCreationResult } from "./actions";
+import { createDuesMember, ensureDuesRegister } from "./actions";
 import { periodLabel } from "@/components/monthly-dues/contracts";
 
 type FormState = { message?: string; error?: string; matches?: Array<{ id: string; full_name: string }> };
