@@ -13,7 +13,8 @@ const [migration, periodMigration, actions, contract] = await Promise.all([
 test("October 2026 historical opening balance is seeded as Rp205,000 and protected from mutation", () => {
   assert.match(migration, /date '2026-10-01',[\s\S]*?205000\.00/);
   assert.match(migration, /before update or delete on public\.monthly_dues_cash_opening_balances/);
-  assert.match(migration, /revoke insert, update, delete on public\.monthly_dues_cash_expenses from anon, authenticated/);
+  assert.match(migration, /revoke all on public\.monthly_dues_cash_opening_balances from public, anon, authenticated/);
+  assert.match(migration, /revoke all on public\.monthly_dues_cash_expenses from public, anon, authenticated/);
   assert.match(migration, /before update or delete on public\.monthly_dues_cash_expenses/);
 });
 
@@ -41,6 +42,7 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.match(periodMigration, /grant select on public\.monthly_dues_cash_book_movements to authenticated/);
   assert.doesNotMatch(periodMigration, /create or replace function public\.get_monthly_dues_cash_book/);
   assert.match(periodMigration, /create table public\.monthly_dues_periods/);
+  assert.match(periodMigration, /revoke all on public\.monthly_dues_periods from public, anon, authenticated/);
   assert.match(periodMigration, /select m\.id, date '2026-10-01', 10000/);
   assert.match(periodMigration, /insert into public\.monthly_dues_periods/);
   assert.match(periodMigration, /open_monthly_dues_period/);
