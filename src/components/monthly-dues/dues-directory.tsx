@@ -1,0 +1,32 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { PaymentForm } from "@/app/dashboard/uang-kas-bulanan/payment-form";
+import { formatContribution, periodLabel, periodWindow, summarizeDues, type DuesRecord } from "./contracts";
+
+type Props = { rows: DuesRecord[]; currentMonth: string; canRecord: boolean; registerForm?: ReactNode; inlineMemberForm?: ReactNode };
+
+export function DuesDirectory({ rows, currentMonth, canRecord, registerForm, inlineMemberForm }: Props) {
+  const periods = periodWindow(currentMonth);
+  const [period, setPeriod] = useState(currentMonth);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const index = periods.indexOf(period);
+  const periodRows = rows.filter(row => row.dues_month === period);
+  const summary = summarizeDues(periodRows);
+  const visible = periodRows.filter(row => row.full_name.toLocaleLowerCase("id-ID").includes(query.trim().toLocaleLowerCase("id-ID")) && (filter === "all" || row.payment_status === filter));
+  const percent = summary.members ? Math.round(summary.paid / summary.members * 100) : 0;
+  return <div className="sprint-module dues-module">
+    <div className="sprint-heading"><div><p className="eyebrow">KONTRIBUSI SUKARELA</p><h1>Uang Kas Bulanan</h1><p>Pembayaran manual dan sukarela. Acuan Rp10.000 per anggota per bulan, bukan tagihan wajib, utang, atau denda.</p></div></div>
+    <div className="dues-period"><div><span>PERIODE YANG DITAMPILKAN</span><strong>{periodLabel(period)}</strong></div><div className="dues-period-actions"><button type="button" disabled={index === periods.length - 1} onClick={() => setPeriod(periods[index + 1])} aria-label="Periode sebelumnya"><ChevronLeft size={18} /></button><button type="button" disabled={index === 0} onClick={() => setPeriod(periods[index - 1])} aria-label="Periode berikutnya"><ChevronRight size={18} /></button></div></div>
+    <div className="sprint-stats" aria-label="Ringkasan periode"><div><span>ANGGOTA TERDAFTAR</span><strong>{summary.members}</strong><small>Dalam daftar periode ini</small></div><div><span>LUNAS</span><strong>{summary.paid}</strong><small>Mencapai acuan</small></div><div><span>BELUM LUNAS</span><strong>{summary.unpaid}</strong><small>Belum mencapai acuan</small></div><div><span>TERCATAT</span><strong>{formatContribution(summary.collected)}</strong><small>Total pembayaran</small></div></div>
+    <section className="sprint-progress"><div><div><strong>Progres daftar periode</strong><p>Persentase anggota terdaftar yang mencapai acuan, bukan penagihan.</p></div><strong>{summary.members ? `${percent}%` : "—"}</strong></div><progress aria-label="Persentase anggota terdaftar yang mencapai acuan" max={100} value={percent} /><small>{summary.paid} dari {summary.members} anggota terdaftar mencapai acuan. {summary.withPayments} sudah mencatat pembayaran; {summary.withoutPayments} belum mencatat pembayaran.</small></section>
+    {canRecord && <div className="dues-actions"><p>Pengaturan daftar dan penambahan anggota berikut berlaku untuk bulan berjalan ({periodLabel(currentMonth)}).</p>{registerForm}{inlineMemberForm}</div>}
+    <section className="sprint-panel" aria-labelledby="dues-title"><div className="sprint-panel-heading"><div><p className="eyebrow">DAFTAR PEMBAYARAN</p><h2 id="dues-title">{periodLabel(period)}</h2><p>Jumlah pembayaran dapat dicatat sebagian dan lebih dari satu kali.</p></div><span className="sprint-count">{visible.length} anggota</span></div>
+      <div className="sprint-filters"><label className="sprint-search"><Search size={17} aria-hidden="true" /><span className="sr-only">Cari anggota dalam daftar kas</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Cari nama anggota" /></label><label className="sprint-select"><span>Filter status</span><select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">Semua status</option><option value="lunas">Lunas</option><option value="belum_lunas">Belum lunas</option></select></label></div>
+      {visible.length ? <ul className="sprint-list">{visible.map(row => <li key={row.id}><details className="sprint-detail"><summary><span className="sprint-avatar">{row.full_name.slice(0, 1).toUpperCase()}</span><span className="sprint-person"><strong>{row.full_name}</strong><small>{formatContribution(row.paid_amount)} tercatat dari acuan {formatContribution(row.reference_amount)}</small></span><span className={`payment-badge ${row.payment_status}`}>{row.payment_status === "lunas" ? "LUNAS" : "BELUM LUNAS"}</span><span className="sprint-detail-hint">Detail <span aria-hidden="true">⌄</span></span></summary><div className="sprint-detail-body"><dl><div><dt>Acuan sukarela</dt><dd>{formatContribution(row.reference_amount)}</dd></div><div><dt>Total tercatat</dt><dd>{formatContribution(row.paid_amount)}</dd></div><div><dt>Selisih menuju acuan</dt><dd>{formatContribution(row.remaining_amount)}</dd></div></dl><p>Riwayat transaksi individual belum tersedia. Total di atas merupakan akumulasi pembayaran yang tercatat.</p>{canRecord && period === currentMonth && <div className="dues-record"><strong>Catat pembayaran sukarela</strong><PaymentForm monthlyDuesId={row.id} /></div>}</div></details></li>)}</ul> : <div className="sprint-empty">{periodRows.length ? "Tidak ada anggota yang cocok dengan pencarian atau filter." : "Belum ada daftar kas untuk periode ini."}</div>}
+    </section>
+    <section className="sprint-panel dues-recap"><div className="sprint-panel-heading"><div><p className="eyebrow">REKAP BULANAN</p><h2>Riwayat 12 periode terakhir</h2><p>Pilih periode untuk melihat rincian daftar.</p></div></div><div className="dues-recap-list">{periods.map(month => { const item = summarizeDues(rows.filter(row => row.dues_month === month)); return <button type="button" key={month} className={month === period ? "is-selected" : ""} onClick={() => setPeriod(month)} aria-pressed={month === period}><span>{periodLabel(month)}</span><span>{item.members ? `${item.paid}/${item.members} mencapai acuan` : "Belum ada daftar"}</span><strong>{item.members ? formatContribution(item.collected) : "—"}</strong></button>; })}</div><p className="sprint-note">Periode yang belum mencapai acuan tetap merupakan catatan sukarela, bukan tagihan, utang wajib, atau dasar denda.</p></section>
+  </div>;
+}

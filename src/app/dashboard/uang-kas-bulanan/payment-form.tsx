@@ -19,11 +19,12 @@ export function PaymentForm({ monthlyDuesId }: { monthlyDuesId: string }) {
   }, initialState);
 
   return (
-    <form action={action} className="payment-form">
+    <form action={action} className="payment-form" aria-busy={pending}>
       <input type="hidden" name="monthly_dues_id" value={monthlyDuesId} />
       <input type="hidden" name="idempotency_key" value="" readOnly />
-      <input aria-label="Nominal pembayaran" name="amount" type="number" min="1" max="9999999999999.99" step="0.01" required placeholder="Nominal Rp" />
+      <input aria-label="Nominal pembayaran" name="amount" type="number" min="0.01" max="9999999999999.99" step="0.01" required placeholder="Nominal Rp" />
       <input aria-label="Catatan pembayaran" name="note" maxLength={500} placeholder="Catatan (opsional)" />
+      <label className="payment-confirm"><input type="checkbox" required /> <span>Saya sudah memeriksa nominal pembayaran sukarela ini.</span></label>
       <button className="payment-submit" type="submit" disabled={pending}>{pending ? "Menyimpan..." : "Catat"}</button>
       {state.error && <span className="payment-feedback error" role="alert">{state.error}</span>}
       {state.success && <span className="payment-feedback success" role="status">{state.success}</span>}
