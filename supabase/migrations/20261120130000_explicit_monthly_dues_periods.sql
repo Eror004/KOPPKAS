@@ -295,6 +295,28 @@ $function$;
 revoke all on function public.record_monthly_dues_payment(uuid,numeric,uuid,text) from public, anon;
 grant execute on function public.record_monthly_dues_payment(uuid,numeric,uuid,text) to authenticated;
 
+-- Prevent expense records from being inserted into a month that was never opened.
+create or replace function app_private.require_open_monthly_dues_period_for_expense()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  if not exists (
+    select 1 from public.monthly_dues_periods
+    where dues_month = new.dues_month
+  ) then
+    raise exception 'Monthly dues period has not been opened' using errcode = '22023';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function app_private.require_open_monthly_dues_period_for_expense() from public, anon, authenticated;
+create trigger monthly_dues_cash_expense_requires_open_period
+before insert on public.monthly_dues_cash_expenses
+for each row execute function app_private.require_open_monthly_dues_period_for_expense();
+
 -- Only explicitly opened periods appear. Each opening is derived from the previous
 -- period's closing cash position, so later historical corrections remain consistent.
 create or replace view public.monthly_dues_cash_book_summary
