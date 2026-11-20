@@ -3,12 +3,22 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [migration, periodMigration, actions, contract] = await Promise.all([
+const [migration, periodMigration, legacyWritePathMigration, actions, contract] = await Promise.all([
   read("../supabase/migrations/20261120120000_monthly_dues_cash_book_opening_and_expenses.sql"),
   read("../supabase/migrations/20261120130000_explicit_monthly_dues_periods.sql"),
+  read("../supabase/migrations/20261120140000_close_legacy_monthly_dues_write_paths.sql"),
   read("../src/app/dashboard/uang-kas-bulanan/actions.ts"),
   read("../docs/backend-monthly-dues-contract.md"),
 ]);
+
+
+test("legacy monthly-dues SECURITY DEFINER write paths and direct register inserts are revoked", () => {
+  assert.match(legacyWritePathMigration, /revoke execute on function public\\.create_member_and_monthly_dues\\(text, date\\)\\s+from public, anon, authenticated/);
+  assert.match(legacyWritePathMigration, /revoke execute on function public\\.create_member_for_dues\\(text\\)\\s+from public, anon, authenticated/);
+  assert.match(legacyWritePathMigration, /revoke insert on table public\\.monthly_dues from public, anon, authenticated/);
+  assert.match(legacyWritePathMigration, /create_member_and_monthly_dues_safe/);
+  assert.match(legacyWritePathMigration, /create or replace function public\\.ensure_monthly_dues_for_member/);
+});
 
 test("October 2026 historical opening balance is seeded as Rp205,000 and protected from mutation", () => {
   assert.match(migration, /date '2026-10-01',[\s\S]*?205000\.00/);
