@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ArrowDownLeft, CalendarDays, ChevronLeft, ChevronRight, FileText, Plus, Search, UsersRound, WalletCards } from "lucide-react";
 import { AccountingPanel } from "./accounting-panel";
 import { PaymentForm } from "@/app/dashboard/uang-kas-bulanan/payment-form";
@@ -40,6 +40,8 @@ export function DuesDirectory(props: Props) {
   const [newName, setNewName] = useState("");
   const [createError, setCreateError] = useState("");
   const [createSuccess, setCreateSuccess] = useState("");
+  const [createPending, setCreatePending] = useState(false);
+  const createPendingRef = useRef(false);
   const [duplicates, setDuplicates] = useState<Array<{ id: string; full_name: string }>>([]);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const selectId = useId();
@@ -86,19 +88,29 @@ export function DuesDirectory(props: Props) {
   }
 
   async function submitNewMember(confirmSameName = false) {
+    if (createPendingRef.current) return;
+    createPendingRef.current = true;
+    setCreatePending(true);
     setCreateError(""); setCreateSuccess("");
-    const result = await createMember(newName, currentMonth, confirmSameName);
-    if (result.error) { setCreateError(result.error); return; }
-    if (result.result?.status === "duplicate_candidates") {
-      setDuplicates(result.result.matches); setConfirmDuplicate(true);
-      return;
-    }
-    if (result.result?.status === "created") {
-      setCreateSuccess(`Anggota ${result.result.full_name} berhasil ditambahkan ke periode ${periodLabel(currentMonth)}.`);
-      setNewName(""); setDuplicates([]); setConfirmDuplicate(false);
-      setMemberQuery(result.result.full_name);
-      setMemberId(result.result.member_id);
-      setSelectedMember({ memberId: result.result.member_id, fullName: result.result.full_name, monthlyDuesId: result.result.monthly_dues_id, paidAmount: 0 });
+    try {
+      const result = await createMember(newName, currentMonth, confirmSameName);
+      if (result.error) { setCreateError(result.error); return; }
+      if (result.result?.status === "duplicate_candidates") {
+        setDuplicates(result.result.matches); setConfirmDuplicate(true);
+        return;
+      }
+      if (result.result?.status === "created") {
+        setCreateSuccess(`Anggota ${result.result.full_name} berhasil ditambahkan ke periode ${periodLabel(currentMonth)}.`);
+        setNewName(""); setDuplicates([]); setConfirmDuplicate(false);
+        setMemberQuery(result.result.full_name);
+        setMemberId(result.result.member_id);
+        setSelectedMember({ memberId: result.result.member_id, fullName: result.result.full_name, monthlyDuesId: result.result.monthly_dues_id, paidAmount: 0 });
+      }
+    } catch {
+      setCreateError("Anggota belum dapat ditambahkan. Periksa koneksi sebelum mencoba lagi.");
+    } finally {
+      createPendingRef.current = false;
+      setCreatePending(false);
     }
   }
 
@@ -143,10 +155,10 @@ export function DuesDirectory(props: Props) {
       <div className="bank-section-title"><div><p className="eyebrow">KEANGGOTAAN</p><h2 id="add-member-title">Tambah anggota</h2></div><UsersRound size={20} /></div>
       <form onSubmit={event => { event.preventDefault(); void submitNewMember(false); }} className="inline-member-form">
         <label>Nama lengkap anggota<input value={newName} onChange={event => setNewName(event.target.value)} minLength={2} maxLength={120} required placeholder="Nama lengkap" /></label>
-        <button type="submit">Tambah anggota dan daftar periode</button>
+        <button type="submit" disabled={createPending}>{createPending ? "Menambahkan anggota..." : "Tambah anggota dan daftar periode"}</button>
       </form>
       {createError && <p role="alert">{createError}</p>}{createSuccess && <p role="status">{createSuccess}</p>}
-      {confirmDuplicate && <div role="alert" className="bank-notice"><p>Nama berikut sudah terdaftar. Pastikan ini orang yang berbeda sebelum membuat identitas baru:</p><ul>{duplicates.map(item => <li key={item.id}>{item.full_name} · ID {item.id.slice(-8)}</li>)}</ul><button type="button" onClick={() => void submitNewMember(true)}>Ini anggota berbeda, lanjutkan</button><button type="button" onClick={() => { setConfirmDuplicate(false); setDuplicates([]); }}>Batalkan</button></div>}
+      {confirmDuplicate && <div role="alert" className="bank-notice"><p>Nama berikut sudah terdaftar. Pastikan ini orang yang berbeda sebelum membuat identitas baru:</p><ul>{duplicates.map(item => <li key={item.id}>{item.full_name} · ID {item.id.slice(-8)}</li>)}</ul><button type="button" disabled={createPending} onClick={() => void submitNewMember(true)}>{createPending ? "Menyimpan..." : "Ini anggota berbeda, lanjutkan"}</button><button type="button" disabled={createPending} onClick={() => { setConfirmDuplicate(false); setDuplicates([]); }}>Batalkan</button></div>}
     </section>}
 
     <section id="mutasi-kas" className="bank-panel bank-transactions"><div className="bank-section-title"><div><p className="eyebrow">STATUS ANGGOTA</p><h2>Daftar pembayaran · {periodLabel(period)}</h2><p>Akumulasi pembayaran sesuai periode, bukan riwayat transaksi individual.</p></div><span>{visible.length} ditampilkan</span></div>
