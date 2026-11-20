@@ -76,6 +76,26 @@ export async function generateMonthlyRegister(previous: DuesActionState, formDat
   return { success: "Periode kas berhasil dibuka dan daftar anggota disiapkan." };
 }
 
+/** Explicitly open the next monthly book; the database derives its opening cash from the prior close. */
+export async function openMonthlyDuesPeriod(duesMonth: string): Promise<DuesActionState> {
+  const user = await requireModulePermission("monthly_dues", "create");
+  if (!["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)) {
+    return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat membuka periode kas bulanan." };
+  }
+  if (!isValidMonth(duesMonth)) return { error: "Periode bulan tidak valid." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("open_monthly_dues_period", {
+    p_dues_month: duesMonth,
+  });
+  if (error || !data || typeof data !== "object") {
+    return { error: "Periode gagal dibuka. Pilih bulan berikutnya dari periode terakhir." };
+  }
+
+  revalidatePath("/dashboard/uang-kas-bulanan");
+  return { success: "Periode kas berhasil dibuka dan daftar anggota disiapkan." };
+}
+
 export type MonthlyDuesPeriodOption = {
   dues_month: string;
   opened_at: string;
