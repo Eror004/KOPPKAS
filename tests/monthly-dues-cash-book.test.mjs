@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [migration, actions, contract] = await Promise.all([
+const [migration, periodMigration, actions, contract] = await Promise.all([
   read("../supabase/migrations/20261120120000_monthly_dues_cash_book_opening_and_expenses.sql"),
+  read("../supabase/migrations/20261120130000_explicit_monthly_dues_periods.sql"),
   read("../src/app/dashboard/uang-kas-bulanan/actions.ts"),
   read("../docs/backend-monthly-dues-contract.md"),
 ]);
