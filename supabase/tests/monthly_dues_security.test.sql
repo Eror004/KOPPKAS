@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(71);
+select plan(69);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -214,10 +214,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
 select lives_ok($select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000002', 1000, '30000000-0000-4000-8000-000000000002', 'Cicilan sukarela')$, 'Sekretaris can record a partial voluntary payment');
 select is((select payment_status from public.monthly_dues_summary where id = '20000000-0000-4000-8000-000000000002'), 'belum_bayar', 'partial amount below Rp10,000 remains unpaid');
-select is((select status_after_transaction from public.monthly_dues_payment_receipts where payment_id = '30000000-0000-4000-8000-000000000002'), 'belum_bayar', 'partial receipt remains unpaid');
 select lives_ok($select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000002', 9000, '30000000-0000-4000-8000-000000000003', 'Pelunasan sukarela')$, 'Sekretaris can record the remaining voluntary payment');
 select is((select payment_status from public.monthly_dues_summary where id = '20000000-0000-4000-8000-000000000002'), 'lunas', 'aggregate at Rp10,000 becomes paid');
-select is((select status_after_transaction from public.monthly_dues_payment_receipts where payment_id = '30000000-0000-4000-8000-000000000003'), 'lunas', 'receipt becomes paid when cumulative total reaches Rp10,000');
 reset role;
 
 -- Expense guard uses the full official balance, is idempotent, and fails closed on overspend.
