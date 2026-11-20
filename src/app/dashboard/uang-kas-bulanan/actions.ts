@@ -396,6 +396,12 @@ export async function recordMonthlyDuesCashExpense(
     p_idempotency_key: idempotencyKey,
   });
 
+  if (error?.code === "23514") {
+    return { error: "Saldo kas tidak mencukupi untuk pengeluaran ini." };
+  }
+  if (error?.code === "P0002") {
+    return { error: "Saldo kas resmi belum tersedia. Pengeluaran belum dicatat." };
+  }
   if (error || typeof transactionId !== "string" || !UUID_PATTERN.test(transactionId)) {
     return { error: "Pengeluaran gagal dicatat. Periksa hak akses dan koneksi database." };
   }
