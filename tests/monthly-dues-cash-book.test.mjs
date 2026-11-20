@@ -27,6 +27,13 @@ test("expense write path is finance-role gated, validated, idempotent, and appen
 test("cash book exposes only explicitly opened periods and continuously carries the actual cash balance", () => {
   assert.match(migration, /monthly_dues_cash_book_summary/);
   assert.match(migration, /monthly_dues_cash_book_movements/);
+  assert.match(periodMigration, /pay\.paid_at >= opened\.opened_at/);
+  assert.match(periodMigration, /pay\.paid_at >= period\.opened_at/);
+  assert.match(periodMigration, /Saldo awal dari saldo akhir periode sebelumnya/);
+  assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon, authenticated/);
+  assert.match(periodMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon, authenticated/);
+  assert.match(periodMigration, /get_monthly_dues_cash_book_summary/);
+  assert.match(periodMigration, /get_monthly_dues_cash_book_movements/);
   assert.match(periodMigration, /create table public\.monthly_dues_periods/);
   assert.match(periodMigration, /select m\.id, date '2026-10-01', 10000/);
   assert.match(periodMigration, /insert into public\.monthly_dues_periods/);
@@ -36,6 +43,10 @@ test("cash book exposes only explicitly opened periods and continuously carries 
   assert.doesNotMatch(periodMigration, /generate_series\(/);
   assert.match(migration, /opening_balance \+ income_amount - expense_amount/);
   assert.match(actions, /getMonthlyDuesCashBook/);
+  assert.match(actions, /get_monthly_dues_cash_book_summary/);
+  assert.match(actions, /get_monthly_dues_cash_book_movements/);
+  assert.doesNotMatch(actions, /from\("monthly_dues_cash_book_summary"\)/);
+  assert.doesNotMatch(actions, /from\("monthly_dues_cash_book_movements"\)/);
   assert.match(actions, /recordMonthlyDuesCashExpense/);
   assert.match(actions, /getMonthlyDuesPeriods/);
   assert.match(actions, /open_monthly_dues_period/);
