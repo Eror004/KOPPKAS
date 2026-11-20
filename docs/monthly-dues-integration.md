@@ -9,6 +9,8 @@
 
 ## Connected flows
 
+The integration remains a draft and is not release-ready until the remaining gates below are closed.
+
 - Monthly dues page reads the explicit period list from `getMonthlyDuesPeriods`.
 - Register rows are read only for opened periods from `monthly_dues_summary`.
 - Opening a period submits an explicit `dues_month`; the UI only exposes opening to Ketua Pemuda, Wakil Ketua Pemuda, and Bendahara.
