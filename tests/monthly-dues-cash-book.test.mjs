@@ -81,6 +81,8 @@ test("expense RPC serializes writes and rejects spending above the official avai
   assert.match(migration, /if p_amount > v_available_balance then[\s\S]*?using errcode = '23514'/);
   assert.match(migration, /Re-check idempotency after acquiring the lock/);
   assert.match(migration, /Official available cash balance is unavailable/);
+  assert.match(actions, /error\?\.code === "23514"[\s\S]*?Saldo kas tidak mencukupi/);
+  assert.match(actions, /error\?\.code === "P0002"[\s\S]*?Saldo kas resmi belum tersedia/);
 });
 
 test("cash-book views are role-filtered and non-public from their first migration", () => {
