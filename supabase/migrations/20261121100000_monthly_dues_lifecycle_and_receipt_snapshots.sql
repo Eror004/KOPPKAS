@@ -343,9 +343,11 @@ begin
   ]::public.app_role[]) then
     raise exception 'Not authorized to add a member from monthly dues' using errcode = '42501';
   end if;
-  if p_full_name is null or char_length(trim(p_full_name)) not between 2 and 120
-     or p_dues_month is null or extract(day from p_dues_month) <> 1 then
-    raise exception 'Name or period is invalid' using errcode = '22023';
+  if p_full_name is null or char_length(trim(p_full_name)) not between 2 and 120 then
+    raise exception 'Name must contain 2 to 120 characters' using errcode = '22023';
+  end if;
+  if p_dues_month is null or extract(day from p_dues_month) <> 1 then
+    raise exception 'Dues month must be the first day of a month' using errcode = '22023';
   end if;
   perform app_private.ensure_current_monthly_dues_period();
   v_validated_at := app_private.lock_current_monthly_dues_period(p_dues_month);
