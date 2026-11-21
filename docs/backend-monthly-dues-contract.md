@@ -159,6 +159,6 @@ This section supersedes the earlier manual-period-opening behavior above.
 
 ### Verification and release boundary
 - Source-invariant tests cover Jakarta lifecycle timestamps, empty missed periods, post-lock retry reconciliation, snapshot-only receipts, NULL historical cash gaps, and view-column compatibility.
-- Initial GitHub CI run #436 replayed the migration chain through this migration and exposed a cash-summary view type mismatch; the closing_balance typmod cast has been corrected. The same run's Node suite had one test-assertion wording mismatch (133/134), also corrected. A fresh CI run is still required to verify those fixes. pgTAP role/RLS behavior, real concurrent transactions around 00:00 WIB, and browser end-to-end integration remain release gates.
+- GitHub CI run #453 passed: all repository migrations replayed locally, all 71 pgTAP authorization/integrity assertions passed, all 134 Node tests passed, and Edge Function typecheck, TypeScript, ESLint, and production build passed. The Vercel PR preview check also reported success. Real concurrent transactions around 00:00 WIB and browser end-to-end integration remain release gates.
 - This migration is isolated on chatgpt/backend-monthly-dues-hardening. It has not been applied to production; migration-history reconciliation remains a separate release gate.
 
