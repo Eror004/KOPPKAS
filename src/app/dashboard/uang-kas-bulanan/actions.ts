@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { isValidTotalsMonth, parsePeriodTotals, type PeriodTotalsResult } from "@/components/monthly-dues/period-totals-contract";
+import { normalizePaymentAmount } from "@/components/monthly-dues/payment-attempt";
 
 /** Read-only iuran aggregate; permission is checked independently of the caller. */
 export async function getMonthlyDuesPeriodTotals(duesMonth: string): Promise<PeriodTotalsResult> {
@@ -263,16 +264,16 @@ export async function recordDuesPayment(_previous: DuesActionState, formData: Fo
   await requireModulePermission("monthly_dues", "create");
   if (!integrationWritesEnabled()) return { error: "Layanan buku bulanan belum terhubung." };
   const monthlyDuesId = String(formData.get("monthly_dues_id") ?? "");
-  const amount = Number(formData.get("amount"));
+  const rawAmount = String(formData.get("amount") ?? "");
   const idempotencyKey = String(formData.get("idempotency_key") ?? "");
   const note = String(formData.get("note") ?? "").trim();
 
   if (!UUID_PATTERN.test(monthlyDuesId) || !UUID_PATTERN.test(idempotencyKey)) {
     return { error: "Data pembayaran tidak valid." };
   }
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999999999.99) {
-    return { error: "Nominal pembayaran harus lebih dari nol." };
-  }
+  let amount: string;
+  try { amount = normalizePaymentAmount(rawAmount); }
+  catch { return { error: "Nominal pembayaran harus lebih dari nol dan maksimal dua angka desimal." }; }
   if (note.length > 500) return { error: "Catatan terlalu panjang." };
 
   const supabase = await createClient();
@@ -409,7 +410,7 @@ export async function recordMonthlyDuesCashExpense(
   await requireModulePermission("general_finance", "create");
   if (!integrationWritesEnabled()) return { error: "Layanan pengeluaran belum terhubung." };
   const duesMonth = String(formData.get("dues_month") ?? "");
-  const amount = Number(formData.get("amount"));
+  const rawAmount = String(formData.get("amount") ?? "");
   const description = String(formData.get("description") ?? "").trim();
   const spentAt = String(formData.get("spent_at") ?? "");
   const idempotencyKey = String(formData.get("idempotency_key") ?? "");
@@ -431,9 +432,9 @@ export async function recordMonthlyDuesCashExpense(
   if (localPeriod !== duesMonth) {
     return { error: "Tanggal pengeluaran harus berada dalam periode buku kas yang dipilih." };
   }
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999999999.99) {
-    return { error: "Nominal pengeluaran harus lebih dari nol." };
-  }
+  let amount: string;
+  try { amount = normalizePaymentAmount(rawAmount); }
+  catch { return { error: "Nominal pengeluaran harus lebih dari nol dan maksimal dua angka desimal." }; }
   if (description.length < 2 || description.length > 240) {
     return { error: "Keterangan pengeluaran harus berisi 2–240 karakter." };
   }
