@@ -489,7 +489,8 @@ begin
      or pg_catalog.date_trunc('month', p_spent_at at time zone 'Asia/Jakarta')::date <> p_dues_month then
     raise exception 'Expense date must belong to the selected monthly book' using errcode = '22023';
   end if;
-  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99 then
+  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
+     or p_amount <> pg_catalog.trunc(p_amount, 2) then
     raise exception 'Expense amount must be positive and within supported range' using errcode = '22023';
   end if;
   if v_description is null or char_length(v_description) not between 2 and 240 then
