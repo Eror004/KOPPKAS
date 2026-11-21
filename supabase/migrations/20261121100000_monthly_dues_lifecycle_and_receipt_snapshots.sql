@@ -397,9 +397,12 @@ begin
   ]::public.app_role[]) then
     raise exception 'Not authorized to record monthly dues' using errcode = '42501';
   end if;
-  if p_monthly_dues_id is null or p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
-     or p_idempotency_key is null or pg_catalog.char_length(coalesce(v_note,'')) > 500 then
-    raise exception 'Payment amount, idempotency key, or note is invalid' using errcode = '22023';
+  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99 then
+    raise exception 'Payment amount must be positive and within supported range' using errcode = '22023';
+  end if;
+  if p_monthly_dues_id is null or p_idempotency_key is null
+     or pg_catalog.char_length(coalesce(v_note,'')) > 500 then
+    raise exception 'Payment register, idempotency key, or note is invalid' using errcode = '22023';
   end if;
 
   select * into v_existing from public.monthly_dues_payments where idempotency_key = p_idempotency_key;
@@ -480,11 +483,17 @@ begin
     raise exception 'Not authorized to record monthly dues cash expenses' using errcode = '42501';
   end if;
   if p_dues_month is null or extract(day from p_dues_month) <> 1 or p_spent_at is null
-     or pg_catalog.date_trunc('month', p_spent_at at time zone 'Asia/Jakarta')::date <> p_dues_month
-     or p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
-     or v_description is null or char_length(v_description) not between 2 and 240
-     or p_idempotency_key is null then
-    raise exception 'Expense details are invalid' using errcode = '22023';
+     or pg_catalog.date_trunc('month', p_spent_at at time zone 'Asia/Jakarta')::date <> p_dues_month then
+    raise exception 'Expense date must belong to the selected monthly book' using errcode = '22023';
+  end if;
+  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99 then
+    raise exception 'Expense amount must be positive and within supported range' using errcode = '22023';
+  end if;
+  if v_description is null or char_length(v_description) not between 2 and 240 then
+    raise exception 'Expense description must contain 2 to 240 characters' using errcode = '22023';
+  end if;
+  if p_idempotency_key is null then
+    raise exception 'Idempotency key is required' using errcode = '22023';
   end if;
 
   select * into v_existing from public.monthly_dues_cash_expenses where idempotency_key = p_idempotency_key;
