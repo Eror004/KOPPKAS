@@ -6,6 +6,7 @@ import { readReceipt } from "./receipt-read";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { readMonthlyBook } from "./book-read";
 import { getMonthlyDuesPeriodTotals } from "./actions";
+import { checkMonthlyDuesReference } from "./reference-check-action";
 import { LifecycleSync } from "@/components/monthly-dues/lifecycle-sync";
 import { formatTotalsRupiah, hasReferenceTotalMismatch } from "@/components/monthly-dues/period-totals-contract";
 
@@ -29,6 +30,8 @@ export default async function MonthlyDuesPage({ searchParams }: { searchParams: 
   const currentActive = result.activeMonth === currentMonth;
   const maySync = user.role === "ketua_pemuda" || user.role === "wakil_ketua_pemuda" || user.role === "bendahara";
   const totalsMismatch = !!selected && !!totals && (totals.kind === "available" || totals.kind === "historical_empty") && (totals.totals.data_status !== selected.data_status || totals.totals.status !== selected.status);
+  const referenceCheck = selected && !totalsMismatch && totals?.kind === "available" ? await checkMonthlyDuesReference(selected.dues_month) : undefined;
+  const referenceCheckMatchesTotals = referenceCheck?.kind === "checked" && totals?.kind === "available" && BigInt(referenceCheck.registerCount) === BigInt(String(totals.totals.member_count));
 
   return <ModuleShell title="Uang Kas Bulanan"><main className="module-page">
     <div className="module-page-head"><div><p className="eyebrow">KONTRIBUSI SUKARELA</p><h1>Uang Kas Bulanan</h1>
@@ -97,6 +100,8 @@ export default async function MonthlyDuesPage({ searchParams }: { searchParams: 
         {selected && !totalsMismatch && totals?.kind === "malformed" && <p role="alert">Data rekap iuran tidak sesuai kontrak dan tidak dapat ditampilkan. Data tidak dianggap nol.</p>}
         {selected && !totalsMismatch && (!totals || totals.kind === "error" || totals.kind === "invalid") && <p role="alert">Rekap iuran belum tersedia atau gagal dimuat. Data tidak dianggap nol; silakan coba lagi.</p>}
         {selected && !totalsMismatch && totals?.kind === "historical_empty" && <p role="status">DATA HISTORIS TIDAK TERSEDIA. Jumlah anggota dan total iuran tidak dianggap nol.</p>}
+        {selected && !totalsMismatch && totals?.kind === "available" && (!referenceCheck || referenceCheck.kind === "unavailable" || !referenceCheckMatchesTotals) && <p role="alert">Pemeriksaan acuan per register belum dapat diverifikasi. Mohon coba lagi.</p>}
+        {selected && !totalsMismatch && referenceCheck?.kind === "checked" && referenceCheckMatchesTotals && referenceCheck.mismatchCount > 0 && <p role="alert">{referenceCheck.mismatchCount} register memiliki acuan berbeda dari Rp10.000. Mohon verifikasi data bersama pengelola backend.</p>}
         {selected && !totalsMismatch && totals?.kind === "available" && hasReferenceTotalMismatch(totals.totals) && <p role="alert">Total acuan backend tidak sesuai dengan Rp10.000 per anggota terdaftar. Mohon verifikasi data bersama pengelola backend.</p>}
         {selected && !totalsMismatch && totals?.kind === "available" && (totals.totals.member_count === 0 || (typeof totals.totals.member_count === "string" && /^0+$/.test(totals.totals.member_count))) && <p role="status">Belum ada anggota terdaftar pada periode ini.</p>}
         {selected && !totalsMismatch && totals?.kind === "available" && <dl className="dues-totals">

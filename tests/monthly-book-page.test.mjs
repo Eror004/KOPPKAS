@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 const require = createRequire(import.meta.url);
 
-function pageWith({ authorize, read, totals = async () => ({ kind: "error", error: "Tidak tersedia" }) }) {
+function pageWith({ authorize, read, reference = async () => ({ kind: "unavailable" }), totals = async () => ({ kind: "error", error: "Tidak tersedia" }) }) {
   const source = readFileSync(new URL("../src/app/dashboard/uang-kas-bulanan/page.tsx", import.meta.url), "utf8");
   const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const exports = {};
@@ -22,6 +22,7 @@ function pageWith({ authorize, read, totals = async () => ({ kind: "error", erro
     "./book-read": { readMonthlyBook: read },
     "./receipt-read": { readReceipt: async () => ({ error: "Bukti tidak tersedia" }) },
     "./actions": { getMonthlyDuesPeriodTotals: totals },
+    "./reference-check-action": { checkMonthlyDuesReference: reference },
     "@/components/monthly-dues/period-totals-contract": { formatTotalsRupiah: value => `Rp${value}`, hasReferenceTotalMismatch: totals => Number(totals.total_reference_amount) !== Number(totals.member_count) * 10000 },
   };
   runInNewContext(js, { exports, require: name => overrides[name] ?? require(name), URLSearchParams });
@@ -197,4 +198,35 @@ test("backend reference discrepancy is visible without inventing new totals", as
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ month: period.dues_month }) }));
   assert.match(html, /Total acuan backend tidak sesuai/);
   assert.match(html, /Rp19000/);
+});
+
+test("per-register anomalies are visible even when their aggregate differences cancel out", async () => {
+  const period = { dues_month: "2026-11-01", status: "active", data_status: "available", closed_effective_at: null, closed_processed_at: null };
+  const result = { kind: "available", totals: { dues_month: period.dues_month, status: "active", data_status: "available", member_count: 2, paid_member_count: 0, unpaid_member_count: 2, total_paid_amount: 0, total_reference_amount: 20000, total_remaining_amount: 20000 } };
+  const calls = [];
+  const page = pageWith({ authorize: async () => ({ role: "sekretaris" }), read: async () => ({ periods: [period], selected: period, rows: [] }), totals: async () => result, reference: async month => { calls.push(month); return { kind: "checked", registerCount: 2, mismatchCount: 2 }; } });
+  const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ month: period.dues_month }) }));
+  assert.match(html, /2 register memiliki acuan berbeda/);
+  assert.doesNotMatch(html, /Total acuan backend tidak sesuai/);
+  assert.deepEqual(calls, [period.dues_month]);
+});
+
+test("reference check failure or inconsistent counts are not treated as verified", async () => {
+  const period = { dues_month: "2026-11-01", status: "active", data_status: "available", closed_effective_at: null, closed_processed_at: null };
+  const totals = { kind: "available", totals: { dues_month: period.dues_month, status: "active", data_status: "available", member_count: 2, paid_member_count: 0, unpaid_member_count: 2, total_paid_amount: 0, total_reference_amount: 20000, total_remaining_amount: 20000 } };
+  for (const referenceResult of [{ kind: "unavailable" }, { kind: "checked", registerCount: 1, mismatchCount: 0 }]) {
+    const page = pageWith({ authorize: async () => ({ role: "sekretaris" }), read: async () => ({ periods: [period], selected: period, rows: [] }), totals: async () => totals, reference: async () => referenceResult });
+    const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ month: period.dues_month }) }));
+    assert.match(html, /Pemeriksaan acuan per register belum dapat diverifikasi/);
+  }
+});
+
+test("historical empty and unselected periods never query register-reference checks", async () => {
+  const period = { dues_month: "2026-09-01", status: "closed", data_status: "historical_empty", closed_effective_at: "2026-09-30T17:00:00Z", closed_processed_at: "2026-10-01T01:00:00Z" };
+  let calls = 0;
+  const page = pageWith({ authorize: async () => ({ role: "sekretaris" }), read: async ({ month }) => ({ periods: [period], selected: month ? period : undefined }), totals: async () => ({ kind: "historical_empty", totals: { dues_month: period.dues_month, status: "closed", data_status: "historical_empty", member_count: null, paid_member_count: null, unpaid_member_count: null, total_paid_amount: null, total_reference_amount: null, total_remaining_amount: null } }), reference: async () => { calls++; return { kind: "unavailable" }; } });
+  await page({ searchParams: Promise.resolve({}) });
+  const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ month: period.dues_month }) }));
+  assert.match(html, /DATA HISTORIS TIDAK TERSEDIA/);
+  assert.equal(calls, 0);
 });
