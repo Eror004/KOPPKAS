@@ -15,13 +15,14 @@ function pageWith({ authorize, read, reference = async () => ({ kind: "unavailab
   const overrides = {
     "@/components/module-shell": { ModuleShell: ({ children }) => React.createElement("div", null, children) },
     "@/components/monthly-dues/lifecycle-sync": { LifecycleSync: () => React.createElement("div", { "data-lifecycle-sync": true }) },
+    "@/components/monthly-dues/cash-book-summary": { CashBookSummary: () => null },
     "@/components/ui/status": { Status: ({ title, children }) => React.createElement("section", null, React.createElement("strong", null, title), children) },
     "@/components/monthly-dues/monthly-book": { MonthlyBook: ({ data }) => data.kind === "historical_unavailable" ? React.createElement("p", null, "Data historis tidak tersedia.") : React.createElement("div", null, data.rows.map(row => React.createElement("div", { key: row.paymentId }, `${row.memberNameSnapshot ?? "Nama historis tidak tersedia"}: ${row.amount}`))) },
     "@/components/monthly-dues/contracts": { periodLabel: value => value },
     "@/lib/auth/require-role": { requireModulePermission: async (...args) => { const user = (await authorize(...args)) ?? { role: "bendahara" }; return { profile: { id: "test-user" }, ...user }; } },
     "./book-read": { readMonthlyBook: read },
     "./receipt-read": { readReceipt: async () => ({ error: "Bukti tidak tersedia" }) },
-    "./actions": { getMonthlyDuesPeriodTotals: totals },
+    "./actions": { getMonthlyDuesPeriodTotals: totals, getMonthlyDuesCashBook: async () => ({ movements: [], error: "unavailable" }) },
     "./reference-check-action": { checkMonthlyDuesReference: reference },
     "@/components/monthly-dues/period-totals-contract": { formatTotalsRupiah: value => `Rp${value}`, hasReferenceTotalMismatch: totals => Number(totals.total_reference_amount) !== Number(totals.member_count) * 10000 },
   };

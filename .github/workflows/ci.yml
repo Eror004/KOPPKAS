@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, chatgpt/backend-monthly-dues]
   workflow_dispatch:
 
 permissions:
@@ -60,3 +60,9 @@ jobs:
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
       - name: Rebuild local database from repository migrations
         run: supabase db reset --local --no-seed
+      - name: Run database authorization and integrity tests
+        run: supabase test db
+      - name: Install PostgreSQL client for concurrency smoke test
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Verify concurrent lifecycle sync and ambiguous payment retry
+        run: bash scripts/monthly-dues-concurrency-smoke.sh

@@ -24,6 +24,7 @@ const historical = { ...zero, status: "closed", data_status: "historical_empty",
 function loadAction({ role = "sekretaris", row = zero, error = null, failure = false } = {}) {
   const calls = [];
   const actions = transpile("../src/app/dashboard/uang-kas-bulanan/actions.ts", {
+    "next/cache": { revalidatePath: () => { throw new Error("unexpected revalidation"); } },
     "@/components/monthly-dues/period-totals-contract": contract,
     "@/lib/auth/require-role": { requireModulePermission: async (module, action) => {
       calls.push(["authorize", module, action]);
