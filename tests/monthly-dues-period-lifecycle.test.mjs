@@ -41,7 +41,7 @@ test("receipt identity is snapshot-only", () => {
 
 test("historical cash gaps remain NULL and expenses fail closed", () => {
   assert.ok(sql.includes("case when cash_balance_known then calculated_opening_balance else null end"));
-  assert.ok(sql.includes("else null end as closing_balance"));
+  assert.ok(sql.includes("end)::numeric(15,2) as closing_balance"));
   assert.ok(sql.includes("Official cash balance is unavailable; expense was not recorded"));
 });
 
