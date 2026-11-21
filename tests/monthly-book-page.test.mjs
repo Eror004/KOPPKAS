@@ -21,6 +21,7 @@ function pageWith({ authorize, read, reference = async () => ({ kind: "unavailab
     "@/components/monthly-dues/contracts": { periodLabel: value => value },
     "@/lib/auth/require-role": { requireModulePermission: async (...args) => { const user = (await authorize(...args)) ?? { role: "bendahara" }; return { profile: { id: "test-user" }, ...user }; } },
     "./book-read": { readMonthlyBook: read },
+    "./cash-book-read": { readCashBook: async () => ({ movements: [], error: "unavailable" }) },
     "./receipt-read": { readReceipt: async () => ({ error: "Bukti tidak tersedia" }) },
     "./actions": { getMonthlyDuesPeriodTotals: totals, getMonthlyDuesCashBook: async () => ({ movements: [], error: "unavailable" }) },
     "./reference-check-action": { checkMonthlyDuesReference: reference },

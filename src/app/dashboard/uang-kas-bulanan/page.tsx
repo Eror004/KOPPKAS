@@ -5,14 +5,15 @@ import { formatContribution, periodLabel } from "@/components/monthly-dues/contr
 import { readReceipt } from "./receipt-read";
 import { requireModulePermission } from "@/lib/auth/require-role";
 import { readMonthlyBook } from "./book-read";
-import { getMonthlyDuesCashBook, getMonthlyDuesPeriodTotals } from "./actions";
+import { getMonthlyDuesPeriodTotals } from "./actions";
+import { readCashBook } from "./cash-book-read";
 import { CashBookSummary } from "@/components/monthly-dues/cash-book-summary";
 import { checkMonthlyDuesReference } from "./reference-check-action";
 import { LifecycleSync } from "@/components/monthly-dues/lifecycle-sync";
 import { formatTotalsRupiah, hasReferenceTotalMismatch } from "@/components/monthly-dues/period-totals-contract";
 
 export const dynamic = "force-dynamic";
-type Query = { month?: string | string[]; before?: string | string[]; after?: string | string[]; receipt?: string | string[] };
+type Query = { month?: string | string[]; before?: string | string[]; after?: string | string[]; receipt?: string | string[]; cash_after?: string | string[] };
 const onlyString = (value: string | string[] | undefined) => typeof value === "string" ? value : undefined;
 const formatTime = (value: string) => new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value)) + " WIB";
 
@@ -30,7 +31,7 @@ export default async function MonthlyDuesPage({ searchParams }: { searchParams: 
   const currentMonth = `${wibParts.find(part => part.type === "year")?.value}-${wibParts.find(part => part.type === "month")?.value}-01`;
   const currentActive = result.activeMonth === currentMonth;
   const maySync = user.role === "ketua_pemuda" || user.role === "wakil_ketua_pemuda" || user.role === "bendahara";
-  const cashBook = selected && maySync ? await getMonthlyDuesCashBook(selected.dues_month).catch(() => ({ movements: [], error: "Pembukuan belum dapat dimuat." })) : undefined;
+  const cashBook = selected && maySync ? await readCashBook(selected.dues_month, onlyString(params.cash_after)).catch(() => ({ movements: [], error: "Pembukuan belum dapat dimuat.", nextCursor: undefined })) : undefined;
   const totalsMismatch = !!selected && !!totals && (totals.kind === "available" || totals.kind === "historical_empty") && (totals.totals.data_status !== selected.data_status || totals.totals.status !== selected.status);
   const referenceCheck = selected && !totalsMismatch && totals?.kind === "available" ? await checkMonthlyDuesReference(selected.dues_month) : undefined;
   const referenceCheckMatchesTotals = referenceCheck?.kind === "checked" && totals?.kind === "available" && BigInt(referenceCheck.registerCount) === BigInt(String(totals.totals.member_count));
@@ -95,7 +96,7 @@ export default async function MonthlyDuesPage({ searchParams }: { searchParams: 
           <div><dt>Status setelah transaksi</dt><dd>{receiptResult.receipt.status_after_transaction === "lunas" ? "LUNAS" : "BELUM LUNAS"}</dd></div>
         </dl></div>}
       </section>}
-      {selected && maySync && cashBook && <CashBookSummary period={selected.dues_month} dataStatus={selected.data_status} result={cashBook} />}
+      {selected && maySync && cashBook && <CashBookSummary period={selected.dues_month} dataStatus={selected.data_status} result={cashBook} nextHref={cashBook.nextCursor ? href({ month: selected.dues_month, cash_after: cashBook.nextCursor }) : undefined} firstHref={params.cash_after ? href({ month: selected.dues_month }) : undefined} />}
       <section className="bank-panel" aria-labelledby="dues-summary-heading"><div className="bank-section-title"><div><p className="eyebrow">REKAP IURAN</p><h2 id="dues-summary-heading">Ringkasan bulanan</h2></div></div>
         {!selected && <p role="status">Pilih buku untuk melihat ringkasan. Total iuran belum tersedia dari rekap resmi dan tidak dianggap nol.</p>}
         {selected && totalsMismatch && <p role="alert">Rekap iuran tidak sesuai dengan periode buku. Data tidak dianggap nol.</p>}

@@ -2,7 +2,7 @@ import { formatTotalsRupiah } from "./period-totals-contract";
 import type { MonthlyDuesCashBookResult } from "@/app/dashboard/uang-kas-bulanan/actions";
 
 /** Summary only: never calculate a balance from a paginated movements page. */
-export function CashBookSummary({ period, dataStatus, result }: { period: string; dataStatus: "available" | "historical_empty"; result: MonthlyDuesCashBookResult }) {
+export function CashBookSummary({ period, dataStatus, result, nextHref, firstHref }: { period: string; dataStatus: "available" | "historical_empty"; result: MonthlyDuesCashBookResult; nextHref?: string; firstHref?: string }) {
   const summary = result.summary;
   const validAmount = (value: unknown): value is string | number | null => value === null ||
     ((typeof value === "number" && Number.isFinite(value) && value >= 0 && /^\d+(?:\.\d{1,2})?$/.test(String(value))) ||
@@ -21,8 +21,8 @@ export function CashBookSummary({ period, dataStatus, result }: { period: string
     {summary.cash_balance_status === "historical_gap" && <p role="status">Saldo tidak diketahui karena data historis belum tersedia.</p>}
     <dl className="dues-totals"><div><dt>Saldo awal</dt><dd>{display(summary.opening_balance)}</dd></div><div><dt>Pemasukan tercatat</dt><dd>{display(summary.income_amount)}</dd></div><div><dt>Pengeluaran tercatat</dt><dd>{display(summary.expense_amount)}</dd></div><div><dt>Saldo akhir</dt><dd>{display(summary.closing_balance)}</dd></div></dl>
     <h3>Mutasi tercatat</h3>
-    {result.movements.length ? <ul>{result.movements.map(item => <li key={item.movement_key}>{item.description} · {display(validAmount(item.amount) ? item.amount : null)} · {item.recorded_by ?? "Nama historis tidak tersedia"}</li>)}</ul> : <p>Tidak ada mutasi pada halaman ini.</p>}
-    {result.hasMore && <p>Hanya halaman pertama mutasi yang ditampilkan; jumlah di atas berasal dari ringkasan resmi.</p>}
+    {result.movements.length ? <ul>{result.movements.map(item => <li key={item.movement_key}>{item.description} · {display(validAmount(item.amount) ? item.amount : null)} · {item.recorded_by ? `ID pencatat: ${item.recorded_by}` : "Nama historis tidak tersedia"}</li>)}</ul> : <p>Tidak ada mutasi pada halaman ini.</p>}
+    <nav aria-label="Halaman mutasi kas">{firstHref && <a href={firstHref}>Halaman pertama mutasi</a>}{nextHref && <a href={nextHref}>Mutasi berikutnya</a>}</nav><p>Jumlah di atas berasal dari ringkasan resmi, bukan halaman mutasi.</p>
     <p>Pencatatan pengeluaran belum tersedia sampai pengujian integrasi disetujui.</p>
   </section>;
 }

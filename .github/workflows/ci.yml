@@ -66,3 +66,31 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Verify concurrent lifecycle sync and ambiguous payment retry
         run: bash scripts/monthly-dues-concurrency-smoke.sh
+
+  authenticated-browser:
+    name: Six local JWT roles and Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+      - name: Start and reset isolated Supabase
+        run: |
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
+          supabase db reset --local --no-seed
+      - run: npx playwright install --with-deps chromium
+      - name: Build and run authenticated browser suite
+        run: |
+          eval "$(supabase status -o env)"
+          export NEXT_PUBLIC_SUPABASE_URL="$API_URL"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export LOCAL_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY"
+          npm run build
+          npx playwright test
