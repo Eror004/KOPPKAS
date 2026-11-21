@@ -13,6 +13,7 @@ function loadActions(authorize) {
     if (name === "@/lib/auth/require-role") return { requireModulePermission: authorize };
     if (name === "@/lib/supabase/server") return { createClient: () => { throw new Error("unexpected database access"); } };
     if (name === "@/components/monthly-dues/period-totals-contract") return {};
+    if (name === "@/components/monthly-dues/payment-attempt") return { normalizePaymentAmount: value => value };
     throw new Error(`Unexpected dependency: ${name}`);
   } });
   return exports;
