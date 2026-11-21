@@ -16,7 +16,7 @@ export type RpcResult = { data: unknown; error: { code?: string } | null };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MONTH = /^[1-9]\d{3}-(0[1-9]|1[0-2])-01$/;
 
-function normalizedAmount(input: string): string {
+export function normalizePaymentAmount(input: string): string {
   const value = input.trim();
   if (!/^\d{1,13}(?:\.\d{1,2})?$/.test(value)) throw new Error("Nominal tidak valid.");
   const [whole, fraction = ""] = value.split(".");
@@ -33,7 +33,7 @@ export function createPaymentIntent(input: PaymentInput, key: string): PaymentIn
   const note = input.note.trim();
   if (note.length > 500) throw new Error("Catatan terlalu panjang.");
   return Object.freeze({ actorId: input.actorId.toLowerCase(), bookMonth: input.bookMonth,
-    registerId: input.registerId.toLowerCase(), key: key.toLowerCase(), amount: normalizedAmount(input.amount), note: note || null });
+    registerId: input.registerId.toLowerCase(), key: key.toLowerCase(), amount: normalizePaymentAmount(input.amount), note: note || null });
 }
 
 /** A retry must use the original immutable intent, never a newly edited form. */
