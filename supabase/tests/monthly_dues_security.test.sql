@@ -199,8 +199,8 @@ reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select throws_ok($select public.ensure_monthly_dues_for_member(null, null)$, '42501', 'Not authorized to prepare a monthly dues register', 'Sekretaris cannot prepare member registers');
-select throws_ok($select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$, '42501', 'Not authorized to add a member from monthly dues', 'Sekretaris cannot create members');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Sekretaris cannot prepare member registers');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Sekretaris cannot create members');
 reset role;
 
 set local role authenticated;
@@ -232,7 +232,7 @@ select throws_ok($$select public.record_monthly_dues_payment(null, 0, null, null
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select throws_ok($select public.record_monthly_dues_payment(null, 0, null, null)$, '42501', 'Not authorized to record monthly dues', 'Sekretaris cannot record payments');
+select throws_ok($$select public.record_monthly_dues_payment(null, 0, null, null)$$, '42501', 'Not authorized to record monthly dues', 'Sekretaris cannot record payments');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
