@@ -287,7 +287,7 @@ reset role;
 -- Persisted payment idempotency: a retry with the same key is a no-op; payload reuse is rejected.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select lives_ok($select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, 'Bendahara records a persisted payment');
+select lives_ok($select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$, 'Bendahara records a persisted payment');
 select lives_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, 'same idempotency key returns the original payment');
 select throws_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 9000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, '22023', 'Idempotency key was already used with different payment data', 'same key with changed payload is rejected');
 reset role;
