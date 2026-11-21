@@ -156,26 +156,42 @@ set search_path = ''
 as $function$
 declare
   v_status text;
-  v_start timestamptz;
-  v_now timestamptz;
-  v_current date;
 begin
-  select status, opened_effective_at into v_status, v_start
+  -- Lock first, capture server time only after the lock has been acquired.
+  select status into v_status
   from public.monthly_dues_periods where dues_month = p_month for share;
   if not found then
     raise exception 'Monthly dues period is unavailable' using errcode = 'P0002';
   end if;
-  v_now := clock_timestamp();
-  v_current := pg_catalog.date_trunc('month', v_now at time zone 'Asia/Jakarta')::date;
-  if v_status <> 'active' or p_month <> v_current or v_now < v_start
-     or v_now >= (p_month + interval '1 month')::date::timestamp at time zone 'Asia/Jakarta' then
-    raise exception 'This monthly dues period is closed; new transactions are only allowed in the current Jakarta month'
-      using errcode = '55000';
-  end if;
-  return v_now;
+  return clock_timestamp();
 end;
 $function$;
 revoke all on function app_private.lock_current_monthly_dues_period(date) from public, anon, authenticated;
+
+create or replace function app_private.assert_current_monthly_dues_period(
+  p_month date, p_validated_at timestamptz
+)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_status text;
+  v_start timestamptz;
+  v_current date;
+begin
+  select status, opened_effective_at into v_status, v_start
+  from public.monthly_dues_periods where dues_month = p_month;
+  v_current := pg_catalog.date_trunc('month', p_validated_at at time zone 'Asia/Jakarta')::date;
+  if not found or v_status <> 'active' or p_month <> v_current or p_validated_at < v_start
+     or p_validated_at >= (p_month + interval '1 month')::date::timestamp at time zone 'Asia/Jakarta' then
+    raise exception 'This monthly dues period is closed; new transactions are only allowed in the current Jakarta month'
+      using errcode = '55000';
+  end if;
+end;
+$function$;
+revoke all on function app_private.assert_current_monthly_dues_period(date,timestamptz) from public, anon, authenticated;
 
 -- Page synchronization creates the current period and current-member registers only
 -- after acquiring the shared period lock, so it cannot seed a month after its close.
@@ -194,6 +210,7 @@ begin
   v_result := app_private.ensure_current_monthly_dues_period();
   v_month := (v_result ->> 'dues_month')::date;
   v_validated_at := app_private.lock_current_monthly_dues_period(v_month);
+  perform app_private.assert_current_monthly_dues_period(v_month, v_validated_at);
   insert into public.monthly_dues(member_id, dues_month, reference_amount)
   select m.id, v_month, 10000 from public.members m where m.archived_at is null
   on conflict (member_id, dues_month) do nothing;
@@ -264,7 +281,7 @@ language plpgsql
 security definer
 set search_path = ''
 as $function$
-declare v_id uuid;
+declare v_id uuid; v_validated_at timestamptz;
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
@@ -276,7 +293,8 @@ begin
     raise exception 'A member and first day of a month are required' using errcode = '22023';
   end if;
   perform app_private.ensure_current_monthly_dues_period();
-  perform app_private.lock_current_monthly_dues_period(p_dues_month);
+  v_validated_at := app_private.lock_current_monthly_dues_period(p_dues_month);
+  perform app_private.assert_current_monthly_dues_period(p_dues_month, v_validated_at);
   if not exists (select 1 from public.members where id = p_member_id and archived_at is null) then
     raise exception 'Active member not found' using errcode = 'P0002';
   end if;
@@ -304,6 +322,7 @@ declare
   v_member uuid;
   v_dues uuid;
   v_matches jsonb;
+  v_validated_at timestamptz;
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
@@ -316,7 +335,8 @@ begin
     raise exception 'Name or period is invalid' using errcode = '22023';
   end if;
   perform app_private.ensure_current_monthly_dues_period();
-  perform app_private.lock_current_monthly_dues_period(p_dues_month);
+  v_validated_at := app_private.lock_current_monthly_dues_period(p_dues_month);
+  perform app_private.assert_current_monthly_dues_period(p_dues_month, v_validated_at);
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(pg_catalog.lower(pg_catalog.btrim(p_full_name)), 0)
   );
@@ -364,7 +384,7 @@ begin
   ]::public.app_role[]) then
     raise exception 'Not authorized to record monthly dues' using errcode = '42501';
   end if;
-  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
+  if p_monthly_dues_id is null or p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
      or p_idempotency_key is null or pg_catalog.char_length(coalesce(v_note,'')) > 500 then
     raise exception 'Payment amount, idempotency key, or note is invalid' using errcode = '22023';
   end if;
@@ -395,6 +415,7 @@ begin
     end if;
     return v_existing.id;
   end if;
+  perform app_private.assert_current_monthly_dues_period(v_month, v_validated_at);
 
   insert into public.monthly_dues_payments (
     monthly_dues_id, amount, paid_at, recorded_by, note, idempotency_key,
@@ -465,9 +486,6 @@ begin
 
   perform app_private.ensure_current_monthly_dues_period();
   v_validated_at := app_private.lock_current_monthly_dues_period(p_dues_month);
-  if p_spent_at > v_validated_at then
-    raise exception 'Expense timestamp cannot be in the future' using errcode = '22023';
-  end if;
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended('koppkas-monthly-dues-cash-balance', 0)
   );
@@ -480,6 +498,10 @@ begin
       raise exception 'Idempotency key was already used with different expense data' using errcode = '22023';
     end if;
     return v_existing.id;
+  end if;
+  perform app_private.assert_current_monthly_dues_period(p_dues_month, v_validated_at);
+  if p_spent_at > v_validated_at then
+    raise exception 'Expense timestamp cannot be in the future' using errcode = '22023';
   end if;
 
   select closing_balance into v_balance from public.monthly_dues_cash_book_summary
