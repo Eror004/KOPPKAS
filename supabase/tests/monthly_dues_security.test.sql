@@ -187,38 +187,38 @@ reset role;
 -- Three authorized finance roles can use dues mutation workflows; Secretary is read-only and RW/RT are denied.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
-select throws_ok($$$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Ketua passes authorization before register input validation');
-select throws_ok($$$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '22023', 'Name must contain 2 to 120 characters', 'Ketua passes authorization before member input validation');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Ketua passes authorization before register input validation');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '22023', 'Name must contain 2 to 120 characters', 'Ketua passes authorization before member input validation');
 reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000002', true);
-select throws_ok($$$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Wakil passes register authorization');
-select throws_ok($$$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '22023', 'Name must contain 2 to 120 characters', 'Wakil passes member authorization');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Wakil passes register authorization');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '22023', 'Name must contain 2 to 120 characters', 'Wakil passes member authorization');
 reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select throws_ok($$$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Sekretaris cannot prepare member registers');
-select throws_ok($$$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Sekretaris cannot create members');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Sekretaris cannot prepare member registers');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Sekretaris cannot create members');
 reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select throws_ok($$$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Bendahara passes register authorization');
-select throws_ok($$$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '22023', 'Name must contain 2 to 120 characters', 'Bendahara passes member authorization');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Bendahara passes register authorization');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '22023', 'Name must contain 2 to 120 characters', 'Bendahara passes member authorization');
 reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000005', true);
-select throws_ok($$$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Ketua RW cannot prepare member registers');
-select throws_ok($$$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Ketua RW cannot create members from dues workflow');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Ketua RW cannot prepare member registers');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Ketua RW cannot create members from dues workflow');
 reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000006', true);
-select throws_ok($$$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Ketua RT cannot prepare member registers');
-select throws_ok($$$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Ketua RT cannot create members from dues workflow');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Ketua RT cannot prepare member registers');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Ketua RT cannot create members from dues workflow');
 reset role;
 
 -- Payment authorization matrix: Ketua, Wakil, Bendahara allowed; Sekretaris, RW/RT denied.
@@ -258,8 +258,8 @@ select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select throws_ok($$$select public.record_monthly_dues_cash_expense(date '2026-10-01', 0, 'Uji', timestamptz '2026-10-10 12:00:00+07', gen_random_uuid())$$, '22023', 'Expense amount must be positive and within supported range', 'Bendahara passes expense authorization');
-select throws_ok($$$select public.record_monthly_dues_cash_expense(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date, 1.001, 'Uji presisi', clock_timestamp(), gen_random_uuid())$$, '22023', 'Expense amount must be positive and within supported range', 'expense RPC rejects amounts with more than two decimal places');
+select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 0, 'Uji', timestamptz '2026-10-10 12:00:00+07', gen_random_uuid())$$, '22023', 'Expense amount must be positive and within supported range', 'Bendahara passes expense authorization');
+select throws_ok($$select public.record_monthly_dues_cash_expense(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date, 1.001, 'Uji presisi', clock_timestamp(), gen_random_uuid())$$, '22023', 'Expense amount must be positive and within supported range', 'expense RPC rejects amounts with more than two decimal places');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
@@ -277,7 +277,7 @@ reset role;
 -- Sekretaris cannot open a period; Ketua can activate only the current month.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select throws_ok($$$select public.open_monthly_dues_period(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)$$, '42501', 'Not authorized to open a monthly dues period', 'Sekretaris cannot open a period');
+select throws_ok($$select public.open_monthly_dues_period(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)$$, '42501', 'Not authorized to open a monthly dues period', 'Sekretaris cannot open a period');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
@@ -288,7 +288,7 @@ reset role;
 -- Persisted payment idempotency: a retry with the same key is a no-op; payload reuse is rejected.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select throws_ok($$$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 1.001, '30000000-0000-4000-8000-000000000099', 'Uji presisi')$$, '22023', 'Payment amount must be positive and within supported range', 'payment RPC rejects amounts with more than two decimal places');
+select throws_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 1.001, '30000000-0000-4000-8000-000000000099', 'Uji presisi')$$, '22023', 'Payment amount must be positive and within supported range', 'payment RPC rejects amounts with more than two decimal places');
 select lives_ok('select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000001'', 10000, ''30000000-0000-4000-8000-000000000001'', ''Pembayaran uji'')', 'Bendahara records a persisted payment');
 select lives_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, 'same idempotency key returns the original payment');
 select throws_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 9000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, '22023', 'Idempotency key was already used with different payment data', 'same key with changed payload is rejected');
