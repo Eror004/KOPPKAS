@@ -146,7 +146,7 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
     .from("members")
     .select("id, full_name")
     .is("archived_at", null)
-    .ilike("full_name", \`%\${escapedQuery}%\`)
+    .ilike("full_name", "%" + escapedQuery + "%")
     .order("full_name", { ascending: true })
     .limit(16);
 
