@@ -88,15 +88,15 @@ select ok(has_function_privilege('authenticated', 'public.record_monthly_dues_ca
 -- officers may execute it. Secretary may read and record dues but cannot activate periods.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
-select lives_ok('select public.sync_monthly_dues_period_lifecycle()', 'Ketua can synchronize monthly dues lifecycle');
+select is((public.sync_monthly_dues_period_lifecycle()->>'register_count')::integer, 0, 'Ketua repeated sync creates no duplicate registers');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000002', true);
-select lives_ok('select public.sync_monthly_dues_period_lifecycle()', 'Wakil can synchronize monthly dues lifecycle');
+select is((public.sync_monthly_dues_period_lifecycle()->>'register_count')::integer, 0, 'Wakil repeated sync creates no duplicate registers');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select lives_ok('select public.sync_monthly_dues_period_lifecycle()', 'Bendahara can synchronize monthly dues lifecycle');
+select is((public.sync_monthly_dues_period_lifecycle()->>'register_count')::integer, 0, 'Bendahara repeated sync creates no duplicate registers');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
