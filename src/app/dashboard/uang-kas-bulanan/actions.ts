@@ -110,11 +110,9 @@ export type MonthlyDuesPeriodOption = {
 
 export async function getMonthlyDuesPeriods(): Promise<{ periods: MonthlyDuesPeriodOption[]; error?: string }> {
   await requireModulePermission("monthly_dues", "read");
+  // This is a read-only adapter. Lifecycle activation is a separate, explicit
+  // client-triggered command restricted to Ketua/Wakil/Bendahara.
   const supabase = await createClient();
-  const { error: lifecycleError } = await supabase.rpc("sync_monthly_dues_period_lifecycle");
-  if (lifecycleError) {
-    return { periods: [], error: "Periode kas bulan berjalan belum dapat disinkronkan." };
-  }
   const { data, error } = await supabase
     .from("monthly_dues_periods")
     .select("dues_month, opened_at, opened_effective_at, opened_processed_at, status, data_status, closed_effective_at, closed_processed_at")
