@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(79);
+select plan(97);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -98,6 +98,25 @@ select ok(not has_table_privilege('authenticated', 'public.monthly_dues_payments
 select ok(not has_table_privilege('authenticated', 'public.monthly_dues_payments', 'DELETE'), 'authenticated cannot delete payment history');
 select ok(has_table_privilege('authenticated', 'public.monthly_dues', 'SELECT'), 'authenticated retains RLS-scoped register reads');
 select ok(has_table_privilege('authenticated', 'public.monthly_dues_payments', 'SELECT'), 'authenticated retains RLS-scoped payment reads');
+-- The close-legacy migration must remove every unnecessary API privilege, not only row-level write grants.
+select ok(not has_table_privilege('anon', 'public.monthly_dues', 'SELECT'), 'anon cannot read monthly register rows');
+select ok(not has_table_privilege('anon', 'public.monthly_dues', 'UPDATE'), 'anon cannot update monthly register rows');
+select ok(not has_table_privilege('anon', 'public.monthly_dues', 'DELETE'), 'anon cannot delete monthly register rows');
+select ok(not has_table_privilege('anon', 'public.monthly_dues', 'TRUNCATE'), 'anon cannot truncate monthly register rows');
+select ok(not has_table_privilege('anon', 'public.monthly_dues', 'REFERENCES'), 'anon cannot add foreign-key references to monthly register rows');
+select ok(not has_table_privilege('anon', 'public.monthly_dues', 'TRIGGER'), 'anon cannot create triggers on monthly register rows');
+select ok(not has_table_privilege('authenticated', 'public.monthly_dues', 'TRUNCATE'), 'authenticated cannot truncate monthly register rows');
+select ok(not has_table_privilege('authenticated', 'public.monthly_dues', 'REFERENCES'), 'authenticated cannot add foreign-key references to monthly register rows');
+select ok(not has_table_privilege('authenticated', 'public.monthly_dues', 'TRIGGER'), 'authenticated cannot create triggers on monthly register rows');
+select ok(not has_table_privilege('anon', 'public.monthly_dues_payments', 'SELECT'), 'anon cannot read payment history');
+select ok(not has_table_privilege('anon', 'public.monthly_dues_payments', 'UPDATE'), 'anon cannot update payment history');
+select ok(not has_table_privilege('anon', 'public.monthly_dues_payments', 'DELETE'), 'anon cannot delete payment history');
+select ok(not has_table_privilege('anon', 'public.monthly_dues_payments', 'TRUNCATE'), 'anon cannot truncate payment history');
+select ok(not has_table_privilege('anon', 'public.monthly_dues_payments', 'REFERENCES'), 'anon cannot add foreign-key references to payment history');
+select ok(not has_table_privilege('anon', 'public.monthly_dues_payments', 'TRIGGER'), 'anon cannot create triggers on payment history');
+select ok(not has_table_privilege('authenticated', 'public.monthly_dues_payments', 'TRUNCATE'), 'authenticated cannot truncate payment history');
+select ok(not has_table_privilege('authenticated', 'public.monthly_dues_payments', 'REFERENCES'), 'authenticated cannot add foreign-key references to payment history');
+select ok(not has_table_privilege('authenticated', 'public.monthly_dues_payments', 'TRIGGER'), 'authenticated cannot create triggers on payment history');
 select ok(exists (select 1 from information_schema.columns where table_schema='public' and table_name='monthly_dues_payments' and column_name='member_name_snapshot'), 'payment table stores member name snapshots');
 select ok(exists (select 1 from information_schema.columns where table_schema='public' and table_name='monthly_dues_payments' and column_name='recorder_name_snapshot'), 'payment table stores recorder name snapshots');
 
