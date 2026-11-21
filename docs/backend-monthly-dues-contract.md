@@ -29,7 +29,7 @@ Cumulative post-transaction status is ordered by `paid_at, payment_id`, not deri
 - Does not create or match a member by name.
 
 ### `create_member_and_monthly_dues_safe(p_full_name text, p_dues_month date, p_confirm_same_name boolean default false) returns jsonb`
-- Requires authenticated user with one of Ketua, Wakil Ketua, Bendahara, Sekretaris.
+- Requires authenticated user with one of Ketua Pemuda, Wakil Ketua Pemuda, or Bendahara. Sekretaris is read-only.
 - Serializes same-normalized-name attempts with an advisory transaction lock.
 - If active exact-name candidates exist and confirmation is false, returns:
   `{ "status": "duplicate_candidates", "matches": [{ "id": "...", "full_name": "..." }] }`
