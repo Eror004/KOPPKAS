@@ -230,7 +230,7 @@ reset role;
 -- when an unreconciled historical gap makes the official balance NULL.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select lives_ok($$do $test$
+select lives_ok($do$\ndo $test$
 declare
   v_month date := date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date;
   v_spent_at timestamptz := date_trunc('day', clock_timestamp() at time zone 'Asia/Jakarta')::timestamp at time zone 'Asia/Jakarta';
@@ -274,7 +274,7 @@ begin
     end;
   end if;
 end;
-$test$$, 'expense writes are idempotent with a known balance and fail closed across historical gaps');
+$test$\n$do$, 'expense writes are idempotent with a known balance and fail closed across historical gaps');
 reset role;
 select is(
   (select count(*)::integer from public.monthly_dues_cash_expenses
