@@ -197,7 +197,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000006
 select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 0, 'Uji', timestamptz '2026-10-10 12:00:00+07', gen_random_uuid())$$, '42501', 'Not authorized to record monthly dues cash expenses', 'Ketua RT cannot record cash expenses');
 reset role;
 
--- Sekretaris cannot open a period; Ketua can open only the next month.
+-- Sekretaris cannot open a period; Ketua can activate only the current month.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
 select throws_ok($$select public.open_monthly_dues_period(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)$$, '42501', 'Not authorized to open a monthly dues period', 'Sekretaris cannot open a period');
