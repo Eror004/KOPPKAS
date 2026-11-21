@@ -83,6 +83,8 @@ jobs:
           version: 2.84.2
       - name: Start and reset isolated Supabase
         run: |
+          # Only this disposable local runner enables email login for test accounts.
+          sed -i 's/^enable_signup = false$/enable_signup = true/' supabase/config.toml
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
           supabase db reset --local --no-seed
       - name: Install Chromium
