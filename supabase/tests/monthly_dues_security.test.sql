@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(69);
+select plan(71);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -71,6 +71,8 @@ select ok(exists (select 1 from information_schema.columns where table_schema='p
 select ok(exists (select 1 from information_schema.columns where table_schema='public' and table_name='monthly_dues_payments' and column_name='recorder_name_snapshot'), 'payment table stores recorder name snapshots');
 
 -- New RPCs are private to authenticated callers, not anon/PUBLIC.
+select ok(not has_function_privilege('anon', 'public.sync_monthly_dues_period_lifecycle()', 'EXECUTE'), 'anon cannot synchronize monthly dues periods');
+select ok(has_function_privilege('authenticated', 'public.sync_monthly_dues_period_lifecycle()', 'EXECUTE'), 'authenticated can call the role-checked lifecycle sync');
 select ok(not has_function_privilege('anon', 'public.open_monthly_dues_period(date)', 'EXECUTE'), 'anon cannot open periods');
 select ok(has_function_privilege('authenticated', 'public.open_monthly_dues_period(date)', 'EXECUTE'), 'authenticated can call the role-checked period RPC');
 select ok(not has_function_privilege('anon', 'public.ensure_monthly_dues_for_member(uuid,date)', 'EXECUTE'), 'anon cannot prepare member registers');
