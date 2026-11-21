@@ -48,9 +48,9 @@ test("membership UI renders real fields, empty state and role-scoped unavailable
 
 test("dues summary distinguishes partial, over-reference and no payments without carryover", () => {
   const summary = duesContracts.summarizeDues(rows);
-  assert.equal(summary.members, 3); assert.equal(summary.paid, 1); assert.equal(summary.short, 1); assert.equal(summary.unpaid, 1); assert.equal(summary.collected, 16000);
-  assert.equal(duesContracts.duesStatus(rows[0]), "kurang"); assert.equal(duesContracts.duesStatus(rows[1]), "lunas"); assert.equal(duesContracts.duesStatus(rows[2]), "belum_bayar");
-  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 9999.99 }), "kurang");
+  assert.equal(summary.members, 3); assert.equal(summary.paid, 1); assert.equal(summary.unpaid, 2); assert.equal(summary.collected, 16000);
+  assert.equal(duesContracts.duesStatus(rows[0]), "belum_lunas"); assert.equal(duesContracts.duesStatus(rows[1]), "lunas"); assert.equal(duesContracts.duesStatus(rows[2]), "belum_lunas");
+  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 9999.99 }), "belum_lunas");
   assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 10000 }), "lunas");
   assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: "" }), "unavailable");
   assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: "bad" }), "unavailable");
@@ -61,7 +61,7 @@ test("dues summary distinguishes partial, over-reference and no payments without
 
 test("dues UI does not invent payment history or expose recording to read-only users", () => {
   const html = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: false }));
-  assert.match(html, /Contoh Sebagian/); assert.match(html, /KURANG/); assert.match(html, /BELUM BAYAR/); assert.match(html, /Riwayat transaksi individual belum tersedia/);
+  assert.match(html, /Contoh Sebagian/); assert.doesNotMatch(html, /KURANG|BELUM BAYAR/); assert.match(html, /BELUM LUNAS/); assert.match(html, /Riwayat transaksi individual belum tersedia/);
   assert.match(html, /sukarela/); assert.doesNotMatch(html, /Form pembayaran fixture/);
   const recorder = renderToStaticMarkup(React.createElement(DuesDirectory, { rows, currentMonth: "2026-11-01", openedPeriods: ["2026-11-01", "2026-10-01"], canRecord: true }));
   assert.doesNotMatch(recorder, /Form pembayaran fixture/);
@@ -193,7 +193,7 @@ test("receipt retrieval failure does not retry payment and can be retried separa
   const { createRoot } = await import("react-dom/client");
   const root = createRoot(dom.window.document.getElementById("root"));
   let calls = 0;
-  const fixtureReceipt = { payment_id: "fixture-transaction", payment_reference: "FIXTURE-ONLY", monthly_dues_id: "fixture-dues", member_id: "fixture-member", member_name: "Anggota fixture", amount: 5000, paid_at: "2026-10-02T10:00:00Z", dues_month: "2026-10-01", note: null, recorded_by: "fixture-user", recorded_by_name: null, reference_amount: 10000, paid_amount_after_transaction: 5000, status_after_transaction: "kurang" };
+  const fixtureReceipt = { payment_id: "fixture-transaction", payment_reference: "FIXTURE-ONLY", monthly_dues_id: "fixture-dues", member_id: "fixture-member", member_name: "Anggota fixture", amount: 5000, paid_at: "2026-10-02T10:00:00Z", dues_month: "2026-10-01", note: null, recorded_by: "fixture-user", recorded_by_name: null, reference_amount: 10000, paid_amount_after_transaction: 5000, status_after_transaction: "belum_bayar" };
   const getReceipt = async () => { calls++; return calls === 1 ? { error: "Bukti gagal dimuat" } : { receipt: fixtureReceipt }; };
   try {
     // ReceiptFeedback is mounted only after a successful payment with a transaction ID.
@@ -205,7 +205,8 @@ test("receipt retrieval failure does not retry payment and can be retried separa
     await React.act(async () => dom.window.document.querySelector("button").click());
     assert.equal(calls, 2);
     assert.match(dom.window.document.body.textContent, /FIXTURE-ONLY/);
-    assert.match(dom.window.document.body.textContent, /KURANG/);
+    assert.match(dom.window.document.body.textContent, /BELUM LUNAS/);
+    assert.doesNotMatch(dom.window.document.body.textContent, /KURANG|BELUM BAYAR/);
   } finally {
     await React.act(async () => root.unmount()); dom.window.close();
     for (const key of names) {

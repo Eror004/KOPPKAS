@@ -622,3 +622,21 @@ button:disabled { cursor: not-allowed; }
 .accounting-expense-preview summary:focus-visible { outline:2px solid #147bb5; outline-offset:4px; }
 @media(max-width:700px) { .accounting-period-status { align-items:stretch; flex-direction:column; gap:14px; }.accounting-period-status-action { flex:auto; text-align:left; }.accounting-period-status-action button { width:auto; padding:0 18px; }.dues-bank .bank-panel { padding:20px; } }
 @media(max-width:600px) { .accounting-period-totals > div + div { border-left:0; border-top:1px solid #e2edf3; }.dues-bank { gap:16px; } }
+
+/* The monthly book is deliberately a simple two-column ledger. */
+.monthly-book-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.monthly-book-table th, .monthly-book-table td { padding: 0.75rem 0; border-bottom: 1px solid #dce8ee; text-align: left; overflow-wrap: anywhere; }
+.monthly-book-table th:last-child, .monthly-book-table td:last-child { text-align: right; padding-left: 1rem; }
+.monthly-book-picker { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin:20px 0; }
+.monthly-book-picker label { width:100%; font-weight:700; }
+.monthly-book-picker select, .monthly-book-picker input:not([type="hidden"]) { flex:1 1 200px; min-width:0; max-width:100%; padding:10px; border:1px solid #bdd5e1; border-radius:10px; background:#fff; color:#173d51; }
+.monthly-book-picker button { padding:10px 18px; border:0; border-radius:10px; background:#087ab5; color:#fff; font-weight:700; cursor:pointer; }
+.monthly-book-picker :focus-visible,.monthly-book-pagination a:focus-visible { outline:3px solid #087ab5; outline-offset:3px; }
+.monthly-book-pagination { display:flex; flex-wrap:wrap; gap:16px; margin:16px 0; }
+.monthly-book-pagination a { color:#075e9e; font-weight:700; }
+.monthly-book-content { min-width:0; margin-top:24px; }
+.monthly-book-content p { color:var(--color-muted); line-height:1.6; }
+.dues-totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%, 180px),1fr)); gap:16px; margin:16px 0 0; }
+.dues-totals div { min-width:0; padding:12px; border:1px solid #e1edf4; border-radius:10px; }
+.dues-totals dt { color:var(--color-muted); font-size:0.875rem; line-height:1.4; }
+.dues-totals dd { margin:6px 0 0; color:var(--color-text); font-weight:700; overflow-wrap:anywhere; }

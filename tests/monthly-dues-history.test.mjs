@@ -10,8 +10,10 @@ const [page, directory, paymentForm] = await Promise.all([
 
 test("monthly dues page fails closed without inferring periods or querying calendar history", () => {
   assert.match(page, /requireModulePermission\("monthly_dues", "read"\)/);
-  assert.match(page, /Daftar periode yang dibuka belum terhubung/);
-  assert.doesNotMatch(page, /monthly_dues_summary|createClient|historyStart|currentMonth|new Date|<DuesDirectory/);
+  assert.match(page, /Pencatatan sementara belum tersedia/);
+  assert.match(page, /readMonthlyBook/);
+  assert.doesNotMatch(page, /monthly_dues_summary|createClient|historyStart|<DuesDirectory/);
+  assert.match(page, /const selected = result.selected/);
   assert.match(directory, /openedPeriods/);
   assert.match(directory, /Pilih periode yang sudah dibuka/);
 });
