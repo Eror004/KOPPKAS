@@ -49,19 +49,19 @@ values (
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
 select throws_ok(
-  $select public.ensure_monthly_dues_for_member('10000000-0000-4000-8000-000000000001', date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)$,
+  'select public.ensure_monthly_dues_for_member(''10000000-0000-4000-8000-000000000001'', date_trunc(''month'', clock_timestamp() at time zone ''Asia/Jakarta'')::date)',
   '42501',
   'Not authorized to activate monthly dues lifecycle',
   'Sekretaris cannot implicitly activate lifecycle through register RPC'
 );
 select throws_ok(
-  $select public.create_member_and_monthly_dues_safe('Anggota Uji Sekretaris', date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date, true)$,
+  'select public.create_member_and_monthly_dues_safe(''Anggota Uji Sekretaris'', date_trunc(''month'', clock_timestamp() at time zone ''Asia/Jakarta'')::date, true)',
   '42501',
   'Not authorized to activate monthly dues lifecycle',
   'Sekretaris cannot implicitly activate lifecycle through member RPC'
 );
 select throws_ok(
-  $select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000099', 'Retry sebelum aktivasi')$,
+  'select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000001'', 10000, ''30000000-0000-4000-8000-000000000099'', ''Retry sebelum aktivasi'')',
   '42501',
   'Not authorized to activate monthly dues lifecycle',
   'Sekretaris cannot implicitly activate lifecycle through payment RPC'
