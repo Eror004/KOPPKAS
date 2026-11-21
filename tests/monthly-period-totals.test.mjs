@@ -26,6 +26,7 @@ function loadAction({ role = "sekretaris", row = zero, error = null, failure = f
   const actions = transpile("../src/app/dashboard/uang-kas-bulanan/actions.ts", {
     "next/cache": { revalidatePath: () => { throw new Error("unexpected revalidation"); } },
     "@/components/monthly-dues/period-totals-contract": contract,
+    "@/components/monthly-dues/payment-attempt": { normalizePaymentAmount: value => value },
     "@/lib/auth/require-role": { requireModulePermission: async (module, action) => {
       calls.push(["authorize", module, action]);
       if (!can(role, module, action)) throw new Error("denied");
