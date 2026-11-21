@@ -7,7 +7,7 @@ const source = readFileSync(new URL("../src/components/monthly-dues/payment-atte
 const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const exports = {};
 runInNewContext(js, { exports });
-const { createPaymentIntent, validatePaymentRetry, classifyPaymentOutcome } = exports;
+const { createPaymentIntent, validatePaymentRetry, classifyPaymentOutcome, normalizePaymentAmount } = exports;
 const input = { actorId: "00000000-0000-4000-8000-000000000001", bookMonth: "2026-11-01", registerId: "00000000-0000-4000-8000-000000000002", amount: "5000", note: " sumbangan " };
 const key = "00000000-0000-4000-8000-000000000003";
 const transactionId = "00000000-0000-4000-8000-000000000004";
@@ -46,4 +46,14 @@ test("explicit validation, authorization and database failures are distinct", ()
   assert.equal(classifyPaymentOutcome({ data: null, error: { code: "22023" } }).kind, "validation");
   assert.equal(classifyPaymentOutcome({ data: null, error: { code: "42501" } }).kind, "authorization");
   assert.equal(classifyPaymentOutcome({ data: null, error: { code: "40001" } }).kind, "database");
+});
+
+test("money normalization stays decimal-string exact across the supported numeric range", () => {
+  assert.equal(normalizePaymentAmount("0000000000001"), "1.00");
+  assert.equal(normalizePaymentAmount("10000.5"), "10000.50");
+  assert.equal(normalizePaymentAmount("9999999999999.99"), "9999999999999.99");
+  assert.equal(normalizePaymentAmount("0.01"), "0.01");
+  for (const amount of ["0", "0.00", "-0.01", "1.001", "1e3", "99999999999999.99", "1,000"]) {
+    assert.throws(() => normalizePaymentAmount(amount));
+  }
 });
