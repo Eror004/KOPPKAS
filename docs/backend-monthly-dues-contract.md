@@ -54,7 +54,7 @@ Cumulative post-transaction status is ordered by `paid_at, payment_id`, not deri
 
 ## Migration / verification gate
 This branch contains a prepared migration only. It has not been applied to any Supabase project.
-The hosted database has 38 applied migration versions, and all 38 now have matching local SQL source files in this branch. The branch contains 44 migration files total; six are local-only and pending: two pre-existing migrations (`app_device_sessions`, `koppkas_account_limit`) and four new monthly-dues migrations. Do not run a production migration until the owner reviews the full six-migration pending set.
+The hosted database now has 40 applied migration versions, and all 40 have matching local SQL source files in this branch. The branch contains 47 migration files total. The two pre-existing migrations (`20261119080000_app_device_sessions` and `20261119090000_koppkas_account_limit`) were applied to production on 2026-11-21 after the full local migration replay and CI checks passed. Seven monthly-dues migrations remain pending: `20261120100000`, `20261120120000`, `20261120130000`, `20261120140000`, `20261121100000`, `20261121140000`, and `20261121150000`. All 40 production migration versions have exact matching repository files; no remote-only migration versions remain. The October 2026 opening balance of Rp205,000 has been explicitly confirmed and approved by the owner. Do not apply the seven monthly-dues migrations until frontend Server Actions are integrated and the release gates below pass.
 
 
 ## Explicit monthly period opening and cumulative cash book
@@ -114,14 +114,14 @@ The hosted database has 38 applied migration versions, and all 38 now have match
 The historical cash opening record is scoped to UANG KAS BULANAN and is not inserted as an income entry in KEUANGAN. The two books remain separate. Member dues payments continue to be the source of actual monthly dues inflows; no amount is inferred or fabricated.
 
 ### Migration / verification gate
-The period-opening migration is prepared on the isolated backend branch and has not been applied to Supabase. Live migration history still requires reconciliation before any hosted migration, merge, or deployment. Authenticated role/RLS tests and a real database test of concurrent period opening remain required.
+The seven monthly-dues migrations are prepared on the isolated backend branch and have not been applied to production. The two earlier session/account migrations are now applied and reconciled. Authenticated role/RLS tests and a real browser integration remain required; the local CI replay and pgTAP checks have passed.
 
  
 ### Outstanding integration and owner gates
 - The current page still renders `InlineMemberForm`, whose Server Action calls the legacy `create_member_and_monthly_dues` RPC. The final migration revokes that legacy RPC for authenticated callers. The frontend integration PR must replace this path with `createDuesMember` before the migration is deployed.
 - The current `RegisterForm` does not submit a `dues_month` field, while `generateMonthlyRegister` now requires one. The frontend integration must supply the next explicit period and label the action accordingly.
-- The owner must confirm whether a payment for an older dues month should be attributed to that dues month or to the actual month cash was received, and whether late historical entries may recalculate closed-period balances.
-- The historical October 2026 opening amount of Rp205,000 must be reconciled against the organization's actual cash records before applying the migration.
+- The owner must still confirm whether a payment for an older dues month should be attributed to that dues month or to the actual month cash was received, and whether late historical entries may recalculate closed-period balances.
+- The historical October 2026 opening amount of Rp205,000 has been confirmed by the owner and approved for production. It is an opening balance only, not an iuran payment or general-ledger income.
 - A read-only hosted audit still finds both legacy member-creation RPCs executable by `authenticated`, plus direct `INSERT`/`UPDATE` table privileges on `monthly_dues` and `UPDATE` on `monthly_dues_payments`. The closing migration removes these paths, but it must be deployed together with the new period-gated RPCs after frontend compatibility is ready; do not apply the closing migration alone.
 - Local pgTAP verifies authorization and integrity behavior, but a real concurrent period-opening / concurrent expense test and final frontend-to-backend E2E verification remain release gates.
 
@@ -159,7 +159,7 @@ This section supersedes the earlier manual-period-opening behavior above.
 
 ### Verification and release boundary
 - Source-invariant tests cover Jakarta lifecycle timestamps, empty missed periods, post-lock retry reconciliation, snapshot-only receipts, NULL historical cash gaps, and view-column compatibility.
-- GitHub CI run #453 passed: all repository migrations replayed locally, all 71 pgTAP authorization/integrity assertions passed, all 134 Node tests passed, and Edge Function typecheck, TypeScript, ESLint, and production build passed. The Vercel PR preview check also reported success. Real concurrent transactions around 00:00 WIB and browser end-to-end integration remain release gates.
+- GitHub CI run #468 passed: all 47 repository migrations replayed locally, pgTAP authorization/integrity tests passed, the Node test suite including the read-only period-action regression passed, the concurrency smoke test passed, and Edge Function typecheck, TypeScript, ESLint, and production build passed. The smoke test uses two independent sessions but is not exhaustive stress testing of the exact 00:00 WIB race. Browser end-to-end integration remains a release gate.
 - This migration is isolated on chatgpt/backend-monthly-dues-hardening. It has not been applied to production; migration-history reconciliation remains a separate release gate.
 
 
@@ -182,4 +182,4 @@ For `available` periods with no register rows, all six metrics are zero. For `hi
 `sync_monthly_dues_period_lifecycle()` returns `dues_month`, `status`, `data_status`, `processed_at`, `register_count`, and `validated_at`. The expected successful current-period contract is `status = active` and `data_status = available`. A client must not treat a timeout or transport failure as proof that the command did not commit; retry behavior must remain safe and must refresh the read model after a confirmed result.
 
 ### Verification boundary
-The SQL migration and pgTAP role/aggregate tests are committed to the isolated backend branch but have not yet been executed against a local PostgreSQL/Supabase instance. Repeated sequential synchronization is idempotent by the unique period/member-month constraints and `ON CONFLICT DO NOTHING`; true concurrent calls and a rollover race at 00:00 WIB remain database integration release gates. No hosted migration has been applied.
+The SQL migration and pgTAP role/aggregate tests are committed to the isolated backend branch and have passed the latest local Supabase CI replay. Repeated synchronization is idempotent by the unique period/member-month constraints and `ON CONFLICT DO NOTHING`; the committed concurrency smoke passed, but true concurrent calls and a rollover race at 00:00 WIB remain release gates. No monthly-dues migration has been applied to production.
