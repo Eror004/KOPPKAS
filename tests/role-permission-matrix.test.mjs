@@ -33,8 +33,9 @@ test("only Sekretaris can mutate organizational structure", () => {
   assert.ok(!roleBlock("bendahara").includes("structure:"));
 });
 
-test("Sekretaris may record voluntary monthly dues but has no general finance access", () => {
-  assert.ok(roleBlock("sekretaris").includes('monthly_dues: ["read", "create"]'));
+test("Sekretaris may only read monthly dues and has no general finance access", () => {
+  assert.ok(roleBlock("sekretaris").includes('monthly_dues: ["read"]'));
+  assert.ok(!roleBlock("sekretaris").includes('monthly_dues: ["read", "create"]'));
   assert.ok(!roleBlock("sekretaris").includes("general_finance"));
   assert.ok(!roleBlock("sekretaris").includes("event_finance"));
 });

@@ -36,7 +36,7 @@ insert into public.monthly_dues_periods (
    timestamptz '2097-04-01 00:00:00+07', timestamptz '2097-04-01 00:00:00+07'),
   (date '2097-04-01', timestamptz '2097-04-01 00:00:00+07', null, 'closed', 'available',
    timestamptz '2097-04-01 00:00:00+07', timestamptz '2097-04-01 00:00:00+07',
-   timestamptz '2097-05-01 00:00:00+07', timestamptz '2097-05-01 00:00:00+07'));
+   timestamptz '2097-05-01 00:00:00+07', timestamptz '2097-05-01 00:00:00+07');
 
 insert into public.members (id, full_name, created_by) values
   ('10000000-0000-4000-8000-000000000031', 'Anggota Agregat Lunas', '00000000-0000-4000-8000-000000000001'),

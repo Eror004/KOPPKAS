@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(97);
+select plan(99);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -44,27 +44,27 @@ values (
   10000
 );
 
--- Secretary may use member/payment RPCs only after an authorized officer has activated the current period.
--- These calls must not implicitly create or roll over the current period.
+-- Secretary is read-only for monthly dues and cannot call member, register, or payment mutation RPCs.
+-- Rejections must not create or roll over the current period.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
 select throws_ok(
   'select public.ensure_monthly_dues_for_member(''10000000-0000-4000-8000-000000000001'', date_trunc(''month'', clock_timestamp() at time zone ''Asia/Jakarta'')::date)',
   '42501',
-  'Not authorized to activate monthly dues lifecycle',
-  'Sekretaris cannot implicitly activate lifecycle through register RPC'
+  'Not authorized to prepare a monthly dues register',
+  'Sekretaris cannot prepare a monthly dues register'
 );
 select throws_ok(
   'select public.create_member_and_monthly_dues_safe(''Anggota Uji Sekretaris'', date_trunc(''month'', clock_timestamp() at time zone ''Asia/Jakarta'')::date, true)',
   '42501',
-  'Not authorized to activate monthly dues lifecycle',
-  'Sekretaris cannot implicitly activate lifecycle through member RPC'
+  'Not authorized to add a member from monthly dues',
+  'Sekretaris cannot create members from monthly dues'
 );
 select throws_ok(
   'select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000001'', 10000, ''30000000-0000-4000-8000-000000000099'', ''Retry sebelum aktivasi'')',
   '42501',
-  'Not authorized to activate monthly dues lifecycle',
-  'Sekretaris cannot implicitly activate lifecycle through payment RPC'
+  'Not authorized to record monthly dues',
+  'Sekretaris cannot record monthly dues payments'
 );
 select is(
   (select count(*)::integer from public.monthly_dues_periods
@@ -184,7 +184,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000006
 select is((select count(*)::integer from public.monthly_dues_cash_book_summary), 0, 'Ketua RT cannot read cash-book balances');
 reset role;
 
--- Four operating roles can use dues workflows; RW/RT cannot.
+-- Three authorized finance roles can use dues mutation workflows; Secretary is read-only and RW/RT are denied.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
 select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Ketua passes authorization before register input validation');
@@ -199,8 +199,8 @@ reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '22023', 'A member and first day of a month are required', 'Sekretaris passes register authorization');
-select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '22023', 'Name must contain 2 to 120 characters', 'Sekretaris passes member authorization');
+select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '42501', 'Not authorized to prepare a monthly dues register', 'Sekretaris cannot prepare member registers');
+select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Sekretaris cannot create members');
 reset role;
 
 set local role authenticated;
@@ -221,7 +221,7 @@ select throws_ok($$select public.ensure_monthly_dues_for_member(null, null)$$, '
 select throws_ok($$select public.create_member_and_monthly_dues_safe(null, date '2026-10-01', false)$$, '42501', 'Not authorized to add a member from monthly dues', 'Ketua RT cannot create members from dues workflow');
 reset role;
 
--- Payment authorization matrix: Ketua, Wakil, Sekretaris, Bendahara allowed; RW/RT denied.
+-- Payment authorization matrix: Ketua, Wakil, Bendahara allowed; Sekretaris, RW/RT denied.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
 select throws_ok($$select public.record_monthly_dues_payment(null, 0, null, null)$$, '22023', 'Payment amount must be positive and within supported range', 'Ketua passes payment authorization');
@@ -232,7 +232,7 @@ select throws_ok($$select public.record_monthly_dues_payment(null, 0, null, null
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select throws_ok($$select public.record_monthly_dues_payment(null, 0, null, null)$$, '22023', 'Payment amount must be positive and within supported range', 'Sekretaris passes payment authorization');
+select throws_ok($$select public.record_monthly_dues_payment(null, 0, null, null)$$, '42501', 'Not authorized to record monthly dues', 'Sekretaris cannot record payments');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
@@ -259,6 +259,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
 select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 0, 'Uji', timestamptz '2026-10-10 12:00:00+07', gen_random_uuid())$$, '22023', 'Expense amount must be positive and within supported range', 'Bendahara passes expense authorization');
+select throws_ok($$select public.record_monthly_dues_cash_expense(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date, 1.001, 'Uji presisi', clock_timestamp(), gen_random_uuid())$$, '22023', 'Expense amount must be positive and within supported range', 'expense RPC rejects amounts with more than two decimal places');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
@@ -286,8 +287,9 @@ reset role;
 
 -- Persisted payment idempotency: a retry with the same key is a no-op; payload reuse is rejected.
 set local role authenticated;
-select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select lives_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, 'Sekretaris records a persisted payment');
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
+select throws_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 1.001, '30000000-0000-4000-8000-000000000099', 'Uji presisi')$$, '22023', 'Payment amount must be positive and within supported range', 'payment RPC rejects amounts with more than two decimal places');
+select lives_ok('select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000001'', 10000, ''30000000-0000-4000-8000-000000000001'', ''Pembayaran uji'')', 'Bendahara records a persisted payment');
 select lives_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, 'same idempotency key returns the original payment');
 select throws_ok($$select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 9000, '30000000-0000-4000-8000-000000000001', 'Pembayaran uji')$$, '22023', 'Idempotency key was already used with different payment data', 'same key with changed payload is rejected');
 reset role;
@@ -295,10 +297,10 @@ select is((select count(*)::integer from public.monthly_dues_payments where idem
 
 -- Partial voluntary payments remain BELUM LUNAS until the monthly aggregate reaches Rp10,000.
 set local role authenticated;
-select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select lives_ok('select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000002'', 1000, ''30000000-0000-4000-8000-000000000002'', ''Cicilan sukarela'')', 'Sekretaris can record a partial voluntary payment');
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
+select lives_ok('select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000002'', 1000, ''30000000-0000-4000-8000-000000000002'', ''Cicilan sukarela'')', 'Bendahara can record a partial voluntary payment');
 select is((select payment_status from public.monthly_dues_summary where id = '20000000-0000-4000-8000-000000000002'), 'belum_bayar', 'partial amount below Rp10,000 remains unpaid');
-select lives_ok('select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000002'', 9000, ''30000000-0000-4000-8000-000000000003'', ''Pelunasan sukarela'')', 'Sekretaris can record the remaining voluntary payment');
+select lives_ok('select public.record_monthly_dues_payment(''20000000-0000-4000-8000-000000000002'', 9000, ''30000000-0000-4000-8000-000000000003'', ''Pelunasan sukarela'')', 'Bendahara can record the remaining voluntary payment');
 select is((select payment_status from public.monthly_dues_summary where id = '20000000-0000-4000-8000-000000000002'), 'lunas', 'aggregate at Rp10,000 becomes paid');
 reset role;
 

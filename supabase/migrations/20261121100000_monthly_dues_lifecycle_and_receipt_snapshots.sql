@@ -298,7 +298,7 @@ declare v_id uuid; v_validated_at timestamptz;
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara','sekretaris'
+    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
   ]::public.app_role[]) then
     raise exception 'Not authorized to prepare a monthly dues register' using errcode = '42501';
   end if;
@@ -339,7 +339,7 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara','sekretaris'
+    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
   ]::public.app_role[]) then
     raise exception 'Not authorized to add a member from monthly dues' using errcode = '42501';
   end if;
@@ -395,11 +395,12 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara','sekretaris'
+    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
   ]::public.app_role[]) then
     raise exception 'Not authorized to record monthly dues' using errcode = '42501';
   end if;
-  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99 then
+  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
+     or p_amount <> pg_catalog.trunc(p_amount, 2) then
     raise exception 'Payment amount must be positive and within supported range' using errcode = '22023';
   end if;
   if p_monthly_dues_id is null or p_idempotency_key is null
@@ -488,7 +489,8 @@ begin
      or pg_catalog.date_trunc('month', p_spent_at at time zone 'Asia/Jakarta')::date <> p_dues_month then
     raise exception 'Expense date must belong to the selected monthly book' using errcode = '22023';
   end if;
-  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99 then
+  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
+     or p_amount <> pg_catalog.trunc(p_amount, 2) then
     raise exception 'Expense amount must be positive and within supported range' using errcode = '22023';
   end if;
   if v_description is null or char_length(v_description) not between 2 and 240 then
