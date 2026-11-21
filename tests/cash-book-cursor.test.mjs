@@ -26,7 +26,7 @@ test("cursor pins a recorded_at high-water mark and keeps the stable event-time 
   const first = await read(month); assert.equal(first.movements.length, 50); assert.equal(first.hasMore, true); assert.ok(first.nextCursor);
   const decoded = JSON.parse(Buffer.from(first.nextCursor, "base64url").toString("utf8")); assert.equal(decoded.highWater, highWater);
   await read(month, first.nextCursor);
-  const filters = calls.filter(x => x[1] === "lte"); assert.equal(filters.length, 2); assert.deepEqual(filters.map(x => x[2]), [highWater, highWater]);
+  const filters = calls.filter(x => x[1] === "lte"); assert.equal(filters.length, 2); assert.deepEqual(filters.map(x => x[3]), [highWater, highWater]);
   const eventFilter = calls.find(x => x[1] === "or")[2];
   assert.match(eventFilter, /2026-11-10T10:00:00\.123456\+00:00/); assert.match(eventFilter, /000000000049/);
   assert.match(eventFilter, /occurred_at\.gt.*and\(occurred_at\.eq.*movement_key\.gt/);

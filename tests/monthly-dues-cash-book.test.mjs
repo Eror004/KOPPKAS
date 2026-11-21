@@ -126,7 +126,7 @@ test("cash-book views are role-filtered and non-public from their first migratio
 
 test("cash movement view exposes immutable recorded_at for snapshot-stable keyset pagination", () => {
   assert.match(snapshotMigration, /create or replace view public\.monthly_dues_cash_book_movements/);
-  assert.match(snapshotMigration, /s\.created_at as recorded_at/);
+  assert.match(snapshotMigration, /o\\.created_at as recorded_at/);
   assert.match(snapshotMigration, /p\.created_at/);
   assert.match(snapshotMigration, /e\.created_at/);
   assert.match(snapshotMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon/);
