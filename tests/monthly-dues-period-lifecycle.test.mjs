@@ -6,8 +6,9 @@ const sql = readFileSync(new URL("../supabase/migrations/20261121100000_monthly_
 
 test("period lifecycle recaptures Jakarta time after acquiring the lifecycle lock", () => {
   const lockAt = sql.indexOf("pg_advisory_xact_lock");
-  const recaptureAt = sql.indexOf("v_now := clock_timestamp()", lockAt);
-  assert.ok(lockAt >= 0 && recaptureAt > lockAt);
+  const rowLockAt = sql.indexOf("for update", lockAt);
+  const recaptureAt = sql.indexOf("v_now := clock_timestamp()", rowLockAt);
+  assert.ok(lockAt >= 0 && rowLockAt > lockAt && recaptureAt > rowLockAt);
   assert.ok(sql.includes("v_now at time zone 'Asia/Jakarta'"));
   assert.ok(sql.includes("closed_effective_at") && sql.includes("closed_processed_at"));
 });
