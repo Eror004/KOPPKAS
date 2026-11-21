@@ -116,7 +116,7 @@ The historical cash opening record is scoped to UANG KAS BULANAN and is not inse
 ### Migration / verification gate
 The seven monthly-dues migrations are prepared on the isolated backend branch and have not been applied to production. The two earlier session/account migrations are now applied and reconciled. Authenticated role/RLS tests and a real browser integration remain required; the local CI replay and pgTAP checks have passed.
 
- 
+
 ### Outstanding integration and owner gates
 - The current page still renders `InlineMemberForm`, whose Server Action calls the legacy `create_member_and_monthly_dues` RPC. The final migration revokes that legacy RPC for authenticated callers. The frontend integration PR must replace this path with `createDuesMember` before the migration is deployed.
 - The current `RegisterForm` does not submit a `dues_month` field, while `generateMonthlyRegister` now requires one. The frontend integration must supply the next explicit period and label the action accordingly.

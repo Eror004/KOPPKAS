@@ -3,6 +3,28 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireModulePermission } from "@/lib/auth/require-role";
+import { isValidTotalsMonth, parsePeriodTotals, type PeriodTotalsResult } from "@/components/monthly-dues/period-totals-contract";
+
+/** Read-only iuran aggregate; permission is checked independently of the caller. */
+export async function getMonthlyDuesPeriodTotals(duesMonth: string): Promise<PeriodTotalsResult> {
+  await requireModulePermission("monthly_dues", "read");
+  if (!isValidTotalsMonth(duesMonth)) return { kind: "invalid", error: "Periode rekap tidak valid." };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("monthly_dues_period_totals")
+      .select("dues_month, status, data_status, member_count, paid_member_count, unpaid_member_count, total_paid_amount, total_reference_amount, total_remaining_amount")
+      .eq("dues_month", duesMonth).maybeSingle();
+    if (error) return { kind: "error", error: "Rekap iuran belum dapat dimuat." };
+    return parsePeriodTotals(data, duesMonth);
+  } catch {
+    return { kind: "error", error: "Rekap iuran belum dapat dimuat." };
+  }
+}
+
+
+// The original backend write implementations remain intact, but are not exposed
+// until integration, idempotency and authorization QA are approved.
+const integrationWritesEnabled = (): boolean => false;
 
 export type DuesActionState = {
   success?: string;
@@ -58,6 +80,7 @@ export async function generateMonthlyRegister(previous: DuesActionState, formDat
   void previous;
   const duesMonth = String(formData.get("dues_month") ?? "");
   const user = await requireModulePermission("monthly_dues", "create");
+  if (!integrationWritesEnabled()) return { error: "Layanan buku bulanan belum terhubung." };
   if (!["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)) {
     return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat mengaktifkan buku kas bulan berjalan." };
   }
@@ -80,6 +103,7 @@ export async function generateMonthlyRegister(previous: DuesActionState, formDat
 /** Explicitly open the next monthly book; the database derives its opening cash from the prior close. */
 export async function openMonthlyDuesPeriod(duesMonth: string): Promise<DuesActionState> {
   const user = await requireModulePermission("monthly_dues", "create");
+  if (!integrationWritesEnabled()) return { error: "Layanan buku bulanan belum terhubung." };
   if (!["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)) {
     return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat mengaktifkan buku kas bulan berjalan." };
   }
@@ -177,6 +201,7 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
 /** Ensure an existing active member has exactly one register row for the selected month. */
 export async function ensureDuesRegister(memberId: string, duesMonth: string): Promise<{ monthlyDuesId?: string; error?: string }> {
   await requireModulePermission("monthly_dues", "create");
+  if (!integrationWritesEnabled()) return { error: "Layanan buku bulanan belum terhubung." };
   if (!UUID_PATTERN.test(memberId) || !isValidMonth(duesMonth)) {
     return { error: "Anggota atau periode kas tidak valid." };
   }
@@ -201,6 +226,7 @@ export async function createDuesMember(
   confirmSameName = false,
 ): Promise<{ result?: DuesMemberCreationResult; error?: string }> {
   await requireModulePermission("monthly_dues", "create");
+  if (!integrationWritesEnabled()) return { error: "Layanan buku bulanan belum terhubung." };
   const normalizedName = fullName.trim();
   if (normalizedName.length < 2 || normalizedName.length > 120 || !isValidMonth(duesMonth)) {
     return { error: "Nama harus 2–120 karakter dan periode harus valid." };
@@ -235,6 +261,7 @@ export async function createDuesMember(
 
 export async function recordDuesPayment(_previous: DuesActionState, formData: FormData): Promise<DuesActionState> {
   await requireModulePermission("monthly_dues", "create");
+  if (!integrationWritesEnabled()) return { error: "Layanan buku bulanan belum terhubung." };
   const monthlyDuesId = String(formData.get("monthly_dues_id") ?? "");
   const amount = Number(formData.get("amount"));
   const idempotencyKey = String(formData.get("idempotency_key") ?? "");
@@ -380,6 +407,7 @@ export async function recordMonthlyDuesCashExpense(
   formData: FormData,
 ): Promise<DuesActionState> {
   await requireModulePermission("general_finance", "create");
+  if (!integrationWritesEnabled()) return { error: "Layanan pengeluaran belum terhubung." };
   const duesMonth = String(formData.get("dues_month") ?? "");
   const amount = Number(formData.get("amount"));
   const description = String(formData.get("description") ?? "").trim();
@@ -436,4 +464,3 @@ export async function recordMonthlyDuesCashExpense(
     transactionId,
   };
 }
-

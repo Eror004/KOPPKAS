@@ -1,10 +1,11 @@
+import type { DashboardCashState } from "./monthly-dues/dashboard-cash-state";
 import { can } from "@/lib/auth/permissions";
 import type { AppRole } from "@/lib/auth/roles";
 import { dashboardNavigation } from "./dashboard-navigation";
 import { DashboardShell } from "./dashboard-shell";
 import { DashboardContentClient } from "./dashboard-content-client";
 
-type DashboardStats = { members: number | null; events: number | null; monthlyCollected: number | null; newMessages: number | null };
+type DashboardStats = { members: number | null; events: number | null; monthlyCollected: DashboardCashState; newMessages: number | null };
 
 // This server wrapper preserves the existing page API and filters navigation before it reaches the browser.
 export function DashboardHomeClient({ role, stats }: { role: AppRole; stats: DashboardStats }) {

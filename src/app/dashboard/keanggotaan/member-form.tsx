@@ -9,7 +9,7 @@ const initialState: MemberActionState = {};
 export function MemberForm() {
   const [state, action, pending] = useActionState(createMember, initialState);
   return (
-    <form action={action} className="module-form">
+    <form action={action} className="module-form" aria-busy={pending}>
       <div className="module-form-heading"><div><p className="eyebrow">DATA ANGGOTA</p><h3>Tambah anggota</h3></div><span className="add-member-icon"><UserPlus size={18} /></span></div>
       <label>Nama lengkap<input name="full_name" minLength={2} maxLength={120} required placeholder="Masukkan nama anggota" /></label>
       <label>Jenis kelamin<select name="gender" required defaultValue=""><option value="" disabled>Pilih jenis kelamin</option><option value="laki_laki">Laki-laki</option><option value="perempuan">Perempuan</option></select></label>
