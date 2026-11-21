@@ -629,8 +629,8 @@ select dues_month,
   case when cash_balance_known then calculated_opening_balance else null end::numeric(15,2) as opening_balance,
   income_amount::numeric(15,2) as income_amount,
   expense_amount::numeric(15,2) as expense_amount,
-  case when cash_balance_known and income_amount is not null and expense_amount is not null
-    then (calculated_opening_balance + income_amount - expense_amount)::numeric(15,2) else null end as closing_balance,
+  (case when cash_balance_known and income_amount is not null and expense_amount is not null
+    then calculated_opening_balance + income_amount - expense_amount else null end)::numeric(15,2) as closing_balance,
   data_status,
   case when cash_balance_known then 'available'::text else 'historical_gap'::text end as cash_balance_status
 from running
