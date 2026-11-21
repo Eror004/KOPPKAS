@@ -242,9 +242,9 @@ as $function$
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara','sekretaris'
+    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
   ]::public.app_role[]) then
-    raise exception 'Not authorized to access monthly dues' using errcode = '42501';
+    raise exception 'Not authorized to synchronize monthly dues lifecycle' using errcode = '42501';
   end if;
   return app_private.prepare_current_monthly_dues_period();
 end;
