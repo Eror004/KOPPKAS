@@ -1,6 +1,6 @@
 # Backend contract — Uang Kas Bulanan
 
-Branch: `chatgpt/backend-monthly-dues`
+Branch: `chatgpt/backend-monthly-dues-hardening`
 
 ## Read models
 
@@ -124,3 +124,41 @@ The period-opening migration is prepared on the isolated backend branch and has 
 - The historical October 2026 opening amount of Rp205,000 must be reconciled against the organization's actual cash records before applying the migration.
 - A read-only hosted audit still finds both legacy member-creation RPCs executable by `authenticated`, plus direct `INSERT`/`UPDATE` table privileges on `monthly_dues` and `UPDATE` on `monthly_dues_payments`. The closing migration removes these paths, but it must be deployed together with the new period-gated RPCs after frontend compatibility is ready; do not apply the closing migration alone.
 - Local pgTAP verifies authorization and integrity behavior, but a real concurrent period-opening / concurrent expense test and final frontend-to-backend E2E verification remain release gates.
+
+## Lifecycle hardening update — 2026-11-21
+
+This section supersedes the earlier manual-period-opening behavior above.
+
+### Current-month lifecycle
+- The authoritative month is calculated in Asia/Jakarta.
+- sync_monthly_dues_period_lifecycle() is the authenticated on-demand synchronization RPC. The monthly-dues Server Action calls it before listing periods, so opening the page closes stale periods and creates the current month when needed.
+- Only the current Jakarta month may have status = active. Previous months become closed; no RPC can reopen them.
+- If several months were missed, one period row is created for each month. Missed months are closed and marked data_status = historical_empty unless actual persisted payment/expense source rows exist.
+- Historical-empty periods receive no generated member registers, payments, expenses, or opening/closing cash figures. The monthly dues summary suppresses default register rows for those months.
+- opened_effective_at / closed_effective_at represent calendar boundaries. opened_processed_at / closed_processed_at represent when the application actually processed the lifecycle change. The effective close boundary is 00:00 WIB on the first day of the following month.
+- Existing period RPC signatures remain compatible, but open_monthly_dues_period(p_dues_month) accepts only the current Jakarta month. It is no longer a way to open a future or historical month.
+
+### Write boundary and concurrency
+- Ordinary requests use a fast path when the current period already exists; lifecycle creation/rollover is serialized with a transaction advisory lock.
+- Payment, expense, member-register, and member-creation write paths obtain a shared row lock (FOR SHARE) on the selected period.
+- The authoritative validation timestamp is captured with clock_timestamp() only after acquiring that lock. The lock is held until transaction commit.
+- Rollover updates the old period and therefore waits for in-flight writers. A writer that validated before the boundary may commit while holding its shared lock; a writer that validates after 00:00 WIB is rejected.
+- The validation timestamp is persisted as the payment's paid_at. It is not confused with the later transaction commit timestamp.
+- Idempotency is reconciled before the month gate and again after acquiring the period lock. A matching committed retry returns its original transaction ID even after the period closes; a different actor, register, amount, or note using the same key is rejected.
+
+### Receipt snapshots
+- New payments store member_name_snapshot and recorder_name_snapshot in the same insert as the payment.
+- Receipt and cash-book payment labels use these snapshots rather than mutable current member/profile names.
+- Legacy rows are not backfilled from current names. Their snapshot fields remain NULL because the historical names cannot be reconstructed reliably.
+
+### Cash-book uncertainty
+- monthly_dues_cash_book_summary retains its original five columns in the same order and appends data_status and cash_balance_status.
+- A missed month marked historical_empty exposes NULL income/expense/balance values rather than fabricated Rp0 values.
+- Every later opening/closing balance that crosses an unreconciled historical gap remains NULL. Expense recording fails closed while the official balance is unavailable.
+- The monthly dues member-status summary and the separate cash-book balance remain distinct read models.
+
+### Verification and release boundary
+- Source-invariant tests cover Jakarta lifecycle timestamps, empty missed periods, post-lock retry reconciliation, snapshot-only receipts, NULL historical cash gaps, and view-column compatibility.
+- Full PostgreSQL/Supabase migration replay, pgTAP role/RLS tests, real concurrent transactions around 00:00 WIB, and browser end-to-end integration remain required.
+- This migration is isolated on chatgpt/backend-monthly-dues-hardening. It has not been applied to production; migration-history reconciliation remains a separate release gate.
+
