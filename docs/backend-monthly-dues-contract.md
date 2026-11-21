@@ -131,7 +131,7 @@ This section supersedes the earlier manual-period-opening behavior above.
 
 ### Current-month lifecycle
 - The authoritative month is calculated in Asia/Jakarta.
-- sync_monthly_dues_period_lifecycle() is the authenticated on-demand synchronization RPC. The monthly-dues Server Action calls it before listing periods, so opening the page closes stale periods and creates the current month when needed.
+- sync_monthly_dues_period_lifecycle() is the authenticated on-demand synchronization RPC. The getMonthlyDuesPeriods Server Action calls it before returning the period list. The page component must invoke that action (or the RPC) on load; the current page has not yet been integrated to do so, and this remains part of the Arena frontend integration.
 - Only the current Jakarta month may have status = active. Previous months become closed; no RPC can reopen them.
 - If several months were missed, one period row is created for each month. Missed months are closed and marked data_status = historical_empty unless actual persisted payment/expense source rows exist.
 - Historical-empty periods receive no generated member registers, payments, expenses, or opening/closing cash figures. The monthly dues summary suppresses default register rows for those months.
@@ -159,6 +159,6 @@ This section supersedes the earlier manual-period-opening behavior above.
 
 ### Verification and release boundary
 - Source-invariant tests cover Jakarta lifecycle timestamps, empty missed periods, post-lock retry reconciliation, snapshot-only receipts, NULL historical cash gaps, and view-column compatibility.
-- Full PostgreSQL/Supabase migration replay, pgTAP role/RLS tests, real concurrent transactions around 00:00 WIB, and browser end-to-end integration remain required.
+- Initial GitHub CI run #436 replayed the migration chain through this migration and exposed a cash-summary view type mismatch; the closing_balance typmod cast has been corrected. The same run's Node suite had one test-assertion wording mismatch (133/134), also corrected. A fresh CI run is still required to verify those fixes. pgTAP role/RLS behavior, real concurrent transactions around 00:00 WIB, and browser end-to-end integration remain release gates.
 - This migration is isolated on chatgpt/backend-monthly-dues-hardening. It has not been applied to production; migration-history reconciliation remains a separate release gate.
 
