@@ -77,15 +77,28 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended('koppkas-monthly-dues-period-lifecycle', 0)
   );
+  -- A current active period is the common fast path. No lifecycle lock is
+  -- needed until a rollover is actually due.
   v_now := clock_timestamp();
   v_month := pg_catalog.date_trunc('month', v_now at time zone 'Asia/Jakarta')::date;
-
   select * into v_period from public.monthly_dues_periods
   where dues_month = v_month and status = 'active';
   if found then
     return jsonb_build_object('dues_month', v_month, 'status', v_period.status,
       'data_status', v_period.data_status, 'processed_at', v_now);
   end if;
+
+  -- Lock every active period before capturing the effective processing time.
+  -- This waits for in-flight FOR SHARE writers; the timestamp below is therefore
+  -- after the last old-period writer has committed, not before the wait.
+  perform p.dues_month
+  from public.monthly_dues_periods p
+  where p.status = 'active'
+  order by p.dues_month
+  for update;
+
+  v_now := clock_timestamp();
+  v_month := pg_catalog.date_trunc('month', v_now at time zone 'Asia/Jakarta')::date;
 
   select max(dues_month) into v_latest from public.monthly_dues_periods;
   if v_latest is null then
