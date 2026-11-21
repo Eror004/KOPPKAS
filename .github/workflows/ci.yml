@@ -85,7 +85,12 @@ jobs:
         run: |
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
           supabase db reset --local --no-seed
-      - run: npx playwright install --with-deps chromium
+      - name: Install Chromium
+        run: |
+          if ! npx playwright install --with-deps chromium > /tmp/koppkas-playwright-install.log 2>&1; then
+            echo "::error::Chromium installation failed: $(tail -c 4000 /tmp/koppkas-playwright-install.log | tr '\n' ' ')"
+            exit 1
+          fi
       - name: Build and run authenticated browser suite
         run: |
           eval "$(supabase status -o env)"
