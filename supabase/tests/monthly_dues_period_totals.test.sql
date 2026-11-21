@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(46);
 
 -- Local-only test identities; the auth trigger creates their profiles.
 insert into auth.users (id, aud, role, email, raw_user_meta_data)
@@ -33,7 +33,10 @@ insert into public.monthly_dues_periods (
    timestamptz '2097-03-01 00:00:00+07', timestamptz '2097-03-01 00:00:00+07'),
   (date '2097-03-01', timestamptz '2097-03-01 00:00:00+07', null, 'closed', 'historical_empty',
    timestamptz '2097-03-01 00:00:00+07', timestamptz '2097-03-01 00:00:00+07',
-   timestamptz '2097-04-01 00:00:00+07', timestamptz '2097-04-01 00:00:00+07');
+   timestamptz '2097-04-01 00:00:00+07', timestamptz '2097-04-01 00:00:00+07'),
+  (date '2097-04-01', timestamptz '2097-04-01 00:00:00+07', null, 'closed', 'available',
+   timestamptz '2097-04-01 00:00:00+07', timestamptz '2097-04-01 00:00:00+07',
+   timestamptz '2097-05-01 00:00:00+07', timestamptz '2097-05-01 00:00:00+07'));
 
 insert into public.members (id, full_name, created_by) values
   ('10000000-0000-4000-8000-000000000031', 'Anggota Agregat Lunas', '00000000-0000-4000-8000-000000000001'),
@@ -72,6 +75,22 @@ select is((select total_remaining_amount from public.monthly_dues_period_totals 
 select is((select member_count from public.monthly_dues_period_totals where dues_month = date '2097-03-01'), null, 'historical empty member count is unknown');
 select is((select total_paid_amount from public.monthly_dues_period_totals where dues_month = date '2097-03-01'), null::numeric, 'historical empty paid amount is unknown');
 select is((select total_remaining_amount from public.monthly_dues_period_totals where dues_month = date '2097-03-01'), null::numeric, 'historical empty remaining amount is unknown');
+-- Cash-book balances stay known through available empty periods, then become NULL at a historical gap and remain NULL afterward.
+select is((select cash_balance_status from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 'available', 'available empty period retains a known cash balance');
+select is((select opening_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 205000::numeric, 'known opening cash is carried into the available empty period');
+select is((select closing_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 205000::numeric, 'known closing cash remains unchanged with zero movements');
+select is((select data_status from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), 'historical_empty', 'cash book exposes historical gap data status');
+select is((select opening_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), null::numeric, 'historical gap opening balance is NULL');
+select is((select income_amount from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), null::numeric, 'historical gap income is NULL');
+select is((select expense_amount from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), null::numeric, 'historical gap expense is NULL');
+select is((select closing_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), null::numeric, 'historical gap closing balance is NULL');
+select is((select cash_balance_status from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), 'historical_gap', 'historical gap marks the cash balance as unknown');
+select is((select data_status from public.monthly_dues_cash_book_summary where dues_month = date '2097-04-01'), 'available', 'later period can contain available data after a gap');
+select is((select opening_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-04-01'), null::numeric, 'later period opening remains NULL after an unreconciled gap');
+select is((select income_amount from public.monthly_dues_cash_book_summary where dues_month = date '2097-04-01'), 0::numeric, 'later available period still exposes known zero income');
+select is((select expense_amount from public.monthly_dues_cash_book_summary where dues_month = date '2097-04-01'), 0::numeric, 'later available period still exposes known zero expense');
+select is((select closing_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-04-01'), null::numeric, 'later period closing remains NULL after an unreconciled gap');
+select is((select cash_balance_status from public.monthly_dues_cash_book_summary where dues_month = date '2097-04-01'), 'historical_gap', 'later period retains historical-gap cash status');
 select is((select data_status from public.monthly_dues_period_totals where dues_month = date '2097-03-01'), 'historical_empty', 'historical period state is explicit');
 select is((select paid_member_count from public.monthly_dues_period_totals where dues_month = date '2097-03-01'), null, 'historical empty paid-member count is unknown');
 select is((select unpaid_member_count from public.monthly_dues_period_totals where dues_month = date '2097-03-01'), null, 'historical empty unpaid-member count is unknown');
