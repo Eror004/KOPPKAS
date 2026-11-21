@@ -65,6 +65,13 @@ export function parsePeriodTotals(value: unknown, month: string): PeriodTotalsRe
   return { kind: "available", totals: row as AvailableTotals };
 }
 
+/** A discrepancy is detectable from the aggregate; equality does not prove every register matches. */
+export function hasReferenceTotalMismatch(totals: AvailableTotals): boolean {
+  const [whole, fraction = ""] = String(totals.total_reference_amount).split(".");
+  const actualCents = BigInt(whole) * BigInt(100) + BigInt(fraction.padEnd(2, "0") || "0");
+  return actualCents !== BigInt(String(totals.member_count)) * BigInt(1000000);
+}
+
 /** Preserve decimal strings; do not round large database numerics through JavaScript Number. */
 export function formatTotalsRupiah(value: PeriodTotalsMetric): string {
   if (!validMetric(value, false)) return "—";

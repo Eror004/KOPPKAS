@@ -32,9 +32,9 @@ const members = [
   { id: "fixture-2", full_name: "Contoh Belum Lengkap", gender: null, phone: null, created_at: "2026-01-01" },
 ];
 const rows = [
-  { id: "fixture-a", member_id: "member-fixture-a", full_name: "Contoh Sebagian", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: "4000", remaining_amount: 6000, payment_status: "belum_lunas" },
+  { id: "fixture-a", member_id: "member-fixture-a", full_name: "Contoh Sebagian", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: "4000", remaining_amount: 6000, payment_status: "belum_bayar" },
   { id: "fixture-b", member_id: "member-fixture-b", full_name: "Contoh Lunas", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: "12000", remaining_amount: 0, payment_status: "lunas" },
-  { id: "fixture-c", member_id: "member-fixture-c", full_name: "Contoh Belum Bayar", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: 0, remaining_amount: 10000, payment_status: "belum_lunas" },
+  { id: "fixture-c", member_id: "member-fixture-c", full_name: "Contoh Belum Bayar", dues_month: "2026-11-01", reference_amount: 10000, paid_amount: 0, remaining_amount: 10000, payment_status: "belum_bayar" },
 ];
 
 test("membership UI renders real fields, empty state and role-scoped unavailable edit", () => {
@@ -51,7 +51,7 @@ test("dues summary distinguishes partial, over-reference and no payments without
   assert.equal(summary.members, 3); assert.equal(summary.paid, 1); assert.equal(summary.unpaid, 2); assert.equal(summary.collected, 16000);
   assert.equal(duesContracts.duesStatus(rows[0]), "belum_lunas"); assert.equal(duesContracts.duesStatus(rows[1]), "lunas"); assert.equal(duesContracts.duesStatus(rows[2]), "belum_lunas");
   assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 9999.99 }), "belum_lunas");
-  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 10000 }), "lunas");
+  assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: 10000, payment_status: "lunas" }), "lunas");
   assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: "" }), "unavailable");
   assert.equal(duesContracts.duesStatus({ ...rows[0], paid_amount: "bad" }), "unavailable");
   assert.equal(duesContracts.periodWindow("2026-01-01")[11], "2025-02-01");

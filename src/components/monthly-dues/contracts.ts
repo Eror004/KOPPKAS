@@ -7,7 +7,7 @@ export interface DuesRecord {
   reference_amount: number | string;
   paid_amount: number | string;
   remaining_amount: number | string;
-  payment_status: "lunas" | "belum_lunas" | "kurang" | "belum_bayar";
+  payment_status: "lunas" | "belum_bayar";
 }
 export const MONTHLY_REFERENCE = 10000;
 export type DuesStatus = "lunas" | "belum_lunas" | "unavailable";
@@ -18,7 +18,9 @@ export function duesStatus(row: DuesRecord): DuesStatus {
   if ((typeof raw !== "number" && typeof raw !== "string") || (typeof raw === "string" && !raw.trim())) return "unavailable";
   const amount = Number(raw);
   if (!Number.isFinite(amount) || amount < 0) return "unavailable";
-  return amount >= MONTHLY_REFERENCE ? "lunas" : "belum_lunas";
+  if (row.payment_status === "lunas") return "lunas";
+  if (row.payment_status === "belum_bayar") return "belum_lunas";
+  return "unavailable";
 }
 
 export interface DuesPeriodSummary { members: number; paid: number; unpaid: number; unavailable: number; collected: number }

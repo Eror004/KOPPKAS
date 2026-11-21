@@ -7,7 +7,7 @@ import { requireModulePermission } from "@/lib/auth/require-role";
 import { readMonthlyBook } from "./book-read";
 import { getMonthlyDuesPeriodTotals } from "./actions";
 import { LifecycleSync } from "@/components/monthly-dues/lifecycle-sync";
-import { formatTotalsRupiah } from "@/components/monthly-dues/period-totals-contract";
+import { formatTotalsRupiah, hasReferenceTotalMismatch } from "@/components/monthly-dues/period-totals-contract";
 
 export const dynamic = "force-dynamic";
 type Query = { month?: string | string[]; before?: string | string[]; after?: string | string[]; receipt?: string | string[] };
@@ -97,6 +97,7 @@ export default async function MonthlyDuesPage({ searchParams }: { searchParams: 
         {selected && !totalsMismatch && totals?.kind === "malformed" && <p role="alert">Data rekap iuran tidak sesuai kontrak dan tidak dapat ditampilkan. Data tidak dianggap nol.</p>}
         {selected && !totalsMismatch && (!totals || totals.kind === "error" || totals.kind === "invalid") && <p role="alert">Rekap iuran belum tersedia atau gagal dimuat. Data tidak dianggap nol; silakan coba lagi.</p>}
         {selected && !totalsMismatch && totals?.kind === "historical_empty" && <p role="status">DATA HISTORIS TIDAK TERSEDIA. Jumlah anggota dan total iuran tidak dianggap nol.</p>}
+        {selected && !totalsMismatch && totals?.kind === "available" && hasReferenceTotalMismatch(totals.totals) && <p role="alert">Total acuan backend tidak sesuai dengan Rp10.000 per anggota terdaftar. Mohon verifikasi data bersama pengelola backend.</p>}
         {selected && !totalsMismatch && totals?.kind === "available" && (totals.totals.member_count === 0 || (typeof totals.totals.member_count === "string" && /^0+$/.test(totals.totals.member_count))) && <p role="status">Belum ada anggota terdaftar pada periode ini.</p>}
         {selected && !totalsMismatch && totals?.kind === "available" && <dl className="dues-totals">
           <div><dt>Anggota terdaftar</dt><dd>{totals.totals.member_count}</dd></div>

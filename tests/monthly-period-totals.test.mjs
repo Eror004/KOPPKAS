@@ -160,3 +160,11 @@ test("numeric(15,2) aggregate bounds reject overflow without rounding", async ()
     }
   }
 });
+
+test("aggregate reference mismatch is flagged exactly without float arithmetic", async () => {
+  for (const [count, amount, mismatch] of [["0", "0.00", false], ["2", "20000.00", false], ["2", "19999.99", true], ["999999999", "9999999990000.00", false], ["999999999", "9999999990000.01", true]]) {
+    const result = await loadAction({ row: { ...zero, member_count: count, total_reference_amount: amount } }).action(month);
+    assert.equal(result.kind, "available");
+    assert.equal(contract.hasReferenceTotalMismatch(result.totals), mismatch);
+  }
+});

@@ -8,10 +8,14 @@ import { syncMonthlyDuesLifecycle } from "@/app/dashboard/uang-kas-bulanan/lifec
 // A later visit or a WIB month boundary can still trigger lifecycle synchronization.
 const pendingByActor = new Map<string, Promise<Awaited<ReturnType<typeof syncMonthlyDuesLifecycle>>>>();
 const recentByActor = new Map<string, { at: number; month: string; refreshed: boolean }>();
+// Explicit database authorization failures must not be retried automatically on remount.
+// A full reload obtains a fresh server-authorized session before trying again.
+const deniedActors = new Set<string>();
 const SYNC_TIMEOUT_MS = 30000;
 const REMOUNT_GRACE_MS = 5000;
 const wibMonth = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit" }).format(new Date());
 function syncOnce(actorId: string): { request: Promise<Awaited<ReturnType<typeof syncMonthlyDuesLifecycle>>>; cached: boolean } {
+  if (deniedActors.has(actorId)) return { request: Promise.resolve({ ok: false, reason: "denied", error: "Akses sinkronisasi ditolak." }), cached: true };
   const pending = pendingByActor.get(actorId);
   if (pending) return { request: pending, cached: false };
   const recent = recentByActor.get(actorId);
@@ -27,6 +31,7 @@ function syncOnce(actorId: string): { request: Promise<Awaited<ReturnType<typeof
   });
   const request = Promise.race([Promise.resolve().then(() => syncMonthlyDuesLifecycle()), timeout]).then(result => {
     if (result.ok && startedMonth === wibMonth()) recentByActor.set(actorId, { at: Date.now(), month: startedMonth, refreshed: false });
+    if (!result.ok && result.reason === "denied") deniedActors.add(actorId);
     return result;
   }).finally(() => {
     clearTimeout(timer);
@@ -42,7 +47,7 @@ export function LifecycleSync({ actorId }: { actorId: string }) {
   const started = useRef(false);
   const inFlight = useRef(false);
   const mounted = useRef(false);
-  const [state, setState] = useState<"loading" | "error" | "done">("loading");
+  const [state, setState] = useState<"loading" | "error" | "denied" | "done">("loading");
 
   const run = useCallback(async () => {
     if (inFlight.current) return;
@@ -52,7 +57,7 @@ export function LifecycleSync({ actorId }: { actorId: string }) {
       const { request } = syncOnce(actorId);
       const result = await request;
       if (!mounted.current) return;
-      if (!result.ok) { setState("error"); return; }
+      if (!result.ok) { setState(result.reason === "denied" ? "denied" : "error"); return; }
       setState("done");
       const recent = recentByActor.get(actorId);
       if (!recent?.refreshed) {
@@ -74,7 +79,8 @@ export function LifecycleSync({ actorId }: { actorId: string }) {
 
   if (state === "done") return null;
   return <section className="bank-panel" aria-live="polite">
-    {state === "loading" ? <p role="status">Menyinkronkan periode…</p> : <>
+    {state === "loading" ? <p role="status">Menyinkronkan periode…</p> : state === "denied" ?
+      <p role="alert">Akses sinkronisasi ditolak. Hubungi pengurus atau masuk kembali; data yang tampil hanya hasil pembacaan terakhir.</p> : <>
       <p role="alert">Sinkronisasi periode belum terkonfirmasi. Data yang tampil hanya hasil pembacaan terakhir.</p>
       <button type="button" onClick={() => void run()}>Coba sinkronisasi lagi</button>
     </>}

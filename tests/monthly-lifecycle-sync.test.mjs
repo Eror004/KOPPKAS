@@ -235,3 +235,47 @@ test("sync completing while unmounted still refreshes on a nearby remount", asyn
     dom.window.close();
   }
 });
+
+test("database authorization rejection is distinct from ambiguous sync errors", async () => {
+  for (const code of ["42501", "28000"]) {
+    const result = await actionFor("bendahara", { data: null, error: { code } }).action();
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, "denied");
+  }
+  for (const code of ["55000", "08006", undefined]) {
+    const result = await actionFor("bendahara", { data: null, error: { code } }).action();
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, "unconfirmed");
+  }
+});
+
+test("authorization denial has no retry and does not automatically retry on remount", async () => {
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://example.test" });
+  const previous = { window: globalThis.window, document: globalThis.document, navigator: globalThis.navigator, flag: globalThis.IS_REACT_ACT_ENVIRONMENT };
+  Object.defineProperty(globalThis, "window", { value: dom.window, configurable: true, writable: true });
+  Object.defineProperty(globalThis, "document", { value: dom.window.document, configurable: true, writable: true });
+  Object.defineProperty(globalThis, "navigator", { value: dom.window.navigator, configurable: true, writable: true });
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  try {
+    const { createRoot } = await import("react-dom/client");
+    let calls = 0, refreshes = 0;
+    const router = { refresh: () => { refreshes++; } };
+    const { LifecycleSync } = load("../src/components/monthly-dues/lifecycle-sync.tsx", {
+      "next/navigation": { useRouter: () => router },
+      "@/app/dashboard/uang-kas-bulanan/lifecycle-sync-action": { syncMonthlyDuesLifecycle: async () => { calls++; return { ok: false, reason: "denied", error: "denied" }; } },
+    });
+    const root = createRoot(dom.window.document.getElementById("root"));
+    await act(async () => { root.render(React.createElement(LifecycleSync, { actorId: "actor", key: "first" })); });
+    assert.match(dom.window.document.querySelector('[role="alert"]').textContent, /Akses sinkronisasi ditolak/);
+    assert.equal(dom.window.document.querySelector("button"), null);
+    await act(async () => { root.render(React.createElement(LifecycleSync, { actorId: "actor", key: "second" })); });
+    assert.equal(calls, 1); assert.equal(refreshes, 0);
+    assert.equal(dom.window.document.querySelector("button"), null);
+    await act(async () => { root.unmount(); });
+  } finally {
+    for (const [key, value] of Object.entries({ window: previous.window, document: previous.document, navigator: previous.navigator, IS_REACT_ACT_ENVIRONMENT: previous.flag })) {
+      if (value === undefined) delete globalThis[key]; else Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
+    }
+    dom.window.close();
+  }
+});

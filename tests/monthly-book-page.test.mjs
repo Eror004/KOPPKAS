@@ -22,7 +22,7 @@ function pageWith({ authorize, read, totals = async () => ({ kind: "error", erro
     "./book-read": { readMonthlyBook: read },
     "./receipt-read": { readReceipt: async () => ({ error: "Bukti tidak tersedia" }) },
     "./actions": { getMonthlyDuesPeriodTotals: totals },
-    "@/components/monthly-dues/period-totals-contract": { formatTotalsRupiah: value => `Rp${value}` },
+    "@/components/monthly-dues/period-totals-contract": { formatTotalsRupiah: value => `Rp${value}`, hasReferenceTotalMismatch: totals => Number(totals.total_reference_amount) !== Number(totals.member_count) * 10000 },
   };
   runInNewContext(js, { exports, require: name => overrides[name] ?? require(name), URLSearchParams });
   return exports.default;
@@ -189,4 +189,12 @@ test("conflicting lifecycle status hides aggregates", async () => {
   const page = pageWith({ authorize: async () => ({ role: "sekretaris" }), read: async () => ({ periods: [period], selected: period, rows: [] }), totals: async () => ({ kind: "available", totals: { dues_month: period.dues_month, status: "active", data_status: "available", member_count: 0, paid_member_count: 0, unpaid_member_count: 0, total_paid_amount: 0, total_reference_amount: 0, total_remaining_amount: 0 } }) });
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ month: period.dues_month }) }));
   assert.match(html, /tidak sesuai dengan periode/); assert.doesNotMatch(html, /Rp0/);
+});
+
+test("backend reference discrepancy is visible without inventing new totals", async () => {
+  const period = { dues_month: "2026-11-01", status: "active", data_status: "available", closed_effective_at: null, closed_processed_at: null };
+  const page = pageWith({ authorize: async () => ({ role: "sekretaris" }), read: async () => ({ periods: [period], selected: period, rows: [] }), totals: async () => ({ kind: "available", totals: { dues_month: period.dues_month, status: "active", data_status: "available", member_count: 2, paid_member_count: 1, unpaid_member_count: 1, total_paid_amount: 5000, total_reference_amount: 19000, total_remaining_amount: 14000 } }) });
+  const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ month: period.dues_month }) }));
+  assert.match(html, /Total acuan backend tidak sesuai/);
+  assert.match(html, /Rp19000/);
 });

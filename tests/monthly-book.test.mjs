@@ -45,10 +45,12 @@ test("availability, empty and missing snapshot are distinct without invented val
 });
 
 test("zero, partial and threshold have two statuses, invalid data is not a status", () => {
-  const row = { paid_amount: 0 };
+  const row = { paid_amount: 0, payment_status: "belum_bayar" };
   for (const value of [0, 5000, 9999]) assert.equal(contracts.duesStatus({ ...row, paid_amount: value }), "belum_lunas");
-  for (const value of [10000, 15000]) assert.equal(contracts.duesStatus({ ...row, paid_amount: value }), "lunas");
+  for (const value of [10000, 15000]) assert.equal(contracts.duesStatus({ ...row, paid_amount: value, payment_status: "lunas" }), "lunas");
   for (const value of ["", "invalid", -1]) assert.equal(contracts.duesStatus({ ...row, paid_amount: value }), "unavailable");
+  assert.equal(contracts.duesStatus({ ...row, paid_amount: 10000 }), "belum_lunas");
+  assert.equal(contracts.duesStatus({ ...row, payment_status: "kurang" }), "unavailable");
 });
 
 test("loading route exposes a status message while the server page is pending", () => {
