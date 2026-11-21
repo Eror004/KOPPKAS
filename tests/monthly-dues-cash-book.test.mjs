@@ -3,13 +3,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
-const [duesMigration, migration, periodMigration, legacyWritePathMigration, actions, contract] = await Promise.all([
+const [duesMigration, migration, periodMigration, legacyWritePathMigration, actions, contract, snapshotMigration, cashBookReader] = await Promise.all([
   read("../supabase/migrations/20261120100000_monthly_dues_receipts_and_status.sql"),
   read("../supabase/migrations/20261120120000_monthly_dues_cash_book_opening_and_expenses.sql"),
   read("../supabase/migrations/20261120130000_explicit_monthly_dues_periods.sql"),
   read("../supabase/migrations/20261120140000_close_legacy_monthly_dues_write_paths.sql"),
   read("../src/app/dashboard/uang-kas-bulanan/actions.ts"),
   read("../docs/backend-monthly-dues-contract.md"),
+  read("../supabase/migrations/20261121160000_monthly_dues_cash_book_recorded_at_snapshot.sql"),
+  read("../src/app/dashboard/uang-kas-bulanan/cash-book-read.ts"),
 ]);
 
 
@@ -120,4 +122,16 @@ test("cash-book views are role-filtered and non-public from their first migratio
   assert.match(migration, /revoke all on public\.monthly_dues_cash_book_summary from public, anon/);
   assert.match(migration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon/);
   assert.match(migration, /with movements as \([\s\S]*?\)\s*select \*\s*from movements[\s\S]*?has_any_role/);
+});
+
+test("cash movement view exposes immutable recorded_at for snapshot-stable keyset pagination", () => {
+  assert.match(snapshotMigration, /create or replace view public\.monthly_dues_cash_book_movements/);
+  assert.match(snapshotMigration, /s\.created_at as recorded_at/);
+  assert.match(snapshotMigration, /p\.created_at/);
+  assert.match(snapshotMigration, /e\.created_at/);
+  assert.match(snapshotMigration, /revoke all on public\.monthly_dues_cash_book_movements from public, anon/);
+  assert.match(snapshotMigration, /grant select on public\.monthly_dues_cash_book_movements to authenticated/);
+  assert.match(cashBookReader, /recorded_at/);
+  assert.match(cashBookReader, /\.lte\("recorded_at", highWater\)/);
+  assert.match(cashBookReader, /highWater/);
 });

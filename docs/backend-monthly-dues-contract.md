@@ -183,3 +183,8 @@ For `available` periods with no register rows, all six metrics are zero. For `hi
 
 ### Verification boundary
 The SQL migration and pgTAP role/aggregate tests are committed to the isolated backend branch and have passed the latest local Supabase CI replay. Repeated synchronization is idempotent by the unique period/member-month constraints and `ON CONFLICT DO NOTHING`; the committed concurrency smoke passed, but true concurrent calls and a rollover race at 00:00 WIB remain release gates. No monthly-dues migration has been applied to production.
+
+
+## Cash-book pagination
+
+`monthly_dues_cash_book_movements` exposes both `occurred_at` (the business event time) and immutable `recorded_at` (the database insertion time). The first page captures the maximum `recorded_at`; subsequent keyset cursors carry that high-water mark and filter every page to `recorded_at <= highWater`. This prevents newly inserted, backdated expenses from appearing in later pages of an already-open pagination snapshot. The official cash-book summary remains a separate authoritative read and is never calculated from loaded movement pages.

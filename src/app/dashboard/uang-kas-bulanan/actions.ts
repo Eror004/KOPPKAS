@@ -329,6 +329,7 @@ export type MonthlyDuesCashMovement = {
   transaction_id: string | null;
   dues_month: string;
   occurred_at: string;
+  recorded_at: string;
   movement_type: "saldo_awal" | "pemasukan_iuran" | "pengeluaran";
   description: string;
   amount: string | number;
