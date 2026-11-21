@@ -77,8 +77,8 @@ select is((select total_paid_amount from public.monthly_dues_period_totals where
 select is((select total_remaining_amount from public.monthly_dues_period_totals where dues_month = date '2097-03-01'), null::numeric, 'historical empty remaining amount is unknown');
 -- Cash-book balances stay known through available empty periods, then become NULL at a historical gap and remain NULL afterward.
 select is((select cash_balance_status from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 'available', 'available empty period retains a known cash balance');
-select is((select opening_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 205000::numeric, 'known opening cash is carried into the available empty period');
-select is((select closing_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 205000::numeric, 'known closing cash remains unchanged with zero movements');
+select is((select opening_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 224999::numeric, 'known opening cash includes prior-period income');
+select is((select closing_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-02-01'), 224999::numeric, 'known closing cash remains unchanged with zero movements');
 select is((select data_status from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), 'historical_empty', 'cash book exposes historical gap data status');
 select is((select opening_balance from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), null::numeric, 'historical gap opening balance is NULL');
 select is((select income_amount from public.monthly_dues_cash_book_summary where dues_month = date '2097-03-01'), null::numeric, 'historical gap income is NULL');
