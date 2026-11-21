@@ -98,4 +98,7 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
           export LOCAL_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY"
           npm run build
-          npx playwright test
+          if ! npx playwright test > /tmp/koppkas-browser-test.log 2>&1; then
+            echo "::error::Browser test failed: $(grep -E 'Error:|Expected:|Received:|monthly-dues.spec.mjs:|failed|SyntaxError' /tmp/koppkas-browser-test.log | tail -20 | tr '\n' ' ')"
+            exit 1
+          fi
