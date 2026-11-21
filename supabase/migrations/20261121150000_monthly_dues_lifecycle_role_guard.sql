@@ -1,6 +1,6 @@
 -- Prevent non-finance dues operators from implicitly creating or rolling over a period.
--- Secretary may use dues RPCs while the current period is already active, but only
--- Ketua/Wakil/Bendahara may activate a missing period or perform rollover.
+-- Secretary is read-only in the monthly-dues module. All mutations are reserved
+-- for Ketua/Wakil/Bendahara, including register and member creation.
 begin;
 
 create or replace function app_private.ensure_current_monthly_dues_period()
