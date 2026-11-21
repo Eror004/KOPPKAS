@@ -204,7 +204,7 @@ select throws_ok($$select public.open_monthly_dues_period(date_trunc('month', cl
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
-select throws_ok($select public.open_monthly_dues_period(((date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date + interval '1 month')::date))$, '55000', 'Only the current Asia/Jakarta month can be activated; historical books remain closed', 'Future month cannot be activated');
+select throws_ok('select public.open_monthly_dues_period(((date_trunc(''month'', clock_timestamp() at time zone ''Asia/Jakarta'')::date + interval ''1 month'')::date))', '55000', 'Only the current Asia/Jakarta month can be activated; historical books remain closed', 'Future month cannot be activated');
 select is(public.open_monthly_dues_period(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)->>'status', 'active', 'Current Jakarta month is active');
 reset role;
 
