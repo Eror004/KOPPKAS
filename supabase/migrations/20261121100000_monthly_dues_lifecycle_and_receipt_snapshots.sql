@@ -399,7 +399,8 @@ begin
   ]::public.app_role[]) then
     raise exception 'Not authorized to record monthly dues' using errcode = '42501';
   end if;
-  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99 then
+  if p_amount is null or p_amount <= 0 or p_amount > 9999999999999.99
+     or p_amount <> pg_catalog.trunc(p_amount, 2) then
     raise exception 'Payment amount must be positive and within supported range' using errcode = '22023';
   end if;
   if p_monthly_dues_id is null or p_idempotency_key is null
