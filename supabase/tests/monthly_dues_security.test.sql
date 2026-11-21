@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(97);
+select plan(99);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -258,7 +258,8 @@ select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 0, 'Uji', timestamptz '2026-10-10 12:00:00+07', gen_random_uuid())$$, '22023', 'Expense amount must be positive and within supported range', 'Bendahara passes expense authorization');
+select throws_ok($select public.record_monthly_dues_cash_expense(date '2026-10-01', 0, 'Uji', timestamptz '2026-10-10 12:00:00+07', gen_random_uuid())$, '22023', 'Expense amount must be positive and within supported range', 'Bendahara passes expense authorization');
+select throws_ok($select public.record_monthly_dues_cash_expense(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date, 1.001, 'Uji presisi', clock_timestamp(), gen_random_uuid())$, '22023', 'Expense amount must be positive and within supported range', 'expense RPC rejects amounts with more than two decimal places');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
