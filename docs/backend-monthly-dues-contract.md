@@ -1,6 +1,6 @@
 # Backend contract — Uang Kas Bulanan
 
-Branch: `chatgpt/backend-monthly-dues`
+Branch: `chatgpt/backend-monthly-dues-hardening`
 
 ## Read models
 
@@ -54,7 +54,7 @@ Cumulative post-transaction status is ordered by `paid_at, payment_id`, not deri
 
 ## Migration / verification gate
 This branch contains a prepared migration only. It has not been applied to any Supabase project.
-The hosted database has 38 applied migration versions, and all 38 now have matching local SQL source files in this branch. The branch contains 44 migration files total; six are local-only and pending: two pre-existing migrations (`app_device_sessions`, `koppkas_account_limit`) and four new monthly-dues migrations. Do not run a production migration until the owner reviews the full six-migration pending set.
+The hosted database now has 40 applied migration versions, and all 40 have matching local SQL source files in this branch. The branch contains 47 migration files total. The two pre-existing migrations (`20261119080000_app_device_sessions` and `20261119090000_koppkas_account_limit`) were applied to production on 2026-11-21 after the full local migration replay and CI checks passed. Seven monthly-dues migrations remain pending: `20261120100000`, `20261120120000`, `20261120130000`, `20261120140000`, `20261121100000`, `20261121140000`, and `20261121150000`. All 40 production migration versions have exact matching repository files; no remote-only migration versions remain. The October 2026 opening balance of Rp205,000 has been explicitly confirmed and approved by the owner. Do not apply the seven monthly-dues migrations until frontend Server Actions are integrated and the release gates below pass.
 
 
 ## Explicit monthly period opening and cumulative cash book
@@ -114,13 +114,72 @@ The hosted database has 38 applied migration versions, and all 38 now have match
 The historical cash opening record is scoped to UANG KAS BULANAN and is not inserted as an income entry in KEUANGAN. The two books remain separate. Member dues payments continue to be the source of actual monthly dues inflows; no amount is inferred or fabricated.
 
 ### Migration / verification gate
-The period-opening migration is prepared on the isolated backend branch and has not been applied to Supabase. Live migration history still requires reconciliation before any hosted migration, merge, or deployment. Authenticated role/RLS tests and a real database test of concurrent period opening remain required.
+The seven monthly-dues migrations are prepared on the isolated backend branch and have not been applied to production. The two earlier session/account migrations are now applied and reconciled. Authenticated role/RLS tests and a real browser integration remain required; the local CI replay and pgTAP checks have passed.
 
  
 ### Outstanding integration and owner gates
 - The current page still renders `InlineMemberForm`, whose Server Action calls the legacy `create_member_and_monthly_dues` RPC. The final migration revokes that legacy RPC for authenticated callers. The frontend integration PR must replace this path with `createDuesMember` before the migration is deployed.
 - The current `RegisterForm` does not submit a `dues_month` field, while `generateMonthlyRegister` now requires one. The frontend integration must supply the next explicit period and label the action accordingly.
-- The owner must confirm whether a payment for an older dues month should be attributed to that dues month or to the actual month cash was received, and whether late historical entries may recalculate closed-period balances.
-- The historical October 2026 opening amount of Rp205,000 must be reconciled against the organization's actual cash records before applying the migration.
+- The owner must still confirm whether a payment for an older dues month should be attributed to that dues month or to the actual month cash was received, and whether late historical entries may recalculate closed-period balances.
+- The historical October 2026 opening amount of Rp205,000 has been confirmed by the owner and approved for production. It is an opening balance only, not an iuran payment or general-ledger income.
 - A read-only hosted audit still finds both legacy member-creation RPCs executable by `authenticated`, plus direct `INSERT`/`UPDATE` table privileges on `monthly_dues` and `UPDATE` on `monthly_dues_payments`. The closing migration removes these paths, but it must be deployed together with the new period-gated RPCs after frontend compatibility is ready; do not apply the closing migration alone.
 - Local pgTAP verifies authorization and integrity behavior, but a real concurrent period-opening / concurrent expense test and final frontend-to-backend E2E verification remain release gates.
+
+## Lifecycle hardening update — 2026-11-21
+
+This section supersedes the earlier manual-period-opening behavior above.
+
+### Current-month lifecycle
+- The authoritative month is calculated in Asia/Jakarta.
+- sync_monthly_dues_period_lifecycle() is a mutating command, not a read operation. Only Ketua Pemuda, Wakil Ketua Pemuda, and Bendahara may execute it. Sekretaris may read available dues periods and record payments but cannot activate or synchronize a period. getMonthlyDuesPeriods and all book-read adapters are read-only. A dedicated server action invokes lifecycle sync after the monthly-dues client module actually mounts for the three authorized roles; it must not run during Server Component rendering or route prefetch. After a confirmed sync, the client refreshes the read-only period and totals queries. A sync failure or ambiguous response must remain unconfirmed, never be shown as success.
+- Only the current Jakarta month may have status = active. Previous months become closed; no RPC can reopen them.
+- If several months were missed, one period row is created for each month. Missed months are closed and marked data_status = historical_empty unless actual persisted payment/expense source rows exist.
+- Historical-empty periods receive no generated member registers, payments, expenses, or opening/closing cash figures. The monthly dues summary suppresses default register rows for those months.
+- opened_effective_at / closed_effective_at represent calendar boundaries. opened_processed_at / closed_processed_at represent when the application actually processed the lifecycle change. The effective close boundary is 00:00 WIB on the first day of the following month.
+- Existing period RPC signatures remain compatible, but open_monthly_dues_period(p_dues_month) accepts only the current Jakarta month. It is no longer a way to open a future or historical month.
+
+### Write boundary and concurrency
+- Ordinary requests use a fast path when the current period already exists; lifecycle creation/rollover is serialized with a transaction advisory lock.
+- Payment, expense, member-register, and member-creation write paths obtain a shared row lock (FOR SHARE) on the selected period.
+- The authoritative validation timestamp is captured with clock_timestamp() only after acquiring that lock. The lock is held until transaction commit.
+- Rollover updates the old period and therefore waits for in-flight writers. A writer that validated before the boundary may commit while holding its shared lock; a writer that validates after 00:00 WIB is rejected.
+- The validation timestamp is persisted as the payment's paid_at. It is not confused with the later transaction commit timestamp.
+- Idempotency is reconciled before the month gate and again after acquiring the period lock. A matching committed retry returns its original transaction ID even after the period closes; a different actor, register, amount, or note using the same key is rejected.
+
+### Receipt snapshots
+- New payments store member_name_snapshot and recorder_name_snapshot in the same insert as the payment.
+- Receipt and cash-book payment labels use these snapshots rather than mutable current member/profile names.
+- Legacy rows are not backfilled from current names. Their snapshot fields remain NULL because the historical names cannot be reconstructed reliably.
+
+### Cash-book uncertainty
+- monthly_dues_cash_book_summary retains its original five columns in the same order and appends data_status and cash_balance_status.
+- A missed month marked historical_empty exposes NULL income/expense/balance values rather than fabricated Rp0 values.
+- Every later opening/closing balance that crosses an unreconciled historical gap remains NULL. Expense recording fails closed while the official balance is unavailable.
+- The monthly dues member-status summary and the separate cash-book balance remain distinct read models.
+
+### Verification and release boundary
+- Source-invariant tests cover Jakarta lifecycle timestamps, empty missed periods, post-lock retry reconciliation, snapshot-only receipts, NULL historical cash gaps, and view-column compatibility.
+- GitHub CI run #468 passed: all 47 repository migrations replayed locally, pgTAP authorization/integrity tests passed, the Node test suite including the read-only period-action regression passed, the concurrency smoke test passed, and Edge Function typecheck, TypeScript, ESLint, and production build passed. The smoke test uses two independent sessions but is not exhaustive stress testing of the exact 00:00 WIB race. Browser end-to-end integration remains a release gate.
+- This migration is isolated on chatgpt/backend-monthly-dues-hardening. It has not been applied to production; migration-history reconciliation remains a separate release gate.
+
+
+
+## Monthly dues period totals contract
+
+### `monthly_dues_period_totals`
+A `security_invoker = true` read-only view for Ketua Pemuda, Wakil Ketua Pemuda, Bendahara, and Sekretaris. It is a dues register aggregate, not the general cash-book balance. The period row is the source of truth for selected-period state; aggregate metrics are computed across every authorized register for that month, never from a paginated member list.
+
+Fields, in order:
+- `dues_month`: first day of the selected month.
+- `status`: `active` or `closed`.
+- `data_status`: `available` or `historical_empty`.
+- `member_count`, `paid_member_count`, `unpaid_member_count`: integer counts.
+- `total_paid_amount`, `total_reference_amount`, `total_remaining_amount`: `numeric(15,2)`.
+
+For `available` periods with no register rows, all six metrics are zero. For `historical_empty` periods, all six metrics are NULL because the historical data is unknown. Do not coalesce historical NULL values to zero in SQL, Server Actions, or UI. The view preserves underlying period/register/payment RLS and grants SELECT only to authenticated users; Ketua RW and Ketua RT receive no rows. Sekretaris can read dues totals but cannot read the separate cash-book balance.
+
+### Lifecycle RPC result
+`sync_monthly_dues_period_lifecycle()` returns `dues_month`, `status`, `data_status`, `processed_at`, `register_count`, and `validated_at`. The expected successful current-period contract is `status = active` and `data_status = available`. A client must not treat a timeout or transport failure as proof that the command did not commit; retry behavior must remain safe and must refresh the read model after a confirmed result.
+
+### Verification boundary
+The SQL migration and pgTAP role/aggregate tests are committed to the isolated backend branch and have passed the latest local Supabase CI replay. Repeated synchronization is idempotent by the unique period/member-month constraints and `ON CONFLICT DO NOTHING`; the committed concurrency smoke passed, but true concurrent calls and a rollover race at 00:00 WIB remain release gates. No monthly-dues migration has been applied to production.
