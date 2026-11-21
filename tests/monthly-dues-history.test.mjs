@@ -2,29 +2,33 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [page, paymentForm] = await Promise.all([
+const [page, directory, paymentForm] = await Promise.all([
   readFile(new URL("../src/app/dashboard/uang-kas-bulanan/page.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../src/components/monthly-dues/dues-directory.tsx", import.meta.url), "utf8"),
   readFile(new URL("../src/app/dashboard/uang-kas-bulanan/payment-form.tsx", import.meta.url), "utf8"),
 ]);
 
-test("monthly dues dashboard loads a rolling 12-period history", () => {
-  assert.match(page, /historyStart/);
-  assert.match(page, /\.gte\("dues_month", historyStart\)/);
-  assert.match(page, /\.lte\("dues_month", currentMonth\)/);
-  assert.match(page, /for \(const row of allRows\)/);
-  assert.match(page, /Riwayat 12 periode terakhir/);
+test("monthly dues page fails closed without inferring periods or querying calendar history", () => {
+  assert.match(page, /requireModulePermission\("monthly_dues", "read"\)/);
+  assert.match(page, /Pencatatan sementara belum tersedia/);
+  assert.match(page, /readMonthlyBook/);
+  assert.doesNotMatch(page, /monthly_dues_summary|createClient|historyStart|<DuesDirectory/);
+  assert.match(page, /const selected = result.selected/);
+  assert.match(directory, /openedPeriods/);
+  assert.match(directory, /Pilih periode yang sudah dibuka/);
 });
 
-test("monthly dues recap distinguishes historical unpaid periods without debt language", () => {
-  assert.match(page, /PERIODE LAMA BELUM LUNAS/);
-  assert.match(page, /historicalUnpaid/);
-  assert.match(page, /bukan tagihan, utang wajib, atau dasar denda/);
+test("monthly dues recap explicitly avoids debt or automatic arrears", () => {
+  assert.match(directory, /Setiap bulan berdiri sendiri/);
+  assert.match(directory, /rows\.filter\(row => row\.dues_month === period\)/);
 });
 
-test("current-month recording and payment controls remain available", () => {
-  assert.match(page, /RegisterForm/);
-  assert.match(page, /PaymentForm monthlyDuesId/);
-  assert.match(page, /InlineMemberForm/);
+test("current-month recording and payment controls remain role scoped", () => {
+  assert.doesNotMatch(page, /<DuesDirectory|<PaymentForm|<RegisterForm/);
+  assert.doesNotMatch(page, /<RegisterForm/);
+  assert.doesNotMatch(page, /<InlineMemberForm/);
+  assert.match(directory, /row.dues_month === currentMonth/);
+  assert.match(directory, /PaymentForm key=\{selected.id\} monthlyDuesId=\{selected.id\}/);
 });
 
 test("dues payment form generates an idempotency key at submit time", () => {

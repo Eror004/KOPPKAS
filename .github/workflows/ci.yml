@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, chatgpt/backend-monthly-dues]
   workflow_dispatch:
 
 permissions:
@@ -60,3 +60,47 @@ jobs:
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
       - name: Rebuild local database from repository migrations
         run: supabase db reset --local --no-seed
+      - name: Run database authorization and integrity tests
+        run: supabase test db
+      - name: Install PostgreSQL client for concurrency smoke test
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Verify concurrent lifecycle sync and ambiguous payment retry
+        run: bash scripts/monthly-dues-concurrency-smoke.sh
+
+  authenticated-browser:
+    name: Six local JWT roles and Chromium
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+      - name: Start and reset isolated Supabase
+        run: |
+          # Only this disposable local runner enables email login for test accounts.
+          sed -i 's/^enable_signup = false$/enable_signup = true/' supabase/config.toml
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta
+          supabase db reset --local --no-seed
+      - name: Install Chromium
+        run: |
+          if ! npx playwright install --with-deps chromium > /tmp/koppkas-playwright-install.log 2>&1; then
+            echo "::error::Chromium installation failed: $(tail -c 4000 /tmp/koppkas-playwright-install.log | tr '\n' ' ')"
+            exit 1
+          fi
+      - name: Build and run authenticated browser suite
+        run: |
+          eval "$(supabase status -o env)"
+          export NEXT_PUBLIC_SUPABASE_URL="$API_URL"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export LOCAL_SUPABASE_SERVICE_KEY="$SERVICE_ROLE_KEY"
+          npm run build
+          if ! npx playwright test > /tmp/koppkas-browser-test.log 2>&1; then
+            echo "::error::Browser test failed: $(grep -E 'Error:|Expected:|Received:|monthly-dues.spec.mjs:|failed|SyntaxError' /tmp/koppkas-browser-test.log | tail -20 | tr '\n' ' ')"
+            exit 1
+          fi

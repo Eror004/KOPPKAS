@@ -14,7 +14,8 @@ test("dashboard metrics come from role-scoped Supabase queries", () => {
   assert.match(page, /from\("members"\).*count: "exact"/s);
   assert.match(page, /can\(user\.role, "events", "read"\)/);
   assert.match(page, /from\("events"\).*count: "exact"/s);
-  assert.match(page, /from\("monthly_dues_summary"\)/);
+  assert.doesNotMatch(page, /monthly_dues_summary|currentMonth|paid_amount/);
+  assert.match(page, /monthlyCollected: \{ kind: "unavailable" as const \}/);
   assert.match(page, /from\("public_messages"\).*eq\("status", "baru"\)/s);
 });
 
