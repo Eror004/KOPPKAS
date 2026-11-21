@@ -131,7 +131,7 @@ This section supersedes the earlier manual-period-opening behavior above.
 
 ### Current-month lifecycle
 - The authoritative month is calculated in Asia/Jakarta.
-- sync_monthly_dues_period_lifecycle() is the authenticated on-demand synchronization RPC. The getMonthlyDuesPeriods Server Action calls it before returning the period list. The page component must invoke that action (or the RPC) on load; the current page has not yet been integrated to do so, and this remains part of the Arena frontend integration.
+- sync_monthly_dues_period_lifecycle() is a mutating command, not a read operation. Only Ketua Pemuda, Wakil Ketua Pemuda, and Bendahara may execute it. Sekretaris may read available dues periods and record payments but cannot activate or synchronize a period. getMonthlyDuesPeriods and all book-read adapters are read-only. A dedicated server action invokes lifecycle sync after the monthly-dues client module actually mounts for the three authorized roles; it must not run during Server Component rendering or route prefetch. After a confirmed sync, the client refreshes the read-only period and totals queries. A sync failure or ambiguous response must remain unconfirmed, never be shown as success.
 - Only the current Jakarta month may have status = active. Previous months become closed; no RPC can reopen them.
 - If several months were missed, one period row is created for each month. Missed months are closed and marked data_status = historical_empty unless actual persisted payment/expense source rows exist.
 - Historical-empty periods receive no generated member registers, payments, expenses, or opening/closing cash figures. The monthly dues summary suppresses default register rows for those months.
@@ -162,3 +162,24 @@ This section supersedes the earlier manual-period-opening behavior above.
 - GitHub CI run #453 passed: all repository migrations replayed locally, all 71 pgTAP authorization/integrity assertions passed, all 134 Node tests passed, and Edge Function typecheck, TypeScript, ESLint, and production build passed. The Vercel PR preview check also reported success. Real concurrent transactions around 00:00 WIB and browser end-to-end integration remain release gates.
 - This migration is isolated on chatgpt/backend-monthly-dues-hardening. It has not been applied to production; migration-history reconciliation remains a separate release gate.
 
+
+
+## Monthly dues period totals contract
+
+### `monthly_dues_period_totals`
+A `security_invoker = true` read-only view for Ketua Pemuda, Wakil Ketua Pemuda, Bendahara, and Sekretaris. It is a dues register aggregate, not the general cash-book balance. The period row is the source of truth for selected-period state; aggregate metrics are computed across every authorized register for that month, never from a paginated member list.
+
+Fields, in order:
+- `dues_month`: first day of the selected month.
+- `status`: `active` or `closed`.
+- `data_status`: `available` or `historical_empty`.
+- `member_count`, `paid_member_count`, `unpaid_member_count`: integer counts.
+- `total_paid_amount`, `total_reference_amount`, `total_remaining_amount`: `numeric(15,2)`.
+
+For `available` periods with no register rows, all six metrics are zero. For `historical_empty` periods, all six metrics are NULL because the historical data is unknown. Do not coalesce historical NULL values to zero in SQL, Server Actions, or UI. The view preserves underlying period/register/payment RLS and grants SELECT only to authenticated users; Ketua RW and Ketua RT receive no rows. Sekretaris can read dues totals but cannot read the separate cash-book balance.
+
+### Lifecycle RPC result
+`sync_monthly_dues_period_lifecycle()` returns `dues_month`, `status`, `data_status`, `processed_at`, `register_count`, and `validated_at`. The expected successful current-period contract is `status = active` and `data_status = available`. A client must not treat a timeout or transport failure as proof that the command did not commit; retry behavior must remain safe and must refresh the read model after a confirmed result.
+
+### Verification boundary
+The SQL migration and pgTAP role/aggregate tests are committed to the isolated backend branch but have not yet been executed against a local PostgreSQL/Supabase instance. Repeated sequential synchronization is idempotent by the unique period/member-month constraints and `ON CONFLICT DO NOTHING`; true concurrent calls and a rollover race at 00:00 WIB remain database integration release gates. No hosted migration has been applied.
