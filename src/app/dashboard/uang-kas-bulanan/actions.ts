@@ -33,7 +33,7 @@ export type DuesPaymentReceipt = {
   payment_id: string;
   monthly_dues_id: string;
   member_id: string;
-  member_name: string;
+  member_name: string | null;
   amount: string | number;
   paid_at: string;
   dues_month: string;
@@ -59,7 +59,7 @@ export async function generateMonthlyRegister(previous: DuesActionState, formDat
   const duesMonth = String(formData.get("dues_month") ?? "");
   const user = await requireModulePermission("monthly_dues", "create");
   if (!["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)) {
-    return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat membuka periode kas bulanan." };
+    return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat mengaktifkan buku kas bulan berjalan." };
   }
   if (!isValidMonth(duesMonth)) {
     return { error: "Pilih periode bulan yang valid sebelum membuka buku kas." };
@@ -70,7 +70,7 @@ export async function generateMonthlyRegister(previous: DuesActionState, formDat
     p_dues_month: duesMonth,
   });
   if (error || !data || typeof data !== "object") {
-    return { error: "Periode gagal dibuka. Pastikan yang dipilih adalah bulan berikutnya dari periode terakhir." };
+    return { error: "Periode gagal diaktifkan. Pilih bulan berjalan sesuai kalender Asia/Jakarta." };
   }
 
   revalidatePath("/dashboard/uang-kas-bulanan");
@@ -81,7 +81,7 @@ export async function generateMonthlyRegister(previous: DuesActionState, formDat
 export async function openMonthlyDuesPeriod(duesMonth: string): Promise<DuesActionState> {
   const user = await requireModulePermission("monthly_dues", "create");
   if (!["ketua_pemuda", "wakil_ketua_pemuda", "bendahara"].includes(user.role)) {
-    return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat membuka periode kas bulanan." };
+    return { error: "Hanya Ketua, Wakil Ketua, atau Bendahara yang dapat mengaktifkan buku kas bulan berjalan." };
   }
   if (!isValidMonth(duesMonth)) return { error: "Periode bulan tidak valid." };
 
@@ -90,7 +90,7 @@ export async function openMonthlyDuesPeriod(duesMonth: string): Promise<DuesActi
     p_dues_month: duesMonth,
   });
   if (error || !data || typeof data !== "object") {
-    return { error: "Periode gagal dibuka. Pilih bulan berikutnya dari periode terakhir." };
+    return { error: "Periode gagal diaktifkan. Pilih bulan berjalan sesuai kalender Asia/Jakarta." };
   }
 
   revalidatePath("/dashboard/uang-kas-bulanan");
@@ -100,14 +100,24 @@ export async function openMonthlyDuesPeriod(duesMonth: string): Promise<DuesActi
 export type MonthlyDuesPeriodOption = {
   dues_month: string;
   opened_at: string;
+  opened_effective_at: string;
+  opened_processed_at: string;
+  status: "active" | "closed";
+  data_status: "available" | "historical_empty";
+  closed_effective_at: string | null;
+  closed_processed_at: string | null;
 };
 
 export async function getMonthlyDuesPeriods(): Promise<{ periods: MonthlyDuesPeriodOption[]; error?: string }> {
   await requireModulePermission("monthly_dues", "read");
   const supabase = await createClient();
+  const { error: lifecycleError } = await supabase.rpc("sync_monthly_dues_period_lifecycle");
+  if (lifecycleError) {
+    return { periods: [], error: "Periode kas bulan berjalan belum dapat disinkronkan." };
+  }
   const { data, error } = await supabase
     .from("monthly_dues_periods")
-    .select("dues_month, opened_at")
+    .select("dues_month, opened_at, opened_effective_at, opened_processed_at, status, data_status, closed_effective_at, closed_processed_at")
     .order("dues_month", { ascending: false });
   if (error) return { periods: [], error: "Daftar periode kas belum dapat dimuat." };
   return { periods: (data ?? []) as MonthlyDuesPeriodOption[] };
@@ -270,10 +280,12 @@ export async function getDuesPaymentReceipt(
 
 export type MonthlyDuesCashBookSummary = {
   dues_month: string;
-  opening_balance: string | number;
-  income_amount: string | number;
-  expense_amount: string | number;
-  closing_balance: string | number;
+  opening_balance: string | number | null;
+  income_amount: string | number | null;
+  expense_amount: string | number | null;
+  closing_balance: string | number | null;
+  data_status: "available" | "historical_empty";
+  cash_balance_status: "available" | "historical_gap";
 };
 
 export type MonthlyDuesCashMovement = {
@@ -325,7 +337,7 @@ export async function getMonthlyDuesCashBook(
   const supabase = await createClient();
   const [{ data: summary, error: summaryError }, { data: movements, error: movementsError, count }] = await Promise.all([
     supabase.from("monthly_dues_cash_book_summary")
-      .select("dues_month, opening_balance, income_amount, expense_amount, closing_balance")
+      .select("dues_month, opening_balance, income_amount, expense_amount, closing_balance, data_status, cash_balance_status")
       .eq("dues_month", duesMonth)
       .maybeSingle(),
     supabase.from("monthly_dues_cash_book_movements")
