@@ -66,3 +66,19 @@ test("lifecycle synchronization is restricted to finance officers", () => {
   assert.doesNotMatch(lifecycle, /'sekretaris'/);
   assert.match(lifecycle, /Not authorized to synchronize monthly dues lifecycle/);
 });
+
+
+test("period and register creation are conflict-safe for repeated syncs", () => {
+  const ensure = sql.slice(
+    sql.indexOf("create or replace function app_private.ensure_current_monthly_dues_period"),
+    sql.indexOf("create or replace function app_private.lock_current_monthly_dues_period")
+  );
+  const prepare = sql.slice(
+    sql.indexOf("create or replace function app_private.prepare_current_monthly_dues_period"),
+    sql.indexOf("create or replace function public.sync_monthly_dues_period_lifecycle")
+  );
+  assert.ok(ensure.includes("pg_advisory_xact_lock"));
+  assert.ok(ensure.includes("on conflict (dues_month) do nothing"));
+  assert.ok(prepare.includes("for share") || sql.includes("for share"));
+  assert.ok(prepare.includes("on conflict (member_id, dues_month) do nothing"));
+});
