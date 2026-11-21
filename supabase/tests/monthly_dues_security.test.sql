@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(75);
+select plan(79);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -43,6 +43,37 @@ values (
   date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date,
   10000
 );
+
+-- Secretary may use member/payment RPCs only after an authorized officer has activated the current period.
+-- These calls must not implicitly create or roll over the current period.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
+select throws_ok(
+  $select public.ensure_monthly_dues_for_member('10000000-0000-4000-8000-000000000001', date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)$,
+  '42501',
+  'Not authorized to activate monthly dues lifecycle',
+  'Sekretaris cannot implicitly activate lifecycle through register RPC'
+);
+select throws_ok(
+  $select public.create_member_and_monthly_dues_safe('Anggota Uji Sekretaris', date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date, true)$,
+  '42501',
+  'Not authorized to activate monthly dues lifecycle',
+  'Sekretaris cannot implicitly activate lifecycle through member RPC'
+);
+select throws_ok(
+  $select public.record_monthly_dues_payment('20000000-0000-4000-8000-000000000001', 10000, '30000000-0000-4000-8000-000000000099', 'Retry sebelum aktivasi')$,
+  '42501',
+  'Not authorized to activate monthly dues lifecycle',
+  'Sekretaris cannot implicitly activate lifecycle through payment RPC'
+);
+select is(
+  (select count(*)::integer from public.monthly_dues_periods
+   where dues_month = date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date
+     and status = 'active'),
+  0,
+  'Rejected Secretary calls leave the current period unopened'
+);
+reset role;
 
 -- Materialize the active Jakarta month before exercising current-period writes.
 set local role authenticated;

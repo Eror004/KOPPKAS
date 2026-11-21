@@ -62,3 +62,7 @@ jobs:
         run: supabase db reset --local --no-seed
       - name: Run database authorization and integrity tests
         run: supabase test db
+      - name: Install PostgreSQL client for concurrency smoke test
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Verify concurrent lifecycle sync and ambiguous payment retry
+        run: bash scripts/monthly-dues-concurrency-smoke.sh
