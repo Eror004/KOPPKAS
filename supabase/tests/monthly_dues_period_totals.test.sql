@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(31);
 
 -- Local-only test identities; the auth trigger creates their profiles.
 insert into auth.users (id, aud, role, email, raw_user_meta_data)
@@ -50,6 +50,7 @@ insert into public.monthly_dues_payments (id, monthly_dues_id, amount, paid_at, 
 
 select ok(not has_table_privilege('anon', 'public.monthly_dues_period_totals', 'SELECT'), 'anon cannot read period totals');
 select ok(has_table_privilege('authenticated', 'public.monthly_dues_period_totals', 'SELECT'), 'authenticated has SELECT on the read model');
+select is((select count(*)::integer from information_schema.columns where table_schema = 'public' and table_name = 'monthly_dues_period_totals' and column_name in ('total_paid_amount','total_reference_amount','total_remaining_amount') and data_type = 'numeric' and numeric_precision = 15 and numeric_scale = 2), 3, 'all nominal aggregate fields preserve numeric(15,2) precision');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
