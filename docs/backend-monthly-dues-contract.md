@@ -23,7 +23,7 @@ Cumulative post-transaction status is ordered by `paid_at, payment_id`, not deri
 ## RPC contracts
 
 ### `ensure_monthly_dues_for_member(p_member_id uuid, p_dues_month date) returns uuid`
-- Requires authenticated user with one of Ketua, Wakil Ketua, Bendahara, Sekretaris.
+- Requires authenticated user with one of Ketua Pemuda, Wakil Ketua Pemuda, or Bendahara.
 - Requires an active existing member and first-day-of-month date.
 - Inserts one register row at Rp10,000, or returns the existing row ID.
 - Does not create or match a member by name.
@@ -118,8 +118,8 @@ The seven monthly-dues migrations are prepared on the isolated backend branch an
 
 
 ### Outstanding integration and owner gates
-- The current page still renders `InlineMemberForm`, whose Server Action calls the legacy `create_member_and_monthly_dues` RPC. The final migration revokes that legacy RPC for authenticated callers. The frontend integration PR must replace this path with `createDuesMember` before the migration is deployed.
-- The current `RegisterForm` does not submit a `dues_month` field, while `generateMonthlyRegister` now requires one. The frontend integration must supply the next explicit period and label the action accordingly.
+- The current integrated page uses read-only monthly-book and receipt projections. The legacy member-creation RPC remains revoked for authenticated callers; member/register/payment write UI stays disabled until action contracts, idempotency, six-role E2E, and the release gates are approved.
+- Lifecycle activation now uses the dedicated explicit client-triggered sync command for Ketua/Wakil/Bendahara; period reads remain read-only and no manual next-month opening control should be exposed.
 - The owner must still confirm whether a payment for an older dues month should be attributed to that dues month or to the actual month cash was received, and whether late historical entries may recalculate closed-period balances.
 - The historical October 2026 opening amount of Rp205,000 has been confirmed by the owner and approved for production. It is an opening balance only, not an iuran payment or general-ledger income.
 - A read-only hosted audit still finds both legacy member-creation RPCs executable by `authenticated`, plus direct `INSERT`/`UPDATE` table privileges on `monthly_dues` and `UPDATE` on `monthly_dues_payments`. The closing migration removes these paths, but it must be deployed together with the new period-gated RPCs after frontend compatibility is ready; do not apply the closing migration alone.
@@ -131,7 +131,7 @@ This section supersedes the earlier manual-period-opening behavior above.
 
 ### Current-month lifecycle
 - The authoritative month is calculated in Asia/Jakarta.
-- sync_monthly_dues_period_lifecycle() is a mutating command, not a read operation. Only Ketua Pemuda, Wakil Ketua Pemuda, and Bendahara may execute it. Sekretaris may read available dues periods and record payments but cannot activate or synchronize a period. getMonthlyDuesPeriods and all book-read adapters are read-only. A dedicated server action invokes lifecycle sync after the monthly-dues client module actually mounts for the three authorized roles; it must not run during Server Component rendering or route prefetch. After a confirmed sync, the client refreshes the read-only period and totals queries. A sync failure or ambiguous response must remain unconfirmed, never be shown as success.
+- sync_monthly_dues_period_lifecycle() is a mutating command, not a read operation. Only Ketua Pemuda, Wakil Ketua Pemuda, and Bendahara may execute it. Sekretaris is read-only: it may read available dues periods and totals but cannot create registers, create members through the dues workflow, record payments, or activate/synchronize a period. getMonthlyDuesPeriods and all book-read adapters are read-only. A dedicated server action invokes lifecycle sync after the monthly-dues client module actually mounts for the three authorized roles; it must not run during Server Component rendering or route prefetch. After a confirmed sync, the client refreshes the read-only period and totals queries. A sync failure or ambiguous response must remain unconfirmed, never be shown as success.
 - Only the current Jakarta month may have status = active. Previous months become closed; no RPC can reopen them.
 - If several months were missed, one period row is created for each month. Missed months are closed and marked data_status = historical_empty unless actual persisted payment/expense source rows exist.
 - Historical-empty periods receive no generated member registers, payments, expenses, or opening/closing cash figures. The monthly dues summary suppresses default register rows for those months.
