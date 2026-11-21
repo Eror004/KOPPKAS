@@ -56,3 +56,13 @@ test("cash summary preserves the original five columns and appends lifecycle met
     cursor = next;
   }
 });
+
+test("lifecycle synchronization is restricted to finance officers", () => {
+  const lifecycle = sql.slice(
+    sql.indexOf("create or replace function public.sync_monthly_dues_period_lifecycle"),
+    sql.indexOf("create or replace function public.open_monthly_dues_period")
+  );
+  assert.match(lifecycle, /'ketua_pemuda','wakil_ketua_pemuda','bendahara'/);
+  assert.doesNotMatch(lifecycle, /'sekretaris'/);
+  assert.match(lifecycle, /Not authorized to synchronize monthly dues lifecycle/);
+});
