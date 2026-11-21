@@ -130,9 +130,7 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
   if (normalizedQuery.length < 2 || normalizedQuery.length > 80 || !isValidMonth(duesMonth)) return { members: [] };
 
   // Escape ILIKE wildcards so user input is treated as a literal substring.
-  const escapedQuery = normalizedQuery.replace(/[\\%_]/g, "\\  const escapedQuery = normalizedQuery.replace(/[\\%_]/g, "\\$&");
-  const supabase = await createClient();
-  const { data: fetchedMembers, error } = await supabase");
+  const escapedQuery = normalizedQuery.replace(/[\\%_]/g, "\\$&");
   const supabase = await createClient();
   const { data: selectedPeriod, error: periodError } = await supabase
     .from("monthly_dues_periods")
@@ -143,11 +141,12 @@ export async function searchDuesMembers(query: string, duesMonth: string): Promi
   if (!selectedPeriod || selectedPeriod.data_status === "historical_empty") {
     return { members: [], hasMore: false, error: "Data historis tidak tersedia untuk periode ini." };
   }
+
   const { data: fetchedMembers, error } = await supabase
     .from("members")
     .select("id, full_name")
     .is("archived_at", null)
-    .ilike("full_name", `%${escapedQuery}%`)
+    .ilike("full_name", \`%\${escapedQuery}%\`)
     .order("full_name", { ascending: true })
     .limit(16);
 
