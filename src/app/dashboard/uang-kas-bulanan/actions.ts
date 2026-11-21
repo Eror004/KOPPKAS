@@ -15,7 +15,7 @@ export type DuesMemberOption = {
   fullName: string;
   monthlyDuesId: string | null;
   paidAmount: string | number | null;
-  paymentStatus: "lunas" | "belum_bayar" | null;
+  paymentStatus: "lunas" | "kurang" | "belum_bayar" | null;
 };
 
 export type DuesMemberSearchResult = {
@@ -42,7 +42,7 @@ export type DuesPaymentReceipt = {
   recorded_by_name: string | null;
   reference_amount: string | number;
   paid_amount_after_transaction: string | number;
-  status_after_transaction: "lunas" | "belum_bayar";
+  status_after_transaction: "lunas" | "kurang" | "belum_bayar";
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
