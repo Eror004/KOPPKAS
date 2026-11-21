@@ -298,7 +298,7 @@ declare v_id uuid; v_validated_at timestamptz;
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara','sekretaris'
+    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
   ]::public.app_role[]) then
     raise exception 'Not authorized to prepare a monthly dues register' using errcode = '42501';
   end if;
@@ -339,7 +339,7 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara','sekretaris'
+    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
   ]::public.app_role[]) then
     raise exception 'Not authorized to add a member from monthly dues' using errcode = '42501';
   end if;
@@ -395,7 +395,7 @@ declare
 begin
   if auth.uid() is null then raise exception 'Authentication required' using errcode = '28000'; end if;
   if not app_private.has_any_role(array[
-    'ketua_pemuda','wakil_ketua_pemuda','bendahara','sekretaris'
+    'ketua_pemuda','wakil_ketua_pemuda','bendahara'
   ]::public.app_role[]) then
     raise exception 'Not authorized to record monthly dues' using errcode = '42501';
   end if;
