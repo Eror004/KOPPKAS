@@ -10,9 +10,10 @@ with all_movements as (
     s.dues_month, (s.dues_month::timestamp at time zone 'Asia/Jakarta') as occurred_at,
     'saldo_awal'::text as movement_type, 'Saldo awal'::text as description,
     s.opening_balance as amount, null::uuid as recorded_by, null::text as note, true as immutable,
-    o.created_at as recorded_at
+    coalesce(o.created_at, period.opened_at) as recorded_at
   from public.monthly_dues_cash_book_summary s
-  join public.monthly_dues_cash_opening_balances o on o.dues_month = s.dues_month
+  join public.monthly_dues_periods period on period.dues_month = s.dues_month
+  left join public.monthly_dues_cash_opening_balances o on o.dues_month = s.dues_month
   union all
   select '1:payment:' || p.id::text, p.id, md.dues_month, p.paid_at,
     'pemasukan_iuran'::text, coalesce(p.member_name_snapshot, 'Nama tidak tersimpan saat transaksi')::text,
