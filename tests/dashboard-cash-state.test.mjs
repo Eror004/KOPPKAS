@@ -34,7 +34,7 @@ test("all roles retain distinct monthly dues and finance permission gates", () =
     assert.equal(can(role, "general_finance", "create"), true);
   }
   assert.equal(can("sekretaris", "monthly_dues", "read"), true);
-  assert.equal(can("sekretaris", "monthly_dues", "create"), true);
+  assert.equal(can("sekretaris", "monthly_dues", "create"), false);
   assert.equal(can("sekretaris", "general_finance", "read"), false);
   assert.equal(can("sekretaris", "general_finance", "create"), false);
   for (const role of ["ketua_rt_01", "ketua_rw_01"]) {
