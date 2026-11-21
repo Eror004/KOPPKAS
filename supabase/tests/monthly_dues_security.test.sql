@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(71);
+select plan(75);
 
 -- Deterministic local-only identities. auth.users' existing trigger creates profiles;
 -- roles are assigned explicitly here, inside this test transaction.
@@ -83,6 +83,30 @@ select ok(not has_function_privilege('anon', 'public.record_monthly_dues_payment
 select ok(has_function_privilege('authenticated', 'public.record_monthly_dues_payment(uuid,numeric,uuid,text)', 'EXECUTE'), 'authenticated can call the role-checked payment RPC');
 select ok(not has_function_privilege('anon', 'public.record_monthly_dues_cash_expense(date,numeric,text,timestamptz,uuid)', 'EXECUTE'), 'anon cannot record expenses');
 select ok(has_function_privilege('authenticated', 'public.record_monthly_dues_cash_expense(date,numeric,text,timestamptz,uuid)', 'EXECUTE'), 'authenticated can call the role-checked expense RPC');
+
+-- Lifecycle synchronization mutates period/register state, so only the three finance
+-- officers may execute it. Secretary may read and record dues but cannot activate periods.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
+select lives_ok($select public.sync_monthly_dues_period_lifecycle()$, 'Ketua can synchronize monthly dues lifecycle');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000002', true);
+select lives_ok($select public.sync_monthly_dues_period_lifecycle()$, 'Wakil can synchronize monthly dues lifecycle');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
+select lives_ok($select public.sync_monthly_dues_period_lifecycle()$, 'Bendahara can synchronize monthly dues lifecycle');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
+select throws_ok(
+  $select public.sync_monthly_dues_period_lifecycle()$,
+  '42501',
+  'Not authorized to synchronize monthly dues lifecycle',
+  'Sekretaris cannot synchronize or activate monthly dues lifecycle'
+);
+reset role;
 
 -- Cash-book read model is finance-only across all six organization roles.
 set local role authenticated;
