@@ -13,7 +13,7 @@ const [permissions, workflow, actions, backend] = await Promise.all([
 test("Sekretaris is read-only in monthly dues at the UI and server permission boundary", () => {
   assert.match(permissions, /sekretaris:\s*\{[\s\S]*?monthly_dues:\s*\["read"\]/);
   assert.doesNotMatch(permissions, /sekretaris:\s*\{[\s\S]*?monthly_dues:\s*\["read",\s*"create"\]/);
-  assert.match(actions, /integrationWritesEnabled\(\): boolean => false/);
+  assert.match(actions, /integrationWritesEnabled\s*=\s*\(\): boolean => false/);
   assert.match(workflow, /user\.role === "ketua_pemuda" \|\| user\.role === "wakil_ketua_pemuda" \|\| user\.role === "bendahara"/);
 });
 
