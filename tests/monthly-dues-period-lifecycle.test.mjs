@@ -15,7 +15,7 @@ test("period lifecycle recaptures Jakarta time after acquiring the lifecycle loc
 test("missed periods remain empty and are not exposed as generated member lists", () => {
   assert.ok(sql.includes("'historical_empty'"));
   assert.ok(sql.includes("then 'available' else 'historical_empty' end"));
-  assert.ok(sql.includes("Page synchronization creates the current period"));
+  assert.ok(sql.includes("Page synchronization creates the current month"));
   assert.ok(sql.includes("period.data_status = 'available'"));
   assert.ok(sql.includes("gap.data_status = 'historical_empty'"));
 });
