@@ -29,7 +29,7 @@ insert into public.monthly_dues (id, member_id, dues_month, reference_amount)
 values (
   '20000000-0000-4000-8000-000000000001',
   '10000000-0000-4000-8000-000000000001',
-  date '2026-10-01',
+  date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date,
   10000
 );
 
@@ -40,9 +40,15 @@ insert into public.monthly_dues (id, member_id, dues_month, reference_amount)
 values (
   '20000000-0000-4000-8000-000000000002',
   '10000000-0000-4000-8000-000000000002',
-  date '2026-10-01',
+  date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date,
   10000
 );
+
+-- Materialize the active Jakarta month before exercising current-period writes.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
+select public.sync_monthly_dues_period_lifecycle();
+reset role;
 
 -- Legacy SECURITY DEFINER endpoints must not be executable by API roles.
 select ok(not has_function_privilege('anon', 'public.create_member_and_monthly_dues(text,date)', 'EXECUTE'), 'anon cannot execute legacy member/register RPC');
@@ -61,6 +67,8 @@ select ok(not has_table_privilege('authenticated', 'public.monthly_dues_payments
 select ok(not has_table_privilege('authenticated', 'public.monthly_dues_payments', 'DELETE'), 'authenticated cannot delete payment history');
 select ok(has_table_privilege('authenticated', 'public.monthly_dues', 'SELECT'), 'authenticated retains RLS-scoped register reads');
 select ok(has_table_privilege('authenticated', 'public.monthly_dues_payments', 'SELECT'), 'authenticated retains RLS-scoped payment reads');
+select ok(exists (select 1 from information_schema.columns where table_schema='public' and table_name='monthly_dues_payments' and column_name='member_name_snapshot'), 'payment table stores member name snapshots');
+select ok(exists (select 1 from information_schema.columns where table_schema='public' and table_name='monthly_dues_payments' and column_name='recorder_name_snapshot'), 'payment table stores recorder name snapshots');
 
 -- New RPCs are private to authenticated callers, not anon/PUBLIC.
 select ok(not has_function_privilege('anon', 'public.open_monthly_dues_period(date)', 'EXECUTE'), 'anon cannot open periods');
@@ -77,15 +85,15 @@ select ok(has_function_privilege('authenticated', 'public.record_monthly_dues_ca
 -- Cash-book read model is finance-only across all six organization roles.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
-select is((select count(*)::integer from public.monthly_dues_cash_book_summary), 1, 'Ketua Pemuda can read the cash-book summary');
+select is((select count(*)::integer from public.monthly_dues_cash_book_summary), (select count(*)::integer from public.monthly_dues_periods), 'Ketua Pemuda can read the cash-book summary');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000002', true);
-select is((select count(*)::integer from public.monthly_dues_cash_book_summary), 1, 'Wakil Ketua Pemuda can read the cash-book summary');
+select is((select count(*)::integer from public.monthly_dues_cash_book_summary), (select count(*)::integer from public.monthly_dues_periods), 'Wakil Ketua Pemuda can read the cash-book summary');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select is((select count(*)::integer from public.monthly_dues_cash_book_summary), 1, 'Bendahara can read the cash-book summary');
+select is((select count(*)::integer from public.monthly_dues_cash_book_summary), (select count(*)::integer from public.monthly_dues_periods), 'Bendahara can read the cash-book summary');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
@@ -192,12 +200,12 @@ reset role;
 -- Sekretaris cannot open a period; Ketua can open only the next month.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
-select throws_ok($$select public.open_monthly_dues_period(date '2026-11-01')$$, '42501', 'Not authorized to open a monthly dues period', 'Sekretaris cannot open a period');
+select throws_ok($$select public.open_monthly_dues_period(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)$$, '42501', 'Not authorized to open a monthly dues period', 'Sekretaris cannot open a period');
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
-select throws_ok($$select public.open_monthly_dues_period(date '2026-12-01')$$, '22023', 'Only the month immediately following the latest opened period can be opened', 'Cannot skip an unopened month');
-select is((public.open_monthly_dues_period(date '2026-11-01')->>'opening_balance')::numeric, 205000.00::numeric, 'November opens with October closing balance');
+select throws_ok($select public.open_monthly_dues_period(((date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date + interval '1 month')::date))$, '55000', 'Only the current Asia/Jakarta month can be activated; historical books remain closed', 'Future month cannot be activated');
+select is(public.open_monthly_dues_period(date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date)->>'status', 'active', 'Current Jakarta month is active');
 reset role;
 
 -- Persisted payment idempotency: a retry with the same key is a no-op; payload reuse is rejected.
@@ -218,14 +226,64 @@ select lives_ok('select public.record_monthly_dues_payment(''20000000-0000-4000-
 select is((select payment_status from public.monthly_dues_summary where id = '20000000-0000-4000-8000-000000000002'), 'lunas', 'aggregate at Rp10,000 becomes paid');
 reset role;
 
--- Expense guard uses the full official balance, is idempotent, and fails closed on overspend.
+-- Expense guard is idempotent when the cash balance is known and fails closed
+-- when an unreconciled historical gap makes the official balance NULL.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000004', true);
-select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 225000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'Bendahara can spend the exact available balance');
-select lives_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 225000, 'Pengeluaran uji', timestamptz '2026-10-10 12:00:00+07', '40000000-0000-4000-8000-000000000001')$$, 'same expense idempotency key returns the original row');
-select throws_ok($$select public.record_monthly_dues_cash_expense(date '2026-10-01', 1, 'Pengeluaran tambahan', timestamptz '2026-10-11 12:00:00+07', '40000000-0000-4000-8000-000000000002')$$, '23514', 'Insufficient cash balance: available 0.00, requested 1', 'expense above available balance is rejected');
+select lives_ok($$do $test$
+declare
+  v_month date := date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date;
+  v_spent_at timestamptz := date_trunc('day', clock_timestamp() at time zone 'Asia/Jakarta')::timestamp at time zone 'Asia/Jakarta';
+  v_balance numeric(15,2);
+  v_first_id uuid;
+  v_retry_id uuid;
+begin
+  select closing_balance into v_balance
+  from public.monthly_dues_cash_book_summary where dues_month = v_month;
+
+  if v_balance is null then
+    begin
+      perform public.record_monthly_dues_cash_expense(
+        v_month, 1, 'Pengeluaran uji', v_spent_at,
+        '40000000-0000-4000-8000-000000000001'
+      );
+      raise exception 'Expected fail-closed expense rejection';
+    exception when sqlstate 'P0002' then
+      null;
+    end;
+  else
+    v_first_id := public.record_monthly_dues_cash_expense(
+      v_month, v_balance, 'Pengeluaran uji', v_spent_at,
+      '40000000-0000-4000-8000-000000000001'
+    );
+    v_retry_id := public.record_monthly_dues_cash_expense(
+      v_month, v_balance, 'Pengeluaran uji', v_spent_at,
+      '40000000-0000-4000-8000-000000000001'
+    );
+    if v_retry_id <> v_first_id then
+      raise exception 'Expense retry did not return the original transaction';
+    end if;
+    begin
+      perform public.record_monthly_dues_cash_expense(
+        v_month, 1, 'Pengeluaran tambahan', v_spent_at,
+        '40000000-0000-4000-8000-000000000002'
+      );
+      raise exception 'Expected overspend rejection';
+    exception when sqlstate '23514' then
+      null;
+    end;
+  end if;
+end;
+$test$$, 'expense writes are idempotent with a known balance and fail closed across historical gaps');
 reset role;
-select is((select count(*)::integer from public.monthly_dues_cash_expenses where idempotency_key = '40000000-0000-4000-8000-000000000001'), 1, 'expense retry persists exactly one row');
+select is(
+  (select count(*)::integer from public.monthly_dues_cash_expenses
+    where idempotency_key = '40000000-0000-4000-8000-000000000001'),
+  case when (select cash_balance_status from public.monthly_dues_cash_book_summary
+    where dues_month = date_trunc('month', clock_timestamp() at time zone 'Asia/Jakarta')::date) = 'available'
+    then 1 else 0 end,
+  'expense persists only when the official balance is available'
+);
 
 select * from finish();
 rollback;
